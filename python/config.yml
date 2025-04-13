@@ -1,0 +1,7 @@
+mqtt:
+  broker: "test.mosquitto.org"
+  port: 1883
+
+topics:
+  input_topic: "sim/python/input"
+  output_topic: "sim/python/output"

@@ -1,0 +1,9 @@
+mqtt:
+  broker: "test.mosquitto.org"
+  port: 1883
+
+topics:
+  input_topic: "sim/matlab/input"
+  output_topic: "sim/matlab/output"
+
+timeout: 10
