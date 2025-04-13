@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "comm-bridge"
+version = "0.1.0"
+description = "A Modular and Scalable Communication Bridge for Digital Twin and Simulator Interoperability"
+authors = ["Marco Melloni <291358@studenti.unimore.it>"]
+license = "ICAPL"
+readme = "README.md"
+
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+paho-mqtt = ">=2.1.0,<3.0.0"
+pyyaml = ">=6.0.2,<7.0.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^8.3.5"
+black = "^25.1.0"
+isort = "^6.0.1"
+mypy = "^1.15.0"
+flake8 = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
