@@ -67,6 +67,12 @@ Ensure that the MATLAB Engine API for Python is installed by following the offic
 
 [MATLAB Engine API for Python Installation Instructions](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
 
+macbook:
+poetry shell
+cd /Applications/MATLAB_R2024b.app/extern/engines/python
+python -m pip install .
+python matlab_agent.py
+
 ## Configuration
 
 The agent is configured to connect to a RabbitMQ instance running on `localhost` by default. You can change the host by modifying the `host` argument when initializing the `RabbitMQClient` and `MatlabAgent` classes.
