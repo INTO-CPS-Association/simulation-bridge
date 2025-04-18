@@ -11,7 +11,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def load_config(config_path: str = '../config/config.yml') -> Dict[str, Any]:
+def load_config(config_path: str = 'src/simulation-bridge/config/config.yml') -> Dict[str, Any]:
     """
     Load configuration from YAML file.
     
@@ -123,6 +123,7 @@ def main():
         # Connect and loop
         logger.info(f"Connecting to {broker}:{port}...")
         client.connect(broker, port, timeout)
+        logger.info("Connected to MQTT broker")
         client.loop_forever()
         
     except KeyboardInterrupt:
