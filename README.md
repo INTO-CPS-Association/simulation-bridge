@@ -2,7 +2,7 @@
 
 The Simulation Bridge is a lightweight middleware solution enabling seamless communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their Simulators. Designed for modularity and flexibility, it supports multiple protocols and interaction modes while maintaining a minimal footprint.
 
-![Project](images/Project.png)
+![Project](images/project.png)
 
 ## Overview
 
