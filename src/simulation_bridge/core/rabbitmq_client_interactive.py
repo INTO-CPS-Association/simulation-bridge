@@ -12,7 +12,8 @@ class RabbitMQClient:
         print(f"✅ Connesso a RabbitMQ su {host}")
 
     def declare_queue(self, queue: str):
-        self.channel.queue_declare(queue=queue)
+        # Ensure consistent 'durable' setting
+        self.channel.queue_declare(queue=queue, durable=True)
 
     def publish(self, queue: str, message: str):
         self.channel.basic_publish(exchange='', routing_key=queue, body=message)
@@ -35,9 +36,8 @@ class RabbitMQClient:
             self.connection.close()
             print("🔌 Connessione RabbitMQ chiusa.")
 
-
 class SimulationClient:
-    REQUEST_QUEUE = 'queue_1'
+    REQUEST_QUEUE = 'queue_simulation'
     LIVE_DATA_QUEUE = 'agent_updates'
 
     def __init__(self, host='localhost'):
@@ -47,6 +47,8 @@ class SimulationClient:
     def send_simulation_request(self, sim_name='SimulazioneInterattiva'):
         sim_request = {
             'simulation': {
+                'type': 'interactive',
+                
                 'name': sim_name,
                 'file_path': '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/',
                 'matfile': '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/matfile/agent_data.mat',
@@ -67,12 +69,14 @@ class SimulationClient:
     def listen_live_data(self):
         def on_data(message: str):
             try:
+                print("Messaggio ricevuto:", message)  
                 data = json.loads(message)
                 print(f"\n📡 Step {data['step']} | Time: {data['time']:.2f}s")
                 for i, (pos, vel) in enumerate(zip(data['positions'], data['velocities'])):
                     print(f" - Agente {i+1}: Pos={pos}, Vel={vel}")
             except Exception as e:
                 print(f"Errore nella ricezione dati: {e}")
+
 
         self.listener.subscribe(self.LIVE_DATA_QUEUE, on_data)
 

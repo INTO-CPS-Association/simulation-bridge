@@ -1,0 +1,27 @@
+rabbitmq:
+  host: "localhost"
+  port: 5672
+  virtual_host: "/"
+  username: "guest"
+  password: "guest"
+  heartbeat: 60
+  blocked_connection_timeout: 300
+  ssl: false
+  ssl_cafile: "/path/to/ca.pem"
+  ssl_certfile: "/path/to/client_cert.pem"
+  ssl_keyfile: "/path/to/client_key.pem"
+queues:
+  request: "queue_simulation"
+  response: "queue_response"
+  data: "agent_updates"
+simulations:
+  - name: "SimulazioneInterattiva"
+    file_path: "/Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/"
+    matfile_path: "/Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/matfile/"
+    file: "simulation_agent"
+    matfile: "agent_data.mat"
+    data_fields:
+      - "position"
+      - "velocity"
+      - "agents_count"
+      - "realtime"
