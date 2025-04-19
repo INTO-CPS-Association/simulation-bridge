@@ -1,53 +1,303 @@
 # Simulation Bridge
 
-The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between **Digital Twins (DT)**, **Mock Physical Twins (MockPT)**, and their dedicated **Simulator** counterparts. It serves as a **modular, reusable, and bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments. Built around the concept of simulation, the bridge facilitates control, monitoring, and data exchange among the involved entities, providing a universal middleware solution that enhances flexibility and integration within simulation-based systems.
+The Simulation Bridge is a lightweight middleware solution enabling seamless communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their Simulators. Designed for modularity and flexibility, it supports multiple protocols and interaction modes while maintaining a minimal footprint.
+
+<div style="display: flex; 
+            align-items: center;
+            justify-content: center;
+            margin: 3rem 0;
+            gap: 0.5rem;">
+
+  <!-- Digital Twin Card -->
+<!-- Unified DT & MockPT Card -->
+<div style="flex: 0.8;
+            text-align: center;
+            padding: 1.8rem;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            z-index: 2;">
+  
+  <!-- Gradient Border Effect -->
+  <div style="position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(90deg, #6366f1 0%, #ec4899 100%);">
+  </div>
+
+  <!-- Icon Container -->
+  <div style="display: flex;
+              justify-content: center;
+              gap: 12px;
+              margin-bottom: 1rem;">
+    <div style="font-size: 2rem; color: #6366f1;">🌐</div>
+    <div style="font-size: 2rem; color: #ec4899;">🤖</div>
+  </div>
+
+  <!-- Title Styling -->
+  <h3 style="margin: 0.5rem 0;
+             font-size: 1.3rem;
+             color: #334155;
+             position: relative;
+             display: inline-block;">
+    <span style="color: #6366f1;">Digital Twin</span>
+    <span style="color: #000;"> / </span>
+    <span style="color: #ec4899;">Mock Physical Twin</span>
+    <div style="position: absolute;
+                bottom: -8px;
+                left: 25%;
+                right: 25%;
+                height: 2px;
+                background: linear-gradient(90deg, #6366f1 45%, #ec4899 55%);">
+    </div>
+  </h3>
+  
+  <h3 style="margin: 0.5rem 0 0;
+             font-size: 1.1rem;
+             font-weight: 500;
+             color: #64748b;">
+     Systems
+  </h3>
+
+</div>
+  <!-- Bi-Directional Connector Arrow -->
+   <div style="flex: 0.2; 
+              text-align: center;
+              color: #94a3b8;
+              position: relative;
+              padding: 0 0.5rem;">
+    <div style="border-top: 2px dashed #cbd5e1;
+                border-bottom: 2px dashed #cbd5e1;
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                height: 6px;
+                margin-top: -3px;
+                z-index: 1;"></div>
+    <div style="position: relative;
+                z-index: 2;
+                background: white;
+                padding: 0 0.5rem;
+                display: inline-flex;
+                gap: 8px;">
+      <span style="font-size: 1.5rem;">⇄</span>
+      <div style="display: flex;
+                  flex-direction: column;
+                  gap: 2px;
+                  justify-content: center;">
+        <div style="width: 12px; height: 2px; background: #cbd5e1;"></div>
+        <div style="width: 12px; height: 2px; background: #cbd5e1;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulation Bridge Card (Centered) -->
+  <div style="flex: 1;
+              text-align: center;
+              padding: 1.8rem;
+              background: white;
+              border-radius: 16px;
+              box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+              border: 1px solid #e2e8f0;
+              position: relative;
+              z-index: 3;">
+    <div style="font-size: 2.5rem; 
+                margin-bottom: 0.5rem;">🌉</div>
+    <h3 style="margin: 0.5rem 0; 
+                color: #334155;">Simulation Bridge</h3>
+    <small style="color: #64748b;
+                 display: block;
+                 font-size: 0.8rem;">Middleware Connector</small>
+  </div>
+
+  <!-- Bi-Directional Connector Arrow -->
+   <div style="flex: 0.2; 
+              text-align: center;
+              color: #94a3b8;
+              position: relative;
+              padding: 0 0.5rem;">
+    <div style="border-top: 2px dashed #cbd5e1;
+                border-bottom: 2px dashed #cbd5e1;
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                height: 6px;
+                margin-top: -3px;
+                z-index: 1;"></div>
+    <div style="position: relative;
+                z-index: 2;
+                background: white;
+                padding: 0 0.5rem;
+                display: inline-flex;
+                gap: 8px;">
+      <span style="font-size: 1.5rem;">⇄</span>
+      <div style="display: flex;
+                  flex-direction: column;
+                  gap: 2px;
+                  justify-content: center;">
+        <div style="width: 12px; height: 2px; background: #cbd5e1;"></div>
+        <div style="width: 12px; height: 2px; background: #cbd5e1;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simulators Card -->
+ <!-- Multi-Simulator Card -->
+<div style="flex: 0.8;
+            text-align: center;
+            padding: 1.8rem;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(20, 184, 166, 0.12);
+            position: relative;
+            overflow: hidden;
+            z-index: 2;">
+
+  <!-- Animated Gradient Border -->
+  <div style="position: absolute;
+              top: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(90deg, #14b8a6, #0d9488, #0f766e);
+              animation: border-pulse 6s infinite alternate;">
+  </div>
+
+  <!-- Cluster of Icons -->
+  <div style="display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 8px;
+              margin: 0 auto 1rem;
+              max-width: 120px;">
+    <div style="font-size: 1.5rem; color: #0d9488;">⚙️</div>
+    <div style="font-size: 1.8rem; color: #14b8a6;">📊</div>
+    <div style="font-size: 1.5rem; color: #0f766e;">🔬</div>
+    <div style="font-size: 1.7rem; color: #0d9488;">🧪</div>
+    <div style="font-size: 2rem; color: #14b8a6;">🌡️</div>
+    <div style="font-size: 1.6rem; color: #0f766e;">🔧</div>
+  </div>
+
+  <!-- Title with Counter -->
+  <h3 style="margin: 0.5rem 0;
+             font-size: 1.3rem;
+             color: #334155;">
+    <span style="position: relative;">
+    Simulators
+      <span style="position: absolute;
+                  top: -8px;
+                  right: -24px;
+                  background: #14b8a6;
+                  color: white;
+                  border-radius: 50%;
+                  width: 20px;
+                  height: 20px;
+                  font-size: 0.7rem;
+                  line-height: 20px;
+                  display: inline-block;">+2</span>
+    </span>
+  </h3>
+
+  <!-- Tags -->
+  <div style="display: flex;
+              justify-content: center;
+              flex-wrap: wrap;
+              gap: 6px;
+              margin-top: 1rem;">
+    <span style="background: #f0fdfa;
+               color: #0f766e;
+               padding: 2px 8px;
+               border-radius: 12px;
+               font-size: 0.7rem;
+               border: 1px solid #ccfbf1;">MATLAB</span>
+    <span style="background: #f0fdfa;
+               color: #0f766e;
+               padding: 2px 8px;
+               border-radius: 12px;
+               font-size: 0.7rem;
+               border: 1px solid #ccfbf1;">Python</span>
+  
+  </div>
+  <!-- CSS Animation -->
+  <style>
+    @keyframes border-pulse {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</div>
+
+</div>
+
+## Overview
 
 ![Simulation Bridge Architecture](images/software_architecture.png)
 
+---
+
 ## Key Features
 
-### Protocol Flexibility
+### Protocol Support
 
-- Supports **RabbitMQ**, **MQTT**, **REST**, and custom protocols via a modular plugin architecture. By default, **RabbitMQ** is used for robust security and reliability, but the system allows for protocol customization based on specific needs.
-
-### Simulation Control
-
-- Manage simulations through standardized commands (e.g., **start**, **stop**, **status**) issued by the **Digital Twin (DT)** or **Mock Physical Twin (MockPT)**. The control logic is delegated to the connected entities, providing flexibility in simulation management.
+- RabbitMQ (default)
+- MQTT
+- REST API
+- Custom protocol plugins
 
 ### Interaction Modes
 
-- **Final Result**: Executes simulations without real-time monitoring, focusing purely on the end result.
-- **Interactive**: Allows for real-time monitoring and interaction during simulation execution.
-- **Hybrid**: Combines batch execution with interactive control, enabling both automated and real-time adjustments.
+| Mode            | Description                                          |
+| --------------- | ---------------------------------------------------- |
+| **Batch**       | Execute simulations without real-time monitoring     |
+| **Interactive** | Real-time monitoring and control                     |
+| **Hybrid**      | Combine batch execution with interactive adjustments |
 
 ### Discoverability
 
-- Leverages a dynamic capability detection system through an **agent** mechanism. Agents report available simulator features (such as control options and accessible objects) to the bridge, facilitating plug-and-play integration with new simulators.
+- Dynamic capability detection via agent system
+- Automatic registration of simulator features
 
 ### Data Transformation
 
-- Transforms data between various formats (e.g., **JSON**, **XML**, **CSV**) to ensure compatibility between systems and facilitate communication between diverse platforms.
+- JSON ↔ XML ↔ CSV conversion
+- Protocol-agnostic data formatting
 
-## Out of Scope
+---
 
-- **Data Storage**: The bridge does not persist any data.
-- **File Handling**: File-based communication is not supported.
+## Documentation
 
-## Architecture
-
-The **Simulation Bridge** is built on a **modular, plugin-driven architecture**, designed to be highly extensible and adaptable to various simulation environments:
-
-- **Protocol Plugins**: Handle communication via supported protocols (e.g., RabbitMQ, MQTT).
-- **Agent System**: Dynamically discovers simulator capabilities and registers them with the bridge.
-- **Data Transformers**: Ensure cross-system compatibility by translating data between different formats.
-- **Command Dispatcher**: Routes simulation control commands and manages the interaction modes.
+- [**<span style="color:orange">MATLAB</span> Agent** ↗](agents/matlab_agent/README.md)
 
 ## License
 
-This project is protected under the **INTO-CPS Association Public License (ICAPL) v1.0**. The license offers three alternatives for use and redistribution of the software:
+**INTO-CPS Association Public License (ICAPL) v1.0**  
+Available under:
 
-1. **GPL v3**: The project can be used and redistributed under the terms of the GNU General Public License version 3.
-2. **ICA-Internal-EPL**: Available to Silver Level members of the INTO-CPS Association for use and redistribution within their organization.
-3. **ICA-External-EPL**: Available to Gold Level members of the INTO-CPS Association for use and redistribution, with additional conditions for distribution to external parties in binary/object code form.
+- GPL v3 (Open Source)
+- ICA-Internal-EPL (Silver Members)
+- ICA-External-EPL (Gold Members)
 
-This license ensures that the project is open-source, while also providing different redistribution options based on membership levels within the INTO-CPS Association.
+---
+
+## Author
+
+<div align="left" style="display: flex; align-items: center; gap: 15px;">
+  <img src="images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
+  <div>
+    <h3 style="margin: 0;">Marco Melloni</h3>
+    <div style="margin-top: 5px;">
+      <a href="https://www.linkedin.com/in/marco-melloni/">
+        <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/>
+      </a>
+      <a href="https://github.com/marcomelloni" style="margin-left: 8px;">
+        <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/>
+      </a>
+    </div>
+  </div>
+</div>

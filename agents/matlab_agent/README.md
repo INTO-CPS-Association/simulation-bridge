@@ -1,122 +1,176 @@
-# MATLAB Simulation Agent
+# <span style="color:orange">MATLAB</span> Agent
 
-This Python script implements an agent that listens for simulation requests from a RabbitMQ queue, runs the requested MATLAB simulation, and sends the results back to a response queue. The agent utilizes `pika` for RabbitMQ messaging and `matlab.engine` for interfacing with MATLAB simulations.
+## Documentation
 
-![Matlab](../../images/MATLAB-logo.png)
+MATLAB Agent is a Python-based connector designed to interface with MATLAB simulations using the MATLAB Engine API. It enables control, interaction, input/output exchange, and monitoring of three types of simulations:
+Batch Simulation – send inputs and retrieve results.
+Interactive Simulation – interact and visualize data in real time.
+Hybrid Simulation – mix of interactive control and output processing.
 
-## Components
+Communication with external systems is handled via RabbitMQ. Configuration is driven by a config_agent.yaml file which sets up the message queues and RabbitMQ connectivity.
 
-### 1. **RabbitMQClient**
+<div align="center">
+  <img src="images/MATLAB-logo.png" alt="Matlab" width="50%" style="margin-bottom: 10px;"/>
+</div>
 
-- A wrapper around RabbitMQ to manage connections, declare queues, and publish/consume messages.
-- It supports:
-  - Declaring queues (`declare_queue`)
-  - Publishing messages (`publish`)
-  - Subscribing to queues and handling incoming messages (`subscribe`, `start_consuming`)
+# Architecture Overview
 
-### 2. **MatlabSimulator**
+<div align="center">
+  <img src="images/Structure.png" alt="Structure MATLAB agent" width="100%" style="margin-bottom: 10px;"/>
+</div>
 
-- A class for managing MATLAB simulations.
-- It starts a MATLAB engine, loads the specified simulation file, and runs the simulation using the provided inputs.
-- The simulator handles:
-  - File validation (`_validate`)
-  - Starting and closing the MATLAB engine (`start`, `close`)
-  - Running the simulation with inputs and fetching the results (`run`)
-  - Converting Python values to MATLAB-compatible types and vice versa (`_to_matlab`, `_from_matlab`)
+## Simulation Types and Flow
 
-### 3. **MatlabAgent**
+### General Flow
 
-- The main agent that listens for incoming simulation requests on the RabbitMQ `queue_1` and sends back results to `queue_2`.
-- It handles:
-  - Receiving simulation requests (`on_request`)
-  - Running the simulation using the `MatlabSimulator` class
-  - Publishing the simulation results back to the response queue
-- The agent is designed to:
-  - Subscribe to the request queue (`queue_1`)
-  - Start consuming messages from the queue
-  - Process simulation requests, run MATLAB simulations, and send results back
+1. The **Simulation Bridge** sends input as a YAML string via **RabbitMQ**.
+2. `RabbitMQClient` receives the message and subscribes to the configured queues.
+3. `main.py` routes the message to the appropriate simulation handler.
+4. Depending on the specified simulation type, control is passed to:
+   - `Batch`
+   - `Interactive`
+   - `Hybrid`
 
-## Workflow
+---
 
-1. **Simulation Request:**
+### 1. Batch Simulation
 
-   - The agent listens on the RabbitMQ queue `queue_1` for incoming simulation requests. Each request contains a YAML message with the simulation configuration, including:
-     - Path to the simulation file
-     - Name of the simulation file
-     - Input parameters for the simulation
-     - Expected output parameters
+- Executes a MATLAB `.m` script using the **MATLAB API Engine for Python**.
+- Simulation results are returned as structured Python objects.
+- Results are encoded as YAML strings and published back to the Simulation Bridge via RabbitMQ.
 
-2. **MATLAB Simulation:**
+> 📁 Example output messages can be found in the `/images/output-batch-*` folder.
 
-   - Upon receiving a request, the agent initializes a `MatlabSimulator` object, validates the simulation file, and runs the MATLAB function with the specified inputs.
-   - The simulation results are collected and formatted.
+<div align="center">
+  <img src="images/output-batch-1.png" alt="Batch Output 1" width="30%" style="margin-right: 10px;"/>
+  <img src="images/output-batch-2.png" alt="Batch Output 2" width="30%" style="margin-right: 10px;"/>
+  <img src="images/output-batch-3.png" alt="Batch Output 3" width="30%"/>
+</div>
 
-3. **Result Response:**
-   - Once the simulation completes, the agent sends the results back to the RabbitMQ queue `queue_2`, where the results can be consumed by other components or agents in the system.
+---
 
-## Requirements
+### 2. Interactive Simulation
 
-- Python 3.x
-- MATLAB API ENGINE for python (for the MATLAB engine interface)
-- `pika` library for RabbitMQ interaction
-- `pyyaml` library for handling YAML data
+- The MATLAB simulation must save runtime data to a `.mat` file named `agent_data.mat` located in the `matfile/` directory.
+- The `interactive.py` module reads variables in real time from the `.mat` file.
+- Data is streamed continuously to the Simulation Bridge via RabbitMQ.
 
-## MATLAB Engine API Installation
+---
 
-Ensure that the MATLAB Engine API for Python is installed by following the official installation instructions from MathWorks:
+### 3. Hybrid Simulation
 
-[MATLAB Engine API for Python Installation Instructions](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
+> 🚧 **Work in Progress**
 
-macbook:
-poetry shell
-cd /Applications/MATLAB_R2024b.app/extern/engines/python
-python -m pip install .
-python matlab_agent.py
+- Aims to support both:
+  - Real-time interaction with the simulation.
+  - Batch-style output processing.
+- Designed to enable dynamic scenario adjustment during execution.
+
+---
+
+## Communication with Matlab
+
+All modules use the MATLAB Engine API for Python to control MATLAB sessions.
+
+---
 
 ## Configuration
 
-The agent is configured to connect to a RabbitMQ instance running on `localhost` by default. You can change the host by modifying the `host` argument when initializing the `RabbitMQClient` and `MatlabAgent` classes.
+### `config_agent.yaml`
 
-The agent listens on two RabbitMQ queues:
+This file configures:
 
-- **Request Queue:** `queue_1`
-- **Response Queue:** `queue_2`
+- RabbitMQ connection (host, port, credentials)
+- Queue names for subscription and publishing
 
-### The simulation request should include:
-
-- The **path** to the MATLAB script.
-- The **name** of the MATLAB script.
-- Input parameters for the simulation.
-- Expected output variables.
-
-## Example Request
-
-Here’s an example of a simulation request that can be sent to `queue_1`:
+#### Example:
 
 ```yaml
-simulation:
-  name: "Example Simulation"
-  path: "/path/to/simulation"
-  file: "simulate.m"
-  inputs:
-    param1: 10
-    param2: 5
-  outputs:
-    result1: "output1"
-    result2: "output2"
+rabbitmq:
+  host: "localhost"
+  port: 5672
+  virtual_host: "/"
+  username: "guest"
+  password: "guest"
+  heartbeat: 60
+  blocked_connection_timeout: 300
+  ssl: false
+  ssl_cafile: "/path/to/ca.pem"
+  ssl_certfile: "/path/to/client_cert.pem"
+  ssl_keyfile: "/path/to/client_key.pem"
+queues:
+  request: "queue_simulation"
+  response: "queue_response"
+  data: "agent_updates"
 ```
 
-## Error Handling
+---
 
-- **MATLAB Simulation Errors:** If there is an error during the MATLAB simulation, a `MatlabSimulationError` exception is raised.
-- **Unexpected Errors:** Any other unexpected errors that occur are caught and logged for troubleshooting.
+## Message Format
 
-## Running the Agent
+**Simulation Bridge → MATLAB Agent**
 
-To start the agent, simply run the script with:
+```python
+message = yaml.dump({'simulation': simulation_data['simulation']})
+```
+
+The agent expects an input message formatted as valid YAML containing the simulation parameters.
+
+---
+
+## Dependencies
+
+- Python **3.8+**
+- **MATLAB** with the **MATLAB Engine API for Python** installed
+- **RabbitMQ** server (local or remote)
+
+### MATLAB Engine API Installation
+
+Ensure that the **MATLAB Engine API for Python** is properly installed by following the official instructions provided by MathWorks:
+
+🔗 [MATLAB Engine API for Python - Installation Guide](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
+
+#### Example (macOS)
+
+If you're using macOS (e.g., with MATLAB R2024b), you can install the engine using the following steps:
 
 ```bash
-python matlab_agent.py
+poetry shell
+cd /Applications/MATLAB_R2024b.app/extern/engines/python
+python -m pip install .
 ```
 
-The agent will connect to RabbitMQ and start listening for simulation requests. It will automatically handle incoming messages, execute the corresponding MATLAB simulations, and send back the results.
+> 💡 Replace the MATLAB version path (`MATLAB_R2024b.app`) with the one corresponding to your installed version if different.
+
+---
+
+## Usage
+
+### 1. Configure the Agent
+
+Edit the `config_agent.yaml` file with the correct RabbitMQ credentials and simulation settings.
+
+### 2. Run the Agent
+
+```bash
+python main.py
+```
+
+The agent will start listening on the configured RabbitMQ queues and route simulation requests based on the selected simulation mode (batch, interactive, or hybrid).
+
+## Author
+
+<div align="left" style="display: flex; align-items: center; gap: 15px;">
+  <img src="images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
+  <div>
+    <h3 style="margin: 0;">Marco Melloni</h3>
+    <div style="margin-top: 5px;">
+      <a href="https://www.linkedin.com/in/marco-melloni/">
+        <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/>
+      </a>
+      <a href="https://github.com/marcomelloni" style="margin-left: 8px;">
+        <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/>
+      </a>
+    </div>
+  </div>
+</div>
