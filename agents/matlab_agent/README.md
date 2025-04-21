@@ -2,16 +2,17 @@
 
 ## Documentation
 
-MATLAB Agent is a Python-based connector designed to interface with MATLAB simulations using the MATLAB Engine API. It enables control, interaction, input/output exchange, and monitoring of three types of simulations:
-Batch Simulation – send inputs and retrieve results.
-Interactive Simulation – interact and visualize data in real time.
-Hybrid Simulation – mix of interactive control and output processing.
+**MATLAB Agent** is a Python-based connector designed to interface with MATLAB simulations using the MATLAB Engine API. It enables control, interaction, input/output exchange, and monitoring of three types of simulations:
 
-Communication with external systems is handled via RabbitMQ. Configuration is driven by a config_agent.yaml file which sets up the message queues and RabbitMQ connectivity.
+- Batch Simulation – send inputs and retrieve results.
+- Interactive Simulation (Agent Based) – interact and visualize data in real time.
+- Hybrid Simulation – mix of interactive control and output processing.
 
-<div align="center">
+Communication with the Simulation Bridge, as well as other potential external systems, is handled by default through RabbitMQ. Configuration is driven by a **config_agent.yaml** file which sets up the message queues and RabbitMQ connectivity.
+
+<!-- <div align="center">
   <img src="images/MATLAB-logo.png" alt="Matlab" width="50%" style="margin-bottom: 10px;"/>
-</div>
+</div> -->
 
 # Architecture Overview
 
@@ -23,10 +24,11 @@ Communication with external systems is handled via RabbitMQ. Configuration is dr
 
 ### General Flow
 
-1. The **Simulation Bridge** sends input as a YAML string via **RabbitMQ**.
-2. `RabbitMQClient` receives the message and subscribes to the configured queues.
-3. `main.py` routes the message to the appropriate simulation handler.
-4. Depending on the specified simulation type, control is passed to:
+1. The **Simulation Bridge** sends input as a YAML string via **RabbitMQ** (see [Message Format](#message-format)).
+
+2. `RabbitMQClient` receives the message and subscribes to the appropriate queues based on the parameters defined in `config_agent.yaml` (see [Configuration](#configuration)).
+
+3. `Main` routes the message to the appropriate simulation handler. Depending on the specified simulation type, control is passed to:
    - `Batch`
    - `Interactive`
    - `Hybrid`
@@ -35,7 +37,7 @@ Communication with external systems is handled via RabbitMQ. Configuration is dr
 
 ### 1. Batch Simulation
 
-- Executes a MATLAB `.m` script using the **MATLAB API Engine for Python**.
+- Executes a MATLAB `.m` script (Simulation) using the **MATLAB API Engine for Python**.
 - Simulation results are returned as structured Python objects.
 - Results are encoded as YAML strings and published back to the Simulation Bridge via RabbitMQ.
 
@@ -51,8 +53,8 @@ Communication with external systems is handled via RabbitMQ. Configuration is dr
 
 ### 2. Interactive Simulation
 
-- The MATLAB simulation must save runtime data to a `.mat` file named `agent_data.mat` located in the `matfile/` directory.
-- The `interactive.py` module reads variables in real time from the `.mat` file.
+- The MATLAB simulation must save runtime data to a `.mat` file named `agent_data.mat`
+- The `Interactive` module reads variables in real time from the `.mat` file.
 - Data is streamed continuously to the Simulation Bridge via RabbitMQ.
 
 ---

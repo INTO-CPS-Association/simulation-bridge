@@ -1,6 +1,8 @@
 # Simulation Bridge
 
-The Simulation Bridge is a lightweight middleware solution enabling seamless communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their Simulators. Designed for modularity and flexibility, it supports multiple protocols and interaction modes while maintaining a minimal footprint.
+The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts. It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
+
+Built around the concept of simulation, the bridge facilitates control, monitoring, and data exchange among the involved entities, providing a universal middleware solution that enhances flexibility and integration within simulation-based systems.
 
 ![Project](images/project.png)
 
@@ -43,14 +45,12 @@ The Simulation Bridge is a lightweight middleware solution enabling seamless com
 
 - [**<span style="color:orange">MATLAB</span> Agent** ↗](agents/matlab_agent/README.md)
 
+---
+
 ## License
 
-**INTO-CPS Association Public License (ICAPL) v1.0**  
-Available under:
-
-- GPL v3 (Open Source)
-- ICA-Internal-EPL (Silver Members)
-- ICA-External-EPL (Gold Members)
+This project is licensed under the **INTO-CPS Association Public License v1.0**.  
+See the [LICENSE](./LICENSE) file for full license text.
 
 ---
 
