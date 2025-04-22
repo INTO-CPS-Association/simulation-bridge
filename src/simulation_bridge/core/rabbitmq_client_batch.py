@@ -1,6 +1,6 @@
 # rabbitmq_client_batch.py
 import yaml
-from protocols.rabbitmq.rabbitmq_client import RabbitMQClient
+from .protocols.rabbitmq.rabbitmq_client import RabbitMQClient
 
 
 def load_simulation_data(filename: str) -> dict:
