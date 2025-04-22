@@ -47,7 +47,7 @@ Get started with the Simulation Bridge and unlock its full potential using these
 
 - [📘 **Instruction Guide** ↗](INSTRUCTION.md): A comprehensive guide to set up, configure, and deploy the Simulation Bridge.
 - [🚀 **Usage Guide** ↗](USAGE.md): Detailed instructions on how to run the Simulation Bridge and its components.
-- [🔗 **MATLAB Agent Documentation** ↗](agents/matlab_agent/README.md): In-depth explanation of the **<span style="color: orange;">MATLAB</span>** **Agent** functionality and configuration.
+- [🔗 **MATLAB Agent Documentation** ↗](agents/MATLABagent/README.md): In-depth explanation of the MATLAB agent functionality and configuration.
 - [⚙️ **MATLAB Simulation Constraints** ↗](tests/simulations/matlab/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
 These resources are crafted to empower you with the technical expertise and practical insights needed to fully leverage the Simulation Bridge in your projects.
