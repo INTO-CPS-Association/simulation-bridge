@@ -174,3 +174,6 @@ cython_debug/
 .pypirc
 
 .DS_Store
+
+#MATLAB file
+tests/simulations/matlab/matfile/

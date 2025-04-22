@@ -5,7 +5,7 @@ from typing import Callable, Optional
 class RabbitMQClient:
     def __init__(self, config_path: str = 'simulation.yml'):
         """
-        Inizializza il client RabbitMQ con configurazione da YAML
+        Initializes the RabbitMQ client with configuration from a YAML file
         """
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)['rabbitmq']
@@ -15,7 +15,7 @@ class RabbitMQClient:
 
     def _create_connection(self) -> pika.BlockingConnection:
         """
-        Crea una connessione RabbitMQ con parametri dalla configurazione
+        Creates a RabbitMQ connection with parameters from the configuration
         """
         credentials = pika.PlainCredentials(
             self.config['username'],
@@ -36,7 +36,7 @@ class RabbitMQClient:
 
     def _get_ssl_options(self) -> Optional[pika.SSLOptions]:
         """
-        Restituisce le opzioni SSL se configurate
+        Returns SSL options if configured
         """
         if self.config.get('ssl_cafile') and self.config.get('ssl_certfile') and self.config.get('ssl_keyfile'):
             return pika.SSLOptions(
@@ -48,7 +48,7 @@ class RabbitMQClient:
 
     def declare_queue(self, queue_name: str, durable: bool = True):
         """
-        Dichiarazione di una coda RabbitMQ
+        Declares a RabbitMQ queue
         """
         self.channel.queue_declare(
             queue=queue_name,
@@ -57,7 +57,7 @@ class RabbitMQClient:
 
     def publish(self, queue_name: str, message: str, persistent: bool = True):
         """
-        Pubblica un messaggio su una coda
+        Publishes a message to a queue
         """
         self.channel.basic_publish(
             exchange='',
@@ -70,7 +70,7 @@ class RabbitMQClient:
 
     def consume(self, queue_name: str, callback: Callable, auto_ack: bool = False):
         """
-        Avvia il consumo di messaggi da una coda
+        Starts consuming messages from a queue
         """
         self.channel.basic_consume(
             queue=queue_name,
@@ -80,12 +80,12 @@ class RabbitMQClient:
 
     def start_consuming(self):
         """
-        Avvia il loop infinito di consumo messaggi
+        Starts the infinite loop of message consumption
         """
         self.channel.start_consuming()
 
     def close(self):
         """
-        Chiude la connessione RabbitMQ
+        Closes the RabbitMQ connection
         """
         self.connection.close()

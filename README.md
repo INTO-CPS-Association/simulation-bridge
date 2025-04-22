@@ -43,7 +43,8 @@ Built around the concept of simulation, the bridge facilitates control, monitori
 
 ## Documentation
 
-- [**<span style="color:orange">MATLAB</span> Agent** ↗](agents/matlab_agent/README.md)
+- [**MATLAB** Agent ↗](agents/matlab_agent/README.md)
+- [**MATLAB** Simulation Constraints ↗](tests/simulations/matlab/README.md)
 
 ---
 

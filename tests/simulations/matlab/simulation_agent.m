@@ -1,7 +1,6 @@
 function simulation_agent(steps, show_agent, use_gui)
     global sim_running agent_data;
     sim_running = true;
-    sim_running = true;
 
     % 🔧 Crea la cartella matfile se non esiste
     if ~exist('matfile', 'dir')
