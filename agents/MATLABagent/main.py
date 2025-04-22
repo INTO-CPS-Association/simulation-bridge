@@ -1,9 +1,9 @@
 import os
 import yaml
 import logging
-from rabbitmq.rabbitmq_client import RabbitMQClient
-from batch import handle_batch_simulation
-from interactive import handle_interactive_simulation
+from .rabbitmq.rabbitmq_client import RabbitMQClient
+from .batch import handle_batch_simulation
+from .interactive import handle_interactive_simulation
 
 
 class UnifiedAgent:
@@ -55,6 +55,9 @@ class UnifiedAgent:
         logging.info(f"MATLAB Agent ready to receive requests on queue '{self.REQUEST_QUEUE}'")
         self.rpc.start_consuming()
 
+def main():
+    agent = UnifiedAgent()
+    agent.start()
 
 if __name__ == '__main__':
-    UnifiedAgent().start()
+    main()

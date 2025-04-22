@@ -32,7 +32,7 @@ def main():
     
     # Set up consumer for the response
     rmq_client.consume('queue_response', on_response)
-    print("[⏳] Waiting for results on 'queue_response'... Press Ctrl+C to exit.")
+    print("[⏳] Waiting for results on 'queue_response'")
     
     try:
         rmq_client.start_consuming()

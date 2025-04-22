@@ -1,0 +1,50 @@
+rabbitmq:
+  host: "localhost" # indirizzo del broker
+  port: 5672 # porta AMQP (5671 se SSL abilitato)
+  virtual_host: "/" # vhost da utilizzare
+  username: "guest" # credenziali
+  password: "guest"
+  heartbeat: 60 # keep-alive heartbeat (secondi)
+  blocked_connection_timeout: 300 # timeout in caso di connessione bloccata (secondi)
+  ssl: false # true per abilitare SSL/TLS
+  ssl_cafile: "/path/to/ca.pem"
+  ssl_certfile: "/path/to/client_cert.pem"
+  ssl_keyfile: "/path/to/client_key.pem"
+# simulation:
+#   simulator: matlab
+#   type: batch # Type of simulation (interactive,batch,hybrid)
+#   name: simulationBall # Name of the simulation
+#   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/ # Path to the simulation file
+#   file: simulation_batch.m # Name of the simulation file
+#   description: "Future position of a ball in 3D space" # Description of the simulation
+#   inputs:
+#     x_i: 10
+#     y_i: 5
+#     z_i: 0
+#     v_x: 1
+#     v_y: 2
+#     v_z: 3
+#     t: 10
+#   outputs:
+#     x_f: Final x position
+#     y_f: Final y position
+#     z_f: Final z position
+simulation:
+  simulator: matlab
+  type: batch
+  name: simulationCar
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
+  file: simulation_batch_1.m
+  description: "Simulation of the movement of a car in a 2D plane. The simulation calculates the car's final position after a specified period of time, its final speed, and the actual time simulated"
+  inputs:
+    x0: 0
+    y0: 90
+    speed0: 200
+    acceleration: 2
+    angle_deg: 15.0
+    simulation_time: 5
+  outputs:
+    x_final: Final x position
+    y_final: Final y position
+    speed_final: Final speed
+    time_elapsed: Time elapsed during the simulation

@@ -3,7 +3,7 @@ import scipy.io
 import matlab.engine
 import yaml
 import logging
-from rabbitmq.rabbitmq_client import RabbitMQClient
+from .rabbitmq.rabbitmq_client import RabbitMQClient
 import numpy
 import os
 

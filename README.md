@@ -14,30 +14,30 @@ Built around the concept of simulation, the bridge facilitates control, monitori
 
 ## Key Features
 
-### Protocol Support
+### 🌐 Multi-Protocol Support
 
-- RabbitMQ (default)
-- MQTT
-- REST API
-- Custom protocol plugins
+- **RabbitMQ** (default)
+- **MQTT**
+- **REST API**
+- Custom protocol plugins for tailored integrations
 
-### Interaction Modes
+### ⚙️ Flexible Interaction Modes
 
-| Mode            | Description                                          |
-| --------------- | ---------------------------------------------------- |
-| **Batch**       | Execute simulations without real-time monitoring     |
-| **Interactive** | Real-time monitoring and control                     |
-| **Hybrid**      | Combine batch execution with interactive adjustments |
+| **Mode**        | **Description**                                       |
+| --------------- | ----------------------------------------------------- |
+| **Batch**       | Execute simulations without real-time monitoring.     |
+| **Interactive** | Enable real-time monitoring and control.              |
+| **Hybrid**      | Combine batch execution with interactive adjustments. |
 
-### Discoverability
+### 🔍 Intelligent Discoverability
 
-- Dynamic capability detection via agent system
-- Automatic registration of simulator features
+- Dynamic capability detection through an advanced agent system.
+- Automatic registration of simulator features for seamless integration.
 
-### Data Transformation
+### 🔄 Advanced Data Transformation
 
-- JSON ↔ XML ↔ CSV conversion
-- Protocol-agnostic data formatting
+- Effortless conversion between **JSON**, **XML**, and **CSV** formats.
+- Protocol-agnostic data formatting to ensure compatibility across systems.
 
 ---
 

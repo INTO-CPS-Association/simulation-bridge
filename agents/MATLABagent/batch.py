@@ -1,6 +1,6 @@
 import yaml
 import logging
-from rabbitmq.rabbitmq_client import RabbitMQClient
+from .rabbitmq.rabbitmq_client import RabbitMQClient
 import matlab.engine
 import os
 from pathlib import Path

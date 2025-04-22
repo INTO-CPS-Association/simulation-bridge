@@ -3,6 +3,13 @@ import paho.mqtt.client as mqtt
 import json
 import logging
 from typing import Dict, Any
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+config_path = os.path.join(BASE_DIR, '..', '..', 'config', 'config.yml')
+
+with open(config_path) as f:
+    config = yaml.safe_load(f)
 
 # Configure logging
 logging.basicConfig(
@@ -11,7 +18,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def load_config(config_path: str = 'src/simulation-bridge/config/config.yml') -> Dict[str, Any]:
+
+def load_config(config_path: str = config_path) -> Dict[str, Any]:
     """
     Load configuration from YAML file.
     

@@ -78,14 +78,35 @@ All modules use the MATLAB Engine API for Python to control MATLAB sessions.
 
 ## Configuration
 
-### `config_agent.yaml`
+The `config_agent.yaml` file contains the necessary settings to run the agent and establish a connection with a RabbitMQ server. It defines both the RabbitMQ connection parameters and the queue names used for message communication.
 
-This file configures:
+### 🔌 RabbitMQ Connection Settings
 
-- RabbitMQ connection (host, port, credentials)
-- Queue names for subscription and publishing
+The following parameters are required to configure the RabbitMQ connection:
 
-#### Example:
+- **host**: Hostname or IP address of the RabbitMQ server (e.g., `localhost`).
+- **port**: Port number for the RabbitMQ connection (default is `5672`).
+- **virtual_host**: The virtual host to use within RabbitMQ.
+- **username**: RabbitMQ username.
+- **password**: RabbitMQ password.
+- **heartbeat**: Interval (in seconds) to keep the connection alive.
+- **blocked_connection_timeout**: Timeout value (in seconds) in case of connection blockage.
+- **ssl**: Set to `true` to enable SSL/TLS connection.
+- **ssl_cafile**: _(Optional)_ Path to the CA certificate file.
+- **ssl_certfile**: _(Optional)_ Path to the client certificate.
+- **ssl_keyfile**: _(Optional)_ Path to the client private key.
+
+### 📬 Queue Definitions
+
+The following queues are used for communication:
+
+- **request**: Queue the agent listens to for incoming simulation requests.
+- **response**: Queue used to publish simulation results.
+- **data**: Queue used to stream real-time updates (for interactive simulations).
+
+### 📁 Example Configuration
+
+Below is an example of a `config_agent.yaml` file:
 
 ```yaml
 rabbitmq:
@@ -100,11 +121,17 @@ rabbitmq:
   ssl_cafile: "/path/to/ca.pem"
   ssl_certfile: "/path/to/client_cert.pem"
   ssl_keyfile: "/path/to/client_key.pem"
+
 queues:
   request: "queue_simulation"
   response: "queue_response"
   data: "agent_updates"
 ```
+
+> 📝 Notes
+>
+> - Ensure that the `config_agent.yaml` file is accessible at runtime. By default, the expected path is typically `config/config_agent.yaml` relative to the project root unless otherwise specified in the code.
+> - If SSL/TLS is enabled, make sure the certificate files are correctly configured and accessible.
 
 ---
 
@@ -117,48 +144,6 @@ message = yaml.dump({'simulation': simulation_data['simulation']})
 ```
 
 The agent expects an input message formatted as valid YAML containing the simulation parameters.
-
----
-
-## Dependencies
-
-- Python **3.8+**
-- **MATLAB** with the **MATLAB Engine API for Python** installed
-- **RabbitMQ** server (local or remote)
-
-### MATLAB Engine API Installation
-
-Ensure that the **MATLAB Engine API for Python** is properly installed by following the official instructions provided by MathWorks:
-
-🔗 [MATLAB Engine API for Python - Installation Guide](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
-
-#### Example (macOS)
-
-If you're using macOS (e.g., with MATLAB R2024b), you can install the engine using the following steps:
-
-```bash
-poetry shell
-cd /Applications/MATLAB_R2024b.app/extern/engines/python
-python -m pip install .
-```
-
-> 💡 Replace the MATLAB version path (`MATLAB_R2024b.app`) with the one corresponding to your installed version if different.
-
----
-
-## Usage
-
-### 1. Configure the Agent
-
-Edit the `config_agent.yaml` file with the correct RabbitMQ credentials and simulation settings.
-
-### 2. Run the Agent
-
-```bash
-python main.py
-```
-
-The agent will start listening on the configured RabbitMQ queues and route simulation requests based on the selected simulation mode (batch, interactive, or hybrid).
 
 ## Author
 

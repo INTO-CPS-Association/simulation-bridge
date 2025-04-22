@@ -6,7 +6,11 @@ authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 license = "ICAPL"
 readme = "README.md"
 
-packages = [{ include = "src" }]
+packages = [
+    { include = "agents" },
+    { include = "simulation_bridge", from = "src" } 
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -26,3 +30,6 @@ flake8 = "^7.2.0"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+matlab-agent = "agents.MATLABagent.main:main"

@@ -4,7 +4,7 @@ import threading
 import time
 import json
 import logging
-from protocols.rabbitmq.rabbitmq_client import RabbitMQClient  # Importing the updated RabbitMQClient class
+from .protocols.rabbitmq.rabbitmq_client import RabbitMQClient  
 
 class SimulationClient:
     REQUEST_QUEUE = 'queue_simulation'
