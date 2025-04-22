@@ -1,3 +1,4 @@
+# rabbitmq_client_batch.py
 import yaml
 from protocols.rabbitmq.rabbitmq_client import RabbitMQClient
 
