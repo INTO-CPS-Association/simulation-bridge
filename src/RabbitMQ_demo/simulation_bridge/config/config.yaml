@@ -1,0 +1,22 @@
+# config/bridge_config.yaml - Configurazione del bridge
+rabbitmq:
+  host: localhost
+  prefetch_count: 1
+
+infrastructure:
+  exchanges:
+    - name: ex.input.bridge
+      type: topic
+      durable: true
+    - name: ex.bridge.output
+      type: topic
+      durable: true
+
+  queues:
+    - name: Q.bridge.input
+      durable: true
+
+  bindings:
+    - queue: Q.bridge.input
+      exchange: ex.input.bridge
+      routing_key: "#"
