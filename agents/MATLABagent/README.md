@@ -30,8 +30,8 @@ Communication with the Simulation Bridge, as well as other potential external sy
 
 3. `Main` routes the message to the appropriate simulation handler. Depending on the specified simulation type, control is passed to:
    - `Batch`
+   - `Streaming`
    - `Interactive`
-   - `Hybrid`
 
 ---
 
@@ -51,15 +51,15 @@ Communication with the Simulation Bridge, as well as other potential external sy
 
 ---
 
-### 2. Interactive Simulation
+### 2. Streaming Simulation
 
 - The MATLAB simulation must save runtime data to a `.mat` file named `agent_data.mat`
-- The `Interactive` module reads variables in real time from the `.mat` file.
+- The `Streaming` module reads variables in real time from the `.mat` file.
 - Data is streamed continuously to the Simulation Bridge via RabbitMQ.
 
 ---
 
-### 3. Hybrid Simulation
+### 3. Interactive Simulation
 
 > 🚧 **Work in Progress**
 
@@ -102,7 +102,7 @@ The following queues are used for communication:
 
 - **request**: Queue the agent listens to for incoming simulation requests.
 - **response**: Queue used to publish simulation results.
-- **data**: Queue used to stream real-time updates (for interactive simulations).
+- **data**: Queue used to stream real-time updates (for streaming simulations).
 
 ### 📁 Example Configuration
 
