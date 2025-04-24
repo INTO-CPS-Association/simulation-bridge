@@ -26,8 +26,8 @@ Built around the concept of simulation, the bridge facilitates control, monitori
 | **Mode**        | **Description**                                       |
 | --------------- | ----------------------------------------------------- |
 | **Batch**       | Execute simulations without real-time monitoring.     |
-| **Interactive** | Enable real-time monitoring and control.              |
-| **Hybrid**      | Combine batch execution with interactive adjustments. |
+| **Streaming**   | Enable real-time monitoring and control.              |
+| **Interactive** | Combine batch execution with interactive adjustments. |
 
 ### 🔍 Intelligent Discoverability
 

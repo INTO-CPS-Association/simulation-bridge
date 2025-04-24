@@ -36,7 +36,7 @@ class AgentSimulationRunner:
         Runs the MATLAB simulation with dynamic parameters from the 'inputs' section.
         Preserves the input order as defined in the config file.
         """
-        logging.info(f"Launching MATLAB interactive simulation: {self.filename}")
+        logging.info(f"Launching MATLAB streaming simulation: {self.filename}")
         #print(f"[DEBUG] Parsed param types: {[type(self.params[k]) for k in self.params if k != 'outputs']}")
 
         # Extract all inputs
@@ -176,13 +176,13 @@ class AgentSimulationRunner:
                 
         return result
     
-def handle_interactive_simulation(parsed_data: dict, rpc_client: RabbitMQClient, data_queue: str):
+def handle_streaming_simulation(parsed_data: dict, rpc_client: RabbitMQClient, data_queue: str):
     """
-    Process an interactive simulation request and stream updates.
+    Process an streaming simulation request and stream updates.
     Automatically passes all configuration parameters including outputs to the simulation runner.
     """
     config = parsed_data['simulation']
-    logging.info("Handling interactive simulation request...")
+    logging.info("Handling streaming simulation request...")
     # print("Config: ", config)
     
     # Estrai il percorso della simulazione (gestisce sia 'file_path' che 'path')

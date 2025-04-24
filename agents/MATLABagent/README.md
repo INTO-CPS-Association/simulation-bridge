@@ -5,8 +5,8 @@
 **MATLAB Agent** is a Python-based connector designed to interface with MATLAB simulations using the MATLAB Engine API. It enables control, interaction, input/output exchange, and monitoring of three types of simulations:
 
 - Batch Simulation – send inputs and retrieve results.
-- Interactive Simulation (Agent Based) – interact and visualize data in real time.
-- Hybrid Simulation – mix of interactive control and output processing.
+- Streaming Simulation (Agent Based) – interact and visualize data in real time.
+- Interactive Simulation – mix of interactive control and output processing.
 
 Communication with the Simulation Bridge, as well as other potential external systems, is handled by default through RabbitMQ. Configuration is driven by a **config_agent.yaml** file which sets up the message queues and RabbitMQ connectivity.
 

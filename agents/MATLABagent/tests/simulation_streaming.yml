@@ -1,7 +1,7 @@
 # simulation:
 #   simulator: matlab
-#   type: interactive
-#   name: SimulazioneInteractive
+#   type: streaming
+#   name: SimulazioneStreaming
 #   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
 #   file: simulation_agent.m
 #   matfile: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/matfile/agent_data.mat
@@ -19,7 +19,7 @@
 
 simulation:
   simulator: matlab
-  type: interactive
+  type: streaming
   name: SimulazioneDinamicaAgenti
   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
   file: simulation_agent_2.m

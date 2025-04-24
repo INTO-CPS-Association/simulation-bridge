@@ -111,7 +111,7 @@ class SimulationClient:
             # Use an OrderedDict to maintain the order
             return yaml.safe_load(f)
     
-    def send_simulation_request(self, config_file='simulation_interactive.yml'):
+    def send_simulation_request(self, config_file='simulation_streaming.yml'):
         # Load configuration from YAML file
         sim_request = self.load_simulation_data(config_file)
 

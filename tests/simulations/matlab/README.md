@@ -8,9 +8,9 @@ This mode is suitable for scenarios where real-time observation is not required 
 
 ---
 
-## Interactive Simulation
+## Streaming Simulation
 
-An interactive simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
+An Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
 
 ### 1. Function Definition
 
@@ -67,9 +67,9 @@ This ensures that the Bridge always reads complete and valid files. The `.mat` f
 
 ---
 
-## Hybrid Simulation
+## Interactive Simulation
 
-A hybrid simulation combines elements of both interactive and batch modes. It allows the user to send inputs dynamically during the simulation run, which can alter the ongoing scenario. At the same time, the simulation continuously sends real-time outputs reflecting its current state.
+A Interactive simulation combines elements of both streaming and batch modes. It allows the user to send inputs dynamically during the simulation run, which can alter the ongoing scenario. At the same time, the simulation continuously sends real-time outputs reflecting its current state.
 
 ## Author
 

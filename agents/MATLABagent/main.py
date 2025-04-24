@@ -3,7 +3,7 @@ import yaml
 import logging
 from .rabbitmq.rabbitmq_client import RabbitMQClient
 from .batch import handle_batch_simulation
-from .interactive import handle_interactive_simulation
+from .streaming import handle_streaming_simulation
 
 
 class UnifiedAgent:
@@ -44,8 +44,8 @@ class UnifiedAgent:
 
             if sim_type == 'batch':
                 handle_batch_simulation(parsed, self.rpc, self.RESPONSE_QUEUE)
-            elif sim_type == 'interactive':
-                handle_interactive_simulation(parsed, self.rpc, self.DATA_QUEUE)
+            elif sim_type == 'streaming':
+                handle_streaming_simulation(parsed, self.rpc, self.DATA_QUEUE)
             else:
                 logging.error(f"Unknown simulation type: {sim_type}")
         except Exception as e:
