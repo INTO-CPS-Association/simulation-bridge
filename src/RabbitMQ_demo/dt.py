@@ -46,6 +46,6 @@ if __name__ == "__main__":
     # Esempio: invio il messaggio da DT alla simulazione
     send_message(
         source='dt',
-        destinations=['simA'],  # you can specify multiple destinations destinations=['simA', 'simB'],
+        destinations=['simB'],  # you can specify multiple destinations destinations=['simA', 'simB'],
         payload_data=simulation_payload
     )

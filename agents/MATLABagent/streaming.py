@@ -2,10 +2,12 @@ import time
 import scipy.io
 import matlab.engine
 import yaml
-import logging
 from .rabbitmq.rabbitmq_client import RabbitMQClient
 import numpy
 import os
+from .utils.logger import get_logger
+
+logger = get_logger()
 
 class AgentSimulationRunner:
     def __init__(self, filename: str = 'simulation', matfile: str = 'agent_data.mat', **kwargs):
@@ -26,7 +28,7 @@ class AgentSimulationRunner:
         self.expected_outputs = kwargs.get('outputs', {})  # Store expected output structure
         
     def start_engine(self, file_path: str):
-        logging.info("Starting MATLAB Engine...")
+        logger.info("Starting MATLAB Engine...")
         self.eng = matlab.engine.start_matlab()
         self.eng.cd(file_path, nargout=0)
         self.eng.eval("clear; clc;", nargout=0)
@@ -36,7 +38,7 @@ class AgentSimulationRunner:
         Runs the MATLAB simulation with dynamic parameters from the 'inputs' section.
         Preserves the input order as defined in the config file.
         """
-        logging.info(f"Launching MATLAB streaming simulation: {self.filename}")
+        logger.info(f"Launching MATLAB streaming simulation: {self.filename}")
         #print(f"[DEBUG] Parsed param types: {[type(self.params[k]) for k in self.params if k != 'outputs']}")
 
         # Extract all inputs
@@ -66,14 +68,14 @@ class AgentSimulationRunner:
         param_string = ", ".join(param_list)
         cmd = f"{self.filename}({param_string});"
 
-        logging.info(f"Executing MATLAB command: {cmd}")
+        logger.info(f"Executing MATLAB command: {cmd}")
         self.eng.eval(cmd, nargout=0, background=True)
         
             
     def stop_engine(self):
         if self.eng:
             self.eng.quit()
-            logging.info("MATLAB Engine closed.")
+            logger.info("MATLAB Engine closed.")
             
     def matlab_to_python(self, obj):
         """Recursively convert MAT objects to Python types."""
@@ -110,7 +112,7 @@ class AgentSimulationRunner:
             queue_name: Queue name for publishing updates
             expected_outputs: Structure defining expected data types for outputs (optional)
         """
-        logging.info("Polling simulation data and streaming updates...")
+        logger.info("Polling simulation data and streaming updates...")
         
         # Use provided expected_outputs or fallback to class attribute
         output_structure = expected_outputs if expected_outputs is not None else self.expected_outputs
@@ -120,7 +122,7 @@ class AgentSimulationRunner:
             try:
                 current_mtime = os.path.getmtime(self.matfile)
                 if last_mtime is None or current_mtime > last_mtime:
-                    logging.info(f"Detected new data in {self.matfile}.")
+                    logger.info(f"Detected new data in {self.matfile}.")
                     last_mtime = current_mtime
                     
                     data = scipy.io.loadmat(self.matfile, struct_as_record=False, squeeze_me=True)
@@ -134,17 +136,17 @@ class AgentSimulationRunner:
                     if output_structure:
                         filtered_data = self._filter_data_by_structure(converted_data, output_structure)
                         publisher.publish(queue_name, yaml.dump(filtered_data))
-                        logging.info(f"Published filtered data according to expected outputs.")
+                        logger.info(f"Published filtered data according to expected outputs.")
                     else:
                         publisher.publish(queue_name, yaml.dump(converted_data))
-                        logging.info(f"Published all data from {self.matfile}.")
+                        logger.info(f"Published all data from {self.matfile}.")
                         
-                    logging.info(f"Data published at {time.ctime(current_mtime)}.")
+                    logger.info(f"Data published at {time.ctime(current_mtime)}.")
                     
             except FileNotFoundError:
-                logging.warning(f"File {self.matfile} not found, retrying...")
+                logger.warning(f"File {self.matfile} not found, retrying...")
             except Exception as e:
-                logging.error(f"Error polling or processing data: {e}")
+                logger.error(f"Error polling or processing data: {e}")
                 break
                 
             time.sleep(0.1)  # Polling interval
@@ -172,7 +174,7 @@ class AgentSimulationRunner:
                     # Include this field as is
                     result[category] = data[category]
             else:
-                logging.warning(f"Expected output '{category}' not found in simulation data")
+                logger.warning(f"Expected output '{category}' not found in simulation data")
                 
         return result
     
@@ -182,7 +184,7 @@ def handle_streaming_simulation(parsed_data: dict, rpc_client: RabbitMQClient, d
     Automatically passes all configuration parameters including outputs to the simulation runner.
     """
     config = parsed_data['simulation']
-    logging.info("Handling streaming simulation request...")
+    logger.info("Handling streaming simulation request...")
     # print("Config: ", config)
     
     # Estrai il percorso della simulazione (gestisce sia 'file_path' che 'path')

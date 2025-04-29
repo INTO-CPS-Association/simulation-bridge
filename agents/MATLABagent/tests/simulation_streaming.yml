@@ -37,6 +37,3 @@ simulation:
       positions: "[[float, float]]" # Lista di posizioni per ogni agente
       velocities: "[[float, float]]" # Lista di velocità per ogni agente
       running: bool # Flag che indica se la simulazione è in corso
-    status:
-      completed: bool # Flag che indica se la simulazione è completata
-      final_step: int # Numero di passi eseguiti
