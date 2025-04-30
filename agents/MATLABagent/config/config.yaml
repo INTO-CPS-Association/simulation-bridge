@@ -1,0 +1,24 @@
+# Configuration for MATLAB Agent
+
+# RabbitMQ connection settings
+rabbitmq:
+  host: localhost
+  port: 5672
+  username: guest
+  password: guest
+  heartbeat: 600
+
+# Message exchange configuration
+exchanges:
+  input: ex.bridge.output # Exchange to receive commands from
+  output: ex.sim.result # Exchange to send results to
+
+# Queue configuration
+queue:
+  durable: true # Queue persists across broker restarts
+  prefetch_count: 1 # Process one message at a time
+
+# Logging configuration
+logging:
+  level: INFO
+  file: logs/matlab_agent.log

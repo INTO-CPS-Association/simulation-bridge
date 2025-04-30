@@ -11,12 +11,33 @@ infrastructure:
     - name: ex.bridge.output
       type: topic
       durable: true
+    - name: ex.sim.result
+      type: topic
+      durable: true
+    - name: ex.bridge.result
+      type: topic
+      durable: true
 
   queues:
     - name: Q.bridge.input
+      durable: true
+    - name: Q.bridge.result
+      durable: true
+    - name: Q.dt.result
+      durable: true
+    - name: Q.pt.result
       durable: true
 
   bindings:
     - queue: Q.bridge.input
       exchange: ex.input.bridge
       routing_key: "#"
+    - queue: Q.bridge.result
+      exchange: ex.sim.result
+      routing_key: "#"
+    - queue: Q.dt.result
+      exchange: ex.bridge.result
+      routing_key: "*.result"
+    - queue: Q.pt.result
+      exchange: ex.bridge.result
+      routing_key: "*.result"

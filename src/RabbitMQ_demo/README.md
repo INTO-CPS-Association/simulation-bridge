@@ -1,132 +1,68 @@
-# RabbitMQ Messaging System
+# Bidirectional RabbitMQ Messaging Architecture
 
-## System Architecture
+### System Overview
 
-### Main Components
+The system facilitates seamless bidirectional communication between Digital Twin (DT), Mock Physical Twin (MockPT), Physical Twin (PT), and simulators using a RabbitMQ-based messaging bridge.
 
-- **Data Sources (DT, PT, MockPT)**  
-   These components generate data and publish it to the `ex.input.bridge` exchange.  
-   Routing key format: `<source>` (e.g., `dt`, `pt`).
+### Key Components
 
-- **Simulation Bridge**  
-   Acts as an intermediary, receiving messages from the `Q.bridge.input` queue.  
-   Processes and routes messages to the `ex.bridge.output` exchange.  
-   Routing key format: `<source>.<destination>`.
+1. **Data Sources (DT, PT, MockPT)**
 
-- **Simulations**  
-   Specialized consumers that listen to specific queues.  
-   Binding pattern: `*.simX` to capture messages intended for `simX`.
+- **Sending**: Generate data and publish it to the `ex.input.bridge` exchange with routing keys in the format `<source>` (e.g., `dt`, `pt`).
+- **Receiving**: Receive simulation results via the `ex.bridge.result` exchange on dedicated queues (e.g., `Q.dt.result`).
 
-## RabbitMQ Topology
+2. **Simulation Bridge**
 
-| **Exchange**       | **Type** | **Description**                    |
-| ------------------ | -------- | ---------------------------------- |
-| `ex.input.bridge`  | `topic`  | Entry point for all incoming data. |
-| `ex.bridge.output` | `topic`  | Exit point for advanced routing.   |
+- **Input**: Receives messages from the `Q.bridge.input` queue and forwards them to simulators via the `ex.bridge.output` exchange.
+- **Output**: Receives simulation results from the `Q.bridge.result` queue and forwards them to data sources via the `ex.bridge.result` exchange.
 
-| **Queue**        | **Binding Key** | **Description**                   |
-| ---------------- | --------------- | --------------------------------- |
-| `Q.bridge.input` | `#`             | Receives all input messages.      |
-| `Q.sim.<ID>`     | `*.<ID>`        | Dedicated queues for simulations. |
+3. **Simulators**
 
-## Routing Key Specification
+- **Input**: Listen on specific queues to receive simulation requests.
+- **Output**: Publish results to the `ex.sim.result` exchange with routing keys in the format `<sim_id>.result.<destination>`.
 
-### Format
+### RabbitMQ Topology
 
-`<source>.<destination>`
+#### Exchanges
 
-- **Source**: Unique identifier of the producer.  
-   Examples: `dt`, `pt`, `mockpt`.
+| Exchange Name      | Type  | Description                                     |
+| ------------------ | ----- | ----------------------------------------------- |
+| `ex.input.bridge`  | Topic | Entry point for all incoming data.              |
+| `ex.bridge.output` | Topic | Exit point for routing messages to simulators.  |
+| `ex.sim.result`    | Topic | Entry point for simulation results.             |
+| `ex.bridge.result` | Topic | Exit point for routing results to data sources. |
 
-- **Destination**: Identifier of the recipient.
-  - Format: `sim<ID>` for specific simulations.
-  - Use `broadcast` for general messages.
+#### Queues
 
-### Examples
+| Queue Name          | Binding Key | Description                                                   |
+| ------------------- | ----------- | ------------------------------------------------------------- |
+| `Q.bridge.input`    | `#`         | Receives all incoming messages.                               |
+| `Q.bridge.result`   | `#`         | Receives all simulation results.                              |
+| `Q.sim.<ID>`        | `*.<ID>`    | Dedicated queues for each simulation.                         |
+| `Q.<source>.result` | `*.result`  | Dedicated queues for receiving results (e.g., `Q.dt.result`). |
 
-| **Scenario**          | **Routing Key** | **Description**           |
-| --------------------- | --------------- | ------------------------- |
-| DT → Simulation A     | `dt.simA`       | Direct message.           |
-| PT → Broadcast        | `pt.broadcast`  | Message to all consumers. |
-| MockPT → Simulation B | `mockpt.simB`   | Message from mock source. |
+### Data Flow
 
-## Data Flow
+#### Request Flow (DT → Simulator)
 
-### Message Publishing
+1. DT publishes to `ex.input.bridge` with routing key `dt`.
+2. The bridge receives the message from the `Q.bridge.input` queue.
+3. The bridge forwards the message to `ex.bridge.output` with routing key `dt.simX`.
+4. The simulator receives the message from its queue `Q.sim.X`.
 
-Producers publish to `ex.input.bridge` with:
+#### Response Flow (Simulator → DT)
 
-- A base routing key (`source`).
-- A payload containing a `destinations` field.
-
-### Bridge Processing
-
-- Messages are received from `Q.bridge.input`.
-- For each destination in the payload:
-  - The full routing key is constructed.
-  - The message is re-published to `ex.bridge.output`.
-
-### Message Consumption
-
-Simulations consume messages:
-
-- With routing keys ending in their ID.
-- From any authorized source.
+1. The simulator publishes to `ex.sim.result` with routing key `simX.result.dt`.
+2. The bridge receives the message from the `Q.bridge.result` queue.
+3. The bridge forwards the message to `ex.bridge.result` with routing key `simX.result`.
+4. DT receives the message from its queue `Q.dt.result`.
+5.
 
 ## Flow Diagram
 
-```mermaid
-flowchart TD
-     %% Custom Styles
-     classDef producer fill:#E3F2FD,stroke:#42A5F5,stroke-width:2px;
-     classDef bridge fill:#FFF3E0,stroke:#FFA726,stroke-width:2px;
-     classDef consumer fill:#E8F5E9,stroke:#66BB6A,stroke-width:2px;
-     classDef exchange fill:#F3E5F5,stroke:#AB47BC,stroke-width:2px;
-     classDef queue fill:#FCE4EC,stroke:#EC407A,stroke-width:2px;
-
-     %% Producers Subgraph
-     subgraph Producers
-          direction TB
-          DT["DT (Digital Twin)"]:::producer
-          PT["PT (Physical Twin)"]:::producer
-          MockPT["MockPT (Mock Twin)"]:::producer
-     end
-
-     %% Bridge Subgraph
-     subgraph Bridge["Simulation Bridge"]
-          direction TB
-          EX1["ex.input.bridge (Exchange)"]:::exchange
-          Q1["Q.bridge.input (Queue)"]:::queue
-          Logic["Bridge Logic (Routing)"]:::bridge
-          EX2["ex.bridge.output (Exchange)"]:::exchange
-     end
-
-     %% Consumers Subgraph
-     subgraph SimA["SimA"]
-          direction TB
-          QSimA["Q.sim.simA"]:::queue
-          SimAService["Simulation A"]:::consumer
-     end
-
-     subgraph SimB["SimB"]
-          direction TB
-          QSimB["Q.sim.simB"]:::queue
-          SimBService["Simulation B"]:::consumer
-     end
-
-     %% Message Flow
-     DT -->|Routing Key: dt| EX1
-     PT -->|Routing Key: pt| EX1
-     MockPT -->|Routing Key: mockpt| EX1
-
-     EX1 --> Q1
-     Q1 --> Logic
-     Logic -->|Routing Key: dt.simA| EX2
-     Logic -->|Routing Key: dt.simB| EX2
-
-     EX2 --> QSimA --> SimAService
-     EX2 --> QSimB --> SimBService
-```
+<div align="center">
+  <img src="../../images/rabbitmq_simbridge.png" alt="RabbitMQ Simulation Bridge Diagram" width="80%">
+</div>
 
 ### Instructions for Use
 
