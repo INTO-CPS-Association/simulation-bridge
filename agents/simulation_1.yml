@@ -1,0 +1,19 @@
+simulation:
+  name: simulation_1
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
+  file: simulation_1.m
+  description: Simulation of a moving object with constant acceleration
+  inputs:
+    x0: 0
+    y0: 0
+    speed0: 20
+    acceleration: 2
+    angle_deg: 45.0
+    simulation_time: 10
+  outputs:
+    x_final: Final x position
+    y_final: Final y position
+    speed_final: Final speed
+    time_elapsed: Time elapsed during the simulation
+  simulator: matlab
+  type: final_result
