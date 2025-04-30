@@ -6,7 +6,11 @@ authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 license = "ICAPL"
 readme = "README.md"
 
-packages = [{ include = "src" }]
+packages = [
+    { include = "agents" },
+    { include = "simulation_bridge", from = "src" } 
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -15,6 +19,8 @@ pyyaml = ">=6.0.2,<7.0.0"
 pika = "^1.3.2"
 scipy = "^1.15.2"
 matplotlib = "^3.10.1"
+python-json-logger = "^3.3.0"
+pydantic = "^2.11.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
@@ -26,3 +32,7 @@ flake8 = "^7.2.0"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+matlab-agent = "agents.MATLABagent.run_default_agent:main"
+simulation-bridge = "src.simulation_bridge.core.main:main"

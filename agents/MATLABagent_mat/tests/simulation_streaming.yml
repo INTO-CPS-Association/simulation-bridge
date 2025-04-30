@@ -1,0 +1,39 @@
+# simulation:
+#   simulator: matlab
+#   type: streaming
+#   name: SimulazioneStreaming
+#   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
+#   file: simulation_agent.m
+#   matfile: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/matfile/agent_data.mat
+#   inputs:
+#     steps: 300 # Numero massimo di step della simulazione
+#     show_agent: 2 # Indice dell'agente da mostrare a fine simulazione
+#     use_gui: true # Attiva o meno la GUI MATLAB
+#   outputs:
+#     agent_data:
+#       time: float # Tempo simulato in secondi
+#       current_step: int # Step corrente
+#       positions: "[[float, float]]" # Lista di posizioni per ogni agente
+#       velocities: "[[float, float]]" # Lista di velocità per ogni agente
+#       running: bool # Flag che indica se la simulazione è in corso
+
+simulation:
+  simulator: matlab
+  type: streaming
+  name: SimulazioneDinamicaAgenti
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
+  file: simulation_agent_2.m
+  matfile: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/matfile/simulation_data.mat
+  inputs:
+    num_agents: 8 # Numero di agenti
+    max_steps: 1000 # Numero massimo di passi
+    avoidance_threshold: 2 # Distanza minima di separazione tra gli agenti
+    show_agent_index: 1 # Indice dell'agente da visualizzare
+    use_gui: true # Abilita o disabilita la GUI
+  outputs:
+    simulation_data:
+      time: float # Tempo simulato in secondi
+      current_step: int # Passo corrente
+      positions: "[[float, float]]" # Lista di posizioni per ogni agente
+      velocities: "[[float, float]]" # Lista di velocità per ogni agente
+      running: bool # Flag che indica se la simulazione è in corso
