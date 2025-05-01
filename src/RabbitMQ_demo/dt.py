@@ -75,9 +75,7 @@ class DigitalTwin:
             result = yaml.safe_load(body)
             
             print(f"\n[{self.dt_id.upper()}] Received result from {source}:")
-            print(f"Simulation type: {result.get('sim_type')}")
-            print(f"Status: {result.get('status')}")
-            print(f"Data: {result.get('data')}")
+            print(f"Result: {result}")
             print("-" * 50)
             
             # Acknowledge the message

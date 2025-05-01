@@ -1,6 +1,3 @@
-# Configuration for MATLAB Agent
-
-# RabbitMQ connection settings
 rabbitmq:
   host: localhost
   port: 5672
@@ -8,17 +5,43 @@ rabbitmq:
   password: guest
   heartbeat: 600
 
-# Message exchange configuration
 exchanges:
   input: ex.bridge.output # Exchange to receive commands from
   output: ex.sim.result # Exchange to send results to
 
-# Queue configuration
 queue:
   durable: true # Queue persists across broker restarts
   prefetch_count: 1 # Process one message at a time
 
-# Logging configuration
 logging:
   level: INFO
   file: logs/matlab_agent.log
+
+response_templates:
+  success:
+    status: success
+    simulation:
+      type: batch
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # ISO format with Z suffix
+    include_metadata: true
+    metadata_fields:
+      - execution_time
+      - memory_usage
+      - matlab_version
+
+  error:
+    status: error
+    include_stacktrace: false # For security, don't include full stack traces in production
+    error_codes:
+      invalid_config: 400
+      matlab_start_failure: 500
+      execution_error: 500
+      timeout: 504
+      missing_file: 404
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ"
+
+  progress:
+    status: in_progress
+    include_percentage: true
+    update_interval: 5 # Send progress updates every 5 seconds
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ"

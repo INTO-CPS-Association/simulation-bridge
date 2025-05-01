@@ -13,7 +13,7 @@ def main():
     Main function to initialize and start the MATLAB agent.
     """
     # Setup logger
-    logger = setup_logger(level=logging.INFO)
+    logger = setup_logger(level=logging.DEBUG)
 
     # Check command line arguments
     if len(sys.argv) != 2:

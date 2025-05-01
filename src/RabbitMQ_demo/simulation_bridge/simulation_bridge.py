@@ -190,5 +190,5 @@ class SimulationBridge:
             on_message_callback=self.result_handler.handle
         )
         
-        logger.info("Bidirectional Bridge Running - Starting message consumption")
+        logger.info("Bidirectional Bridge Running")
         self.channel.start_consuming()

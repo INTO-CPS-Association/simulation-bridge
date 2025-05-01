@@ -6,6 +6,7 @@ import yaml
 import uuid
 import time
 from ..utils.logger import get_logger
+from ..batch.batch import handle_batch_simulation
 logger = get_logger()
 
 
@@ -24,10 +25,10 @@ class MessageHandler:
         self.agent_id = agent_id
         self.rabbitmq_manager = rabbitmq_manager
     
+        
     def handle_message(self, ch, method, properties, body):
         """
         Process incoming messages from RabbitMQ.
-        
         Args:
             ch: Channel object
             method: Delivery method
@@ -37,7 +38,6 @@ class MessageHandler:
         message_id = properties.message_id if properties.message_id else "unknown"
         logger.info(f"Received message {message_id}")
         logger.debug(f"Message routing key: {method.routing_key}")
-        
         try:
             # Load the message body as YAML
             msg = yaml.safe_load(body)
@@ -46,47 +46,22 @@ class MessageHandler:
             # Extract information
             source = method.routing_key.split('.')[0]  # Extract the message source
             sim_type = msg.get('simulation', {}).get('type', 'batch')
+            logger.info(f"Received simulation_type: {sim_type}")
             
-            logger.info(f"Processing {sim_type} simulation request from {source}")
+            if sim_type == 'batch':
+                handle_batch_simulation(msg, source, self.rabbitmq_manager)
+            # elif sim_type == 'streaming':
+            #     handle_streaming_simulation(parsed, self.rpc, self.DATA_QUEUE)
+            else:
+                logger.error(f"Unknown simulation type: {sim_type}")
             
-            # Process the message and get result
-            result = self.process_message(sim_type, msg)
-            
-            # Send the result back
-            self.rabbitmq_manager.send_result(source, result)
-            
-            # Acknowledge the receipt of the original message
-            ch.basic_ack(method.delivery_tag)
-            logger.info(f"Successfully processed message {message_id}")
+            # Acknowledge the message after successful processing
+            ch.basic_ack(delivery_tag=method.delivery_tag)
             
         except yaml.YAMLError as e:
             logger.error(f"Error decoding YAML message {message_id}: {e}")
-            ch.basic_nack(method.delivery_tag)
+            ch.basic_nack(delivery_tag=method.delivery_tag)
         except Exception as e:
             logger.error(f"Error processing message {message_id}: {e}")
-            ch.basic_nack(method.delivery_tag)
-    
-    def process_message(self, sim_type, msg):
-        """
-        Process a message and generate a result.
+            ch.basic_nack(delivery_tag=method.delivery_tag)
         
-        Args:
-            sim_type (str): The type of simulation
-            msg (dict): The message content
-            
-        Returns:
-            dict: The result of processing the message
-        """
-        # For now, create a dummy result
-        # In the future, this method could be expanded to include actual simulation logic
-        # or call to external MATLAB processes
-        
-        result = {
-            'simulation_id': str(uuid.uuid4()),
-            'sim_type': sim_type,
-            'timestamp': time.time(),
-            'status': 'processed_by_agent',
-            'message': 'This is a placeholder. Real simulation will be implemented later.'
-        }
-        
-        return result
