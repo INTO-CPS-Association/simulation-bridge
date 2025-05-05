@@ -1,0 +1,37 @@
+# simulation:
+#   simulator: matlab
+#   type: batch # Type of simulation (interactive,batch,streaming)
+#   name: simulationBall # Name of the simulation
+#   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/ # Path to the simulation file
+#   file: simulation_batch.m # Name of the simulation file
+#   description: "Future position of a ball in 3D space" # Description of the simulation
+#   inputs:
+#     x_i: 10
+#     y_i: 5
+#     z_i: 0
+#     v_x: 1
+#     v_y: 2
+#     v_z: 3
+#     t: 10
+#   outputs:
+#     x_f: Final x position
+#     y_f: Final y position
+#     z_f: Final z position
+simulation:
+  simulator: matlab
+  type: streaming
+  name: SimulazioneDinamicaAgenti
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/
+  file: Simulation.m
+  inputs:
+    num_agents: 8 # Numero di agenti
+    max_steps: 100 # Numero massimo di passi
+    avoidance_threshold: 1 # Distanza minima di separazione tra gli agenti
+    show_agent_index: 1 # Indice dell'agente da visualizzare
+    use_gui: true # Abilita o disabilita la GUI
+  outputs:
+    time: float # Tempo simulato in secondi
+    current_step: int # Passo corrente
+    positions: "[[float, float]]" # Lista di posizioni per ogni agente
+    velocities: "[[float, float]]" # Lista di velocità per ogni agente
+    running: bool # Flag che indica se la simulazione è in corso

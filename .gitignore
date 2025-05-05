@@ -174,3 +174,16 @@ cython_debug/
 .pypirc
 
 .DS_Store
+
+#MATLAB file
+tests/simulations/matlab/matfile/
+
+#MATLAB agent
+/logs
+
+#MATLABagent Evaluation & different approaches
+# agents/MATLABagent_tcp_v1
+# agents/MATLABagent_tcp
+# agents/MATLABagent_mat
+# agents/MATLABagent_icp
+# agents/MATLABagent_api_engine
