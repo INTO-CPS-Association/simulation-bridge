@@ -1,160 +1,89 @@
-% simulation.m - Esempio di simulazione che utilizza SimulationRunner con visualizzazione real-time
-% e comunicazione con Python
-function simulation(params)
-    % Se non vengono forniti parametri, usa dei valori di default
-    if nargin < 1
-        params = struct(...
-            'timeStep', 0.1, ...
-            'maxTime', 100.0, ...
-            'initialPosition', [0, 0], ...
-            'initialVelocity', [1, 4], ...
-            'gravity', 9.81, ...
-            'mass', 1.0, ...
-            'logFrequency', 5, ... % Ogni quanti step salvare lo stato
-            'port', 12345, ...     % Porta per la comunicazione con Python
-            'host', 'localhost' ... % Host per la comunicazione con Python
-        );
-    end
-    
-    % Crea un'istanza di SimulationRunner
-    runner = SimulationRunner(params);
-    
-    % Inizializza la simulazione con uno stato personalizzato
-    initialState = struct(...
-        'position', params.initialPosition, ...
-        'velocity', params.initialVelocity, ...
-        'acceleration', [0, -params.gravity], ...
-        'time', 0.0 ...
-    );
-    
-    state = runner.initializeSimulation(initialState);
-    
-    % Crea una figura per la visualizzazione locale (opzionale)
-    % Poiché ora anche Python può visualizzare i dati
-    figure('Name', 'Simulazione in tempo reale', 'NumberTitle', 'off');
-    
-    % Prepara il grafico per la traiettoria
-    subplot(2,1,1);
-    trajectoryPlot = plot(state.position(1), state.position(2), 'bo-', 'LineWidth', 2);
-    hold on;
-    currentPosMarker = plot(state.position(1), state.position(2), 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
-    grid on;
-    xlabel('Posizione X');
-    ylabel('Posizione Y');
-    title('Traiettoria');
 
-    % Inizializza i vettori per memorizzare la storia dei dati
-    timeHistory = state.time;
-    posXHistory = state.position(1);
-    posYHistory = state.position(2);
+function Simulation()
+    % 🔌 Inizializza il wrapper per la comunicazione TCP
+    wrapper = SimulationWrapper(); 
+    inputs = wrapper.get_inputs();
     
-    % Grafico per le velocità
-    subplot(2,1,2);
-    velocityPlot = plot(state.time, [state.velocity(1), state.velocity(2)], '-', 'LineWidth', 2);
-    grid on;
-    xlabel('Tempo');
-    ylabel('Velocità');
-    title('Velocità X e Y');
-    legend('Vel X', 'Vel Y');
-    
-    % Funzione per determinare se la simulazione è terminata
-    function terminated = isTerminated(state, params, elapsedTime)
-        terminated = (elapsedTime >= params.maxTime);
-        
-        % Termina anche se la particella colpisce il terreno
-        if state.position(2) < 0
-            terminated = true;
+
+    % Estrai parametri dagli input JSON ricevuti
+    num_agents = inputs.num_agents;
+    max_steps = inputs.max_steps;
+    avoidance_threshold = inputs.avoidance_threshold;
+    show_agent_index = inputs.show_agent_index;
+    use_gui = inputs.use_gui;
+
+
+    % Parametri di simulazione
+    positions = rand(num_agents, 2) * 20 - 10;
+    velocities = zeros(num_agents, 2);
+    current_step = 0;
+
+    % Impostazioni GUI
+    if use_gui
+        fig = figure('Name', 'Simulazione Agenti Dinamici', 'NumberTitle', 'off');
+        hold on;
+        axis([-10 10 -10 10]);
+        grid on;
+        title('Simulazione Agenti Dinamici con Evitamento di Collisioni');
+        xlabel('X'); ylabel('Y');
+        colors = lines(num_agents);
+        h = gobjects(num_agents,1);
+        for i = 1:num_agents
+            h(i) = plot(positions(i,1), positions(i,2), 'o', ...
+                'MarkerSize', 10, 'MarkerFaceColor', colors(i,:));
         end
     end
-    
-    % Loop principale della simulazione
-    while ~runner.checkTermination(@isTerminated)
-        % Inizia un nuovo passo di simulazione
-        stepInfo = runner.beginStep();
-        
-        % Accedi ai parametri e allo stato corrente
-        dt = params.timeStep;
-        position = state.position;
-        velocity = state.velocity;
-        acceleration = state.acceleration;
-        
-        % Aggiorna la simulazione (esempio di movimento balistico)
-        newPosition = position + velocity * dt + 0.5 * acceleration * dt^2;
-        newVelocity = velocity + acceleration * dt;
-        
-        % Aggiorna lo stato attraverso il runner
-        newState = struct(...
-            'position', newPosition, ...
-            'velocity', newVelocity, ...
-            'time', state.time + dt ...
-        );
-        
-        state = runner.updateState(newState);
-        
-        % Aggiungi il nuovo punto alla storia
-        timeHistory(end+1) = state.time;
-        posXHistory(end+1) = state.position(1);
-        posYHistory(end+1) = state.position(2);
-        
-        % Aggiorna i grafici
-        set(trajectoryPlot, 'XData', posXHistory, 'YData', posYHistory);
-        set(currentPosMarker, 'XData', state.position(1), 'YData', state.position(2));
-        
-        % Aggiorna il grafico delle velocità
-        set(velocityPlot(1), 'XData', timeHistory, 'YData', [velocityPlot(1).YData, state.velocity(1)]);
-        set(velocityPlot(2), 'XData', timeHistory, 'YData', [velocityPlot(2).YData, state.velocity(2)]);
-        
-        % Adatta gli assi
-        subplot(2,1,1);
-        axis tight;
-        if state.position(2) < 0
-            ylim([min(posYHistory)-1, max(posYHistory)+1]);
-        else
-            ylim([0, max(posYHistory)+1]);
-        end
-        
-        subplot(2,1,2);
-        axis tight;
 
-        
-        % Termina il passo
-        stepInfo = runner.endStep(stepInfo.stepStartTime);
-        
-        % Aggiorna la visualizzazione
-        drawnow;
-        
-        % Se la particella colpisce il terreno, modifica la velocità (rimbalzo)
-        if state.position(2) < 0
-            % Calcola la componente verticale della velocità dopo il rimbalzo
-            % (con un coefficiente di restituzione per simulare la perdita di energia)
-            coeffRestitution = 0.8;
-            newVelocity = state.velocity;
-            newVelocity(2) = -state.velocity(2) * coeffRestitution;
-            
-            % Aggiorna anche la posizione per evitare di rimanere sotto il terreno
-            newPosition = state.position;
-            newPosition(2) = 0;
-            
-            % Aggiorna lo stato
-            state = runner.updateState(struct(...
-                'position', newPosition, ...
-                'velocity', newVelocity ...
-            ));
-            
-            % Aggiungi evento di rimbalzo nel log
-            runner.logEvent('bounce', struct(...
-                'position', newPosition, ...
-                'velocity_before', [state.velocity(1), -state.velocity(2)/coeffRestitution], ...
-                'velocity_after', newVelocity ...
-            ));
-            
-            % Controlla se la velocità verticale è sufficientemente bassa da considerare ferma
-            if abs(state.velocity(2)) < 0.1
-                fprintf('La particella si è fermata al suolo\n');
-                break;
+    % Loop di simulazione
+    while current_step < max_steps
+        for i = 1:num_agents
+            velocities(i,:) = 0.9 * velocities(i,:) + 0.1 * randn(1,2);
+            positions(i,:) = positions(i,:) + velocities(i,:);
+            for j = 1:num_agents
+                if i ~= j
+                    distance = norm(positions(i,:) - positions(j,:));
+                    if distance < avoidance_threshold
+                        velocities(i,:) = velocities(i,:) + (positions(i,:) - positions(j,:)) * 0.1;
+                    end
+                end
+            end
+            if use_gui
+                set(h(i), 'XData', positions(i,1), 'YData', positions(i,2));
             end
         end
+
+        % Calcolo distanza minima tra gli agenti
+        min_dist = inf;
+        for i = 1:num_agents
+            for j = i+1:num_agents
+                d = norm(positions(i,:) - positions(j,:));
+                if d < min_dist
+                    min_dist = d;
+                end
+            end
+        end
+
+        % Invio output a Python
+        output_data = struct();
+        output_data.step = current_step;
+        output_data.agents = positions;
+        output_data.distance = min_dist;
+        wrapper.send_output(output_data);
+
+        current_step = current_step + 1;
+        pause(0.1);
     end
-    
-    
+
+    % Cleanup
+    if use_gui
+        close(fig);
+    end
+    delete(wrapper);
+
+    % Output finale
+    if show_agent_index >= 1 && show_agent_index <= num_agents
+        fprintf('\nStato finale Agente %d:\n', show_agent_index);
+        fprintf('Posizione: [%.2f, %.2f]\n', positions(show_agent_index,1), positions(show_agent_index,2));
+        fprintf('Velocità: [%.2f, %.2f]\n', velocities(show_agent_index,1), velocities(show_agent_index,2));
+    end
 end
