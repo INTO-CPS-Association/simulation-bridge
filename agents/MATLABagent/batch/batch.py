@@ -31,6 +31,8 @@ logger = get_logger()
 
 # Load configuration
 config = load_config()
+
+# Response templates
 response_templates = config.get('response_templates', {})
 
 

@@ -17,6 +17,10 @@ logging:
   level: INFO
   file: logs/matlab_agent.log
 
+tcp:
+  host: localhost
+  port: 5678
+
 response_templates:
   success:
     status: success

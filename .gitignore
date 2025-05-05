@@ -177,3 +177,10 @@ cython_debug/
 
 #MATLAB file
 tests/simulations/matlab/matfile/
+
+#MATLABagent Evaluation & different approaches
+# agents/MATLABagent_tcp_v1
+# agents/MATLABagent_tcp
+# agents/MATLABagent_mat
+# agents/MATLABagent_icp
+# agents/MATLABagent_api_engine
