@@ -179,7 +179,7 @@ cython_debug/
 tests/simulations/matlab/matfile/
 
 #MATLAB agent
-/logs
+agents/matlab/logs/*.log
 
 #MATLABagent Evaluation & different approaches
 # agents/MATLABagent_tcp_v1
