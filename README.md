@@ -23,11 +23,10 @@ Built around the concept of simulation, the bridge facilitates control, monitori
 
 ### ⚙️ Flexible Interaction Modes
 
-| **Mode**        | **Description**                                       |
-| --------------- | ----------------------------------------------------- |
-| **Batch**       | Execute simulations without real-time monitoring.     |
-| **Streaming**   | Enable real-time monitoring and control.              |
-| **Interactive** | Combine batch execution with interactive adjustments. |
+| **Mode**      | **Description**                                   |
+| ------------- | ------------------------------------------------- |
+| **Batch**     | Execute simulations without real-time monitoring. |
+| **Streaming** | Enable real-time monitoring and control.          |
 
 ### 🔍 Intelligent Discoverability
 
@@ -43,14 +42,17 @@ Built around the concept of simulation, the bridge facilitates control, monitori
 
 ## Documentation
 
-Get started with the Simulation Bridge and unlock its full potential using these essential resources:
+### Simulation Bridge
 
-- [📘 **Instruction Guide** ↗](INSTRUCTION.md): A comprehensive guide to set up, configure, and deploy the Simulation Bridge.
+- [📘 **Instruction Guide** ↗](INSTRUCTION.md): A comprehensive guide to set up and configure the Simulation Bridge.
 - [🚀 **Usage Guide** ↗](USAGE.md): Detailed instructions on how to run the Simulation Bridge and its components.
-- [🔗 **MATLAB Agent Documentation** ↗](agents/MATLABagent/README.md): In-depth explanation of the MATLAB agent functionality and configuration.
-- [⚙️ **MATLAB Simulation Constraints** ↗](tests/simulations/matlab/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
-These resources are crafted to empower you with the technical expertise and practical insights needed to fully leverage the Simulation Bridge in your projects.
+### Simulators
+
+#### Matlab
+
+- [🔗 **Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
+- [⚙️ **Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
 ---
 

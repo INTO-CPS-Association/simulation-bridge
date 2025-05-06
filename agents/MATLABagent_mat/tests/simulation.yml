@@ -12,7 +12,7 @@ rabbitmq:
   ssl_keyfile: "/path/to/client_key.pem"
 # simulation:
 #   simulator: matlab
-#   type: batch # Type of simulation (interactive,batch,streaming)
+#   type: batch # Type of simulation (batch,streaming)
 #   name: simulationBall # Name of the simulation
 #   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/tests/simulations/matlab/ # Path to the simulation file
 #   file: simulation_batch.m # Name of the simulation file

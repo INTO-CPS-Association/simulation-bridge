@@ -1,4 +1,4 @@
-# utils/logger.py - Centralized logging system
+# utils/logger.py - Sistema di logging centralizzato
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
@@ -11,10 +11,10 @@ MAX_LOG_SIZE: int = 5 * 1024 * 1024  # 5 MB
 BACKUP_COUNT: int = 3
 
 def setup_logger(
-    name: str = 'SIM-BRIDGE',
+    name: str = 'MATLAB-AGENT',
     level: int = DEFAULT_LOG_LEVEL,
     log_format: str = DEFAULT_LOG_FORMAT,
-    log_file: str = 'logs/sim-bridge.log',
+    log_file: str = 'logs/matlab-agent.log',
     enable_console: bool = True
 ) -> logging.Logger:
     """
@@ -33,15 +33,12 @@ def setup_logger(
     logger: logging.Logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    # If the logger already has handlers, return it
     if logger.handlers:
         return logger
 
-    # Ensure the log file directory exists
     log_path: Path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Configure file handler with rotation
     file_handler: RotatingFileHandler = RotatingFileHandler(
         filename=log_file,
         maxBytes=MAX_LOG_SIZE,
@@ -53,7 +50,6 @@ def setup_logger(
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
-    # Configure console handler if enabled
     if enable_console:
         console_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
@@ -63,15 +59,7 @@ def setup_logger(
 
     return logger
 
-def get_logger(name: str = 'SIM-BRIDGE') -> logging.Logger:
-    """
-    Returns an instance of the already configured logger.
-    
-    Args:
-        name: Name of the logger
-        
-    Returns:
-        Logger instance
-    """
+def get_logger(name: str = 'MATLAB-AGENT') -> logging.Logger:
+    """Restituisce un'istanza del logger già configurato"""
     return logging.getLogger(name)
     

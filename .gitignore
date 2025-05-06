@@ -180,6 +180,7 @@ tests/simulations/matlab/matfile/
 
 #MATLAB agent
 /logs
+agents/matlab/logs
 
 #MATLABagent Evaluation & different approaches
 # agents/MATLABagent_tcp_v1

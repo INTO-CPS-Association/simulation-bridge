@@ -2,21 +2,29 @@
 
 ## Installation Instructions
 
-For detailed installation steps, please refer to the [INSTRUCTION.md](INSTRUCTION.md) file located in the project directory.
+For comprehensive installation steps, please refer to the [INSTRUCTION.md](INSTRUCTION.md) file located in the project directory. Ensure that all prerequisites are met before proceeding with the installation.
 
-## Configuration
+## Simulation Bridge
 
-..
+To execute the Simulation Bridge, run the following command:
+
+```bash
+poetry run simulation-bridge
+```
+
+Verify that all required dependencies are installed and properly configured prior to execution.
 
 ## Simulators
 
-### MATLAB
+### MATLAB Agent
 
-To execute the MATLAB agent, use the following command:
+To launch the MATLAB agent, navigate to the `agent/matlab` directory within the project. Execute the following command to start the agent:
 
 ```bash
 poetry run matlab-agent
 ```
+
+Confirm that all dependencies are installed and correctly configured before initiating the agent.
 
 ## Author
 

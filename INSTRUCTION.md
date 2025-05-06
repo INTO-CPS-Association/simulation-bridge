@@ -9,7 +9,9 @@ Adhere to the following steps to configure and execute the **Simulation Bridge**
 Ensure that Poetry is installed on your system. If it is not already installed, execute the following command:
 
 ```bash
-curl -sSL https://install.python-poetry.org | python3 -
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+pipx install poetry
 ```
 
 Verify the installation by checking the Poetry version:
@@ -67,9 +69,9 @@ Alternatively, connect to an existing RabbitMQ instance hosted on a remote serve
 
 ---
 
-## Simulators
+## Agents
 
-### MATLAB
+### Matlab Agent
 
 #### 1. MATLAB Engine API for Python
 
@@ -91,13 +93,9 @@ To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API fo
 
 Verify that the MATLAB Engine is properly installed and accessible within your Python environment.
 
-#### 2. Configuring the MATLAB Agent
+#### 2. Configuration
 
-For detailed instructions on configuring the MATLAB agent, refer to the [MATLAB Agent Configuration Guide](agents/MATLABagent/README.md). Ensure that all necessary settings are correctly applied to enable seamless integration.
-
-<!-- ### ANYLOGIC Integration
-
-For integrating AnyLogic simulations, ensure that the required AnyLogic libraries and dependencies are properly set up. Follow the official AnyLogic documentation for guidance on configuring your simulation environment. -->
+For detailed instructions on configuring the MATLAB agent, refer to the [MATLAB Agent Configuration Guide](agents/matlab/README.md). Ensure that all necessary settings are correctly applied to enable seamless integration.
 
 ## Author
 

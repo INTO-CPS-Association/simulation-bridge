@@ -1,103 +1,97 @@
-# Funzioni per la Simulazione di Particelle
+# Functions for Particle Simulation
 
-## 1. setupParticleSimulation - Funzione di Inizializzazione
+## 1. setupParticleSimulation - Initialization Function
 
-La funzione `setupParticleSimulation` viene chiamata una sola volta all'inizio della simulazione per impostare lo stato iniziale. Deve restituire uno stato iniziale che rappresenta la situazione iniziale delle particelle o degli agenti nella simulazione.
+The `setupParticleSimulation` function is called once at the beginning of the simulation to set up the initial state. It must return an initial state representing the starting situation of the particles or agents in the simulation.
 
-### Parametri
+### Parameters
 
-- **params**: Un struct che contiene i parametri necessari per inizializzare la simulazione, come:
-  - Numero di agenti
-  - Velocità iniziale
-  - Limite di velocità
-  - Tempo massimo, ecc.
+- **params**: A struct containing the parameters needed to initialize the simulation, such as: - Number of agents - Initial speed - Speed limit - Maximum time, etc.
 
-### Restituisce
+### Returns
 
-- **simulationState**: Un struct che contiene le informazioni iniziali per ogni agente (ad esempio, posizione, velocità) e altre variabili pertinenti per la simulazione.
+- **simulationState**: A struct containing the initial information for each agent (e.g., position, velocity) and other relevant variables for the simulation.
 
-### Esempio di Codice
+### Code Example
 
 ```matlab
 function simulationState = setupParticleSimulation(params)
-        % Inizializza lo stato della simulazione
-        numAgents = params.numAgents;  % Numero di agenti
-        speedLimit = params.speedLimit;  % Velocità massima
-        initialPositions = rand(numAgents, 2) * 10;  % Posizioni iniziali casuali
-        velocities = rand(numAgents, 2) * speedLimit;  % Velocità iniziali casuali, limitate
+                                % Initialize the simulation state
+                                numAgents = params.numAgents;  % Number of agents
+                                speedLimit = params.speedLimit;  % Maximum speed
+                                initialPositions = rand(numAgents, 2) * 10;  % Random initial positions
+                                velocities = rand(numAgents, 2) * speedLimit;  % Random initial velocities, limited
 
-        % Stato iniziale
-        simulationState = struct(...
-                'positions', initialPositions, ...
-                'velocities', velocities, ...
-                'numAgents', numAgents ...
-        );
+                                % Initial state
+                                simulationState = struct(...
+                                                                'positions', initialPositions, ...
+                                                                'velocities', velocities, ...
+                                                                'numAgents', numAgents ...
+                                );
 end
 ```
 
 ---
 
-## 2. stepParticleSimulation - Funzione di Passo della Simulazione
+## 2. stepParticleSimulation - Simulation Step Function
 
-La funzione `stepParticleSimulation` viene chiamata a ogni passo della simulazione per aggiornare lo stato della simulazione. Modifica lo stato attuale in base alle leggi di movimento, come la velocità degli agenti, la posizione, le interazioni, ecc.
+The `stepParticleSimulation` function is called at each simulation step to update the simulation state. It modifies the current state based on motion laws, such as agent velocity, position, interactions, etc.
 
-### Parametri
+### Parameters
 
-- **simulationState**: Un struct che contiene lo stato attuale della simulazione, inclusi la posizione e la velocità degli agenti.
-- **params**: Un struct che contiene i parametri della simulazione, come:
-  - Tempo tra i passi della simulazione (`timeStep`)
-  - Limite di velocità, ecc.
+- **simulationState**: A struct containing the current state of the simulation, including agent positions and velocities.
+- **params**: A struct containing the simulation parameters, such as: - Time between simulation steps (`timeStep`) - Speed limit, etc.
 
-### Restituisce
+### Returns
 
-- **newState**: Un struct che rappresenta lo stato aggiornato della simulazione dopo il passo.
-- **data**: Un struct che contiene i dati rilevanti del passo, come le nuove posizioni degli agenti e il tempo trascorso.
+- **newState**: A struct representing the updated simulation state after the step.
+- **data**: A struct containing relevant data from the step, such as the new agent positions and elapsed time.
 
-### Esempio di Codice
+### Code Example
 
 ```matlab
 function [newState, data] = stepParticleSimulation(simulationState, params)
-        % Aggiorna la posizione degli agenti in base alla velocità
-        timeStep = params.timeStep;  % Tempo tra i passi della simulazione
-        positions = simulationState.positions;
-        velocities = simulationState.velocities;
+                                % Update agent positions based on velocity
+                                timeStep = params.timeStep;  % Time between simulation steps
+                                positions = simulationState.positions;
+                                velocities = simulationState.velocities;
 
-        % Calcola la nuova posizione
-        newPositions = positions + velocities * timeStep;
+                                % Compute new positions
+                                newPositions = positions + velocities * timeStep;
 
-        % Stato aggiornato
-        newState = struct('positions', newPositions, 'velocities', velocities, 'numAgents', simulationState.numAgents);
+                                % Updated state
+                                newState = struct('positions', newPositions, 'velocities', velocities, 'numAgents', simulationState.numAgents);
 
-        % Dati del passo
-        data = struct('positions', newPositions, 'velocities', velocities, 'elapsedTime', toc);
+                                % Step data
+                                data = struct('positions', newPositions, 'velocities', velocities, 'elapsedTime', toc);
 end
 ```
 
 ---
 
-## 3. checkParticleTermination - Funzione di Terminazione della Simulazione
+## 3. checkParticleTermination - Simulation Termination Function
 
-La funzione `checkParticleTermination` viene chiamata dopo ogni passo della simulazione per verificare se la simulazione deve terminare. La condizione di terminazione può dipendere dal tempo trascorso o da altre variabili, come il raggiungimento di un obiettivo da parte degli agenti.
+The `checkParticleTermination` function is called after each simulation step to check if the simulation should terminate. The termination condition can depend on elapsed time or other variables, such as agents reaching a goal.
 
-### Parametri
+### Parameters
 
-- **simulationState**: Un struct che contiene lo stato corrente della simulazione, incluse le posizioni degli agenti, le velocità e altri dati.
-- **params**: Un struct che contiene i parametri della simulazione.
-- **elapsedTime**: Il tempo trascorso dalla partenza della simulazione (in secondi).
+- **simulationState**: A struct containing the current state of the simulation, including agent positions, velocities, and other data.
+- **params**: A struct containing the simulation parameters.
+- **elapsedTime**: The time elapsed since the start of the simulation (in seconds).
 
-### Restituisce
+### Returns
 
-- **isTerminated**: Un valore booleano (`true`/`false`) che indica se la simulazione deve terminare. La simulazione termina se questo valore è `true`.
+- **isTerminated**: A boolean value (`true`/`false`) indicating whether the simulation should terminate. The simulation ends if this value is `true`.
 
-### Esempio di Codice
+### Code Example
 
 ```matlab
 function isTerminated = checkParticleTermination(simulationState, params, elapsedTime)
-        % Controlla se la simulazione è terminata
-        if elapsedTime >= params.maxTime
-                isTerminated = true;  % La simulazione termina se il tempo massimo è stato raggiunto
-        else
-                isTerminated = false;  % Altrimenti continua
-        end
+                                % Check if the simulation is terminated
+                                if elapsedTime >= params.maxTime
+                                                                isTerminated = true;  % The simulation ends if the maximum time is reached
+                                else
+                                                                isTerminated = false;  % Otherwise, it continues
+                                end
 end
 ```

@@ -6,7 +6,6 @@
 
 - Batch Simulation – send inputs and retrieve results.
 - Streaming Simulation (Agent Based) – interact and visualize data in real time.
-- Interactive Simulation – mix of interactive control and output processing.
 
 Communication with the Simulation Bridge, as well as other potential external systems, is handled by default through RabbitMQ. Configuration is driven by a **config/config.yaml** file which sets up the RabbitMQ connectivity.
 

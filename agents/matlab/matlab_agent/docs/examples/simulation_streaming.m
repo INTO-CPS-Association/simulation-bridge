@@ -70,7 +70,7 @@ function Simulation()
         wrapper.send_output(output_data);
 
         current_step = current_step + 1;
-        pause(0.02);
+        pause(0.07);
     end
 
     % Cleanup
