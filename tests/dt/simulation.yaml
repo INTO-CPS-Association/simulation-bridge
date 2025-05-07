@@ -36,21 +36,21 @@ simulation:
 #     y_final: "Final y position (m)"
 #     speed_final: "Final speed (m/s)"
 #     time_elapsed: "Actual simulation time (s)"
-# simulation:
-#   simulator: matlab
-#   type: streaming
-#   name: SimulazioneDinamicaAgenti
-#   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples
-#   file: simulation_streaming.m
-#   inputs:
-#     num_agents: 8 # Number of agents
-#     max_steps: 200 # Max steps for the simulation
-#     avoidance_threshold: 1 # Minimum distance to avoid collision
-#     show_agent_index: 1 # Index of the agent to show
-#     use_gui: true # GUI flag
-#   outputs:
-#     time: float # execution time
-#     current_step: int # current step of the simulation
-#     positions: "[[float, float]]" # positions of the agents
-#     velocities: "[[float, float]]" # velocities of the agents
-#     running: bool # running flag
+simulation:
+  simulator: matlab
+  type: streaming
+  name: SimulazioneDinamicaAgenti
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples
+  file: simulation_streaming.m
+  inputs:
+    num_agents: 8 # Number of agents
+    max_steps: 200 # Max steps for the simulation
+    avoidance_threshold: 1 # Minimum distance to avoid collision
+    show_agent_index: 1 # Index of the agent to show
+    use_gui: true # GUI flag
+  outputs:
+    time: float # execution time
+    current_step: int # current step of the simulation
+    positions: "[[float, float]]" # positions of the agents
+    velocities: "[[float, float]]" # velocities of the agents
+    running: bool # running flag

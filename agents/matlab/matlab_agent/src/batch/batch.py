@@ -194,10 +194,10 @@ class MatlabSimulator:
     def _from_matlab(self, value: Any) -> Any:
         """
         Convert MATLAB types back to Python types.
-        
+
         Args:
             value: MATLAB value to convert
-            
+
         Returns:
             Python-compatible value
         """
@@ -209,11 +209,12 @@ class MatlabSimulator:
                 return float(value[0][0])
             elif size[0] == 1 or size[1] == 1:
                 # 1D array (row or column vector)
-                return value.tolist()[0] if size[0] == 1 else [row[0] for row in value]
+                return [value[i][0] for i in range(size[0])] if size[0] > 1 else value[0]
             else:
                 # 2D array
-                return value.tolist()
+                return [[value[i][j] for j in range(size[1])] for i in range(size[0])]
         return value
+
 
     def close(self) -> None:
         """
@@ -225,8 +226,10 @@ class MatlabSimulator:
                 logger.debug("MATLAB engine closed successfully")
             except Exception as e:
                 logger.warning(f"Error while closing MATLAB engine: {str(e)}")
+                raise  # Rilancia l'eccezione
             finally:
                 self.eng = None
+
 
 
 def create_response(template_type: str, sim_name: str, **kwargs: Any) -> Dict[str, Any]:
@@ -249,7 +252,7 @@ def create_response(template_type: str, sim_name: str, **kwargs: Any) -> Dict[st
             'name': sim_name,
             'type': 'batch'
         },
-        'status': template.get('status', template_type)
+        'status': 'completed' if template_type == 'success' else template.get('status', template_type)
     }
     
     # Add timestamp according to configured format
@@ -329,7 +332,7 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
     try:
         # Prepare input and output specifications
         inputs: Dict[str, Any] = data.get('inputs', {})
-        outputs: List[str] = list(data.get('outputs', {}).keys())
+        outputs: List[str] = data.get('outputs', [])
         
         if not outputs:
             raise ValueError("No outputs specified in simulation config")

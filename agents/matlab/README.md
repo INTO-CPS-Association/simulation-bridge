@@ -71,6 +71,10 @@ The agent's behavior is controlled through the configuration file. Key options i
 
 Refer to the configuration file for detailed descriptions of each parameter.
 
+## Testing
+
+For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](tests/README.md).
+
 ## Workflow
 
 1. The agent connects to RabbitMQ and sets up the required queues and exchanges.

@@ -171,7 +171,7 @@ class RabbitMQManager:
             )
             logger.debug(f"Sent message to exchange {exchange} with routing key {routing_key}")
             return True
-        except pika.exceptions.AMQPError as e:
+        except (pika.exceptions.AMQPError, Exception) as e:
             logger.error(f"Failed to send message: {e}")
             return False
     
