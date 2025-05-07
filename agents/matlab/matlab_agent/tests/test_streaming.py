@@ -51,8 +51,6 @@ def sample_sim_data():
     # Sample simulation data for testing
     return {
         'simulation': {
-            'name': 'SimulazioneDinamicaAgenti',
-            'path': '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
             'file': 'simulation_streaming.m',
             'inputs': {
                 'num_agents': 8,
@@ -73,8 +71,7 @@ def test_controller_init_valid(mock_socket, mock_popen, mock_config):
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'test_source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     assert controller.sim_path == Path('/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples').resolve()
 
@@ -86,8 +83,7 @@ def test_controller_init_invalid_path():
                 '/invalid/path',
                 'simulation_streaming.m',
                 'source',
-                Mock(),
-                'test'
+                Mock()
             )
 
 # Tests for starting the MatlabStreamingController
@@ -102,8 +98,7 @@ def test_controller_start_success(mock_socket, mock_popen, mock_config):
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     controller.start()
     
@@ -118,8 +113,7 @@ def test_controller_start_failure(mock_popen):
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     with pytest.raises(MatlabStreamingError):
         controller.start()
@@ -139,8 +133,7 @@ def test_controller_run_success(mock_socket, mock_rabbitmq):
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        mock_rabbitmq,
-        'SimulazioneDinamicaAgenti'
+        mock_rabbitmq
     )
     controller.socket = mock_socket_instance
     controller.run({'num_agents': 8, 'max_steps': 200})
@@ -158,8 +151,7 @@ def test_controller_close_cleanup():
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     controller.matlab_process = mock_process
     controller.socket = mock_socket
@@ -178,7 +170,7 @@ def test_create_streaming_response(mock_config):
     # Test creation of a streaming response
     response = create_response(
         'streaming',
-        'SimulazioneDinamicaAgenti',
+        'Simulation.m',
         data={'value': 42},
         sequence=1
     )
@@ -190,7 +182,7 @@ def test_create_error_response(mock_config):
     # Test creation of an error response
     response = create_response(
         'error',
-        'SimulazioneDinamicaAgenti',
+        'Simulation.m',
         error={
             'message': 'Socket error',
             'type': 'socket_creation_failure'
@@ -215,9 +207,10 @@ def test_handle_streaming_success(MockController, mock_rabbitmq, sample_sim_data
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'test_queue',
-        mock_rabbitmq,
-        'SimulazioneDinamicaAgenti'
+        mock_rabbitmq
     )
+    
+
 
 @patch('src.streaming.streaming.MatlabStreamingController')
 def test_handle_streaming_missing_fields(MockController, mock_rabbitmq):
@@ -264,8 +257,7 @@ def test_tcp_communication(mock_socket, mock_rabbitmq):
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        mock_rabbitmq,
-        'SimulazioneDinamicaAgenti'
+        mock_rabbitmq
     )
     controller.socket = mock_sock_instance
     controller.run({'num_agents': 8, 'max_steps': 200})
@@ -280,8 +272,7 @@ def test_matlab_process_metadata():
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     controller.matlab_process = MagicMock()
     controller.matlab_process.poll.return_value = None
@@ -301,8 +292,7 @@ def test_force_kill_matlab():
         '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
         'simulation_streaming.m',
         'source',
-        Mock(),
-        'SimulazioneDinamicaAgenti'
+        Mock()
     )
     controller.matlab_process = mock_process
     controller.close()

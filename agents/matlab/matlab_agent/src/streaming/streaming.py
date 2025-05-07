@@ -58,7 +58,7 @@ class MatlabStreamingController:
                  file: str, 
                  source: str, 
                  rabbitmq_manager: RabbitMQManager,
-                 sim_file: str) -> None:
+                 ) -> None:
         """
         Initialize a MATLAB streaming controller.
         
@@ -67,13 +67,11 @@ class MatlabStreamingController:
             file: Name of the main simulation file
             source: Source identifier for RabbitMQ responses
             rabbitmq_manager: RabbitMQ manager instance for sending real-time results
-            sim_file: Name of the simulation for result identification
         """
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.source: str = source
         self.rabbitmq_manager: RabbitMQManager = rabbitmq_manager
-        self.sim_file: str = sim_file
         self.matlab_process: Optional[subprocess.Popen] = None
         self.socket: Optional[socket.socket] = None
         self.connection: Optional[socket.socket] = None
@@ -420,8 +418,7 @@ def handle_streaming_simulation(parsed_data: Dict[str, Any], source: str, rabbit
             sim_path, 
             sim_file, 
             source, 
-            rabbitmq_manager,
-            sim_file
+            rabbitmq_manager
         )
         
         # Start the streaming server and MATLAB process

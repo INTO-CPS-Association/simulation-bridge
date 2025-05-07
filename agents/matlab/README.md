@@ -22,7 +22,7 @@ To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API fo
 > For macOS users (e.g., MATLAB R2024b), execute the following commands:
 >
 > ```bash
-> poetry shell
+> poetry env activate
 > cd /Applications/MATLAB_R2024b.app/extern/engines/python
 > python -m pip install .
 > ```
