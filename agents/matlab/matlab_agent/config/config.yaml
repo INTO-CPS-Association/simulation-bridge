@@ -10,7 +10,6 @@ rabbitmq:
 
 simulation:
   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples
-  file: simulation_batch.m
 
 exchanges:
   input: ex.bridge.output # Exchange to receive commands from
