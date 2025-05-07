@@ -43,7 +43,7 @@ def test_rabbitmq_connect_and_setup(mock_creds, mock_params, mock_conn, monkeypa
     fake_channel.exchange_declare.assert_any_call(exchange=cfg['exchanges']['input'], exchange_type='topic', durable=True)
     fake_channel.exchange_declare.assert_any_call(exchange=cfg['exchanges']['output'], exchange_type='topic', durable=True)
     # Verify queue declared and bound
-    fake_channel.queue_declare.assert_called_once_with(queue='Q.matlab.test', durable=cfg['queue']['durable'])
+    fake_channel.queue_declare.assert_called_once_with(queue='Q.sim.test', durable=cfg['queue']['durable'])
     fake_channel.queue_bind.assert_called_once()
     # Verify QoS
     fake_channel.basic_qos.assert_called_once_with(prefetch_count=cfg['queue']['prefetch_count'])

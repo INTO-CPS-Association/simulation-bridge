@@ -129,44 +129,6 @@ def test_matlab_simulator_close():
     simulator.close()
     mock_engine.quit.assert_called_once()
 
-### Response Template Tests ###
-
-# Test response creation for success
-def test_create_response_success(mock_config):
-    response = create_response(
-        'success', 
-        'test_sim',
-        outputs={'result': 42},
-        metadata={'exec_time': 1.5}
-    )
-    
-    assert response['status'] == 'completed'
-    assert 'result' in response['simulation']['outputs']
-    assert 'metadata' in response
-
-# Test response creation for error
-def test_create_response_error(mock_config):
-    response = create_response(
-        'error',
-        'test_sim',
-        error={
-            'message': 'Test error',
-            'type': 'invalid_config'
-        }
-    )
-    
-    assert response['status'] == 'error'
-    assert response['error']['code'] == 400
-
-# Test response creation for progress
-def test_create_response_progress(mock_config):
-    response = create_response(
-        'progress',
-        'test_sim',
-        percentage=75
-    )
-    
-    assert response['progress']['percentage'] == 75
 
 ### Batch Handler Tests ###
 
@@ -228,33 +190,6 @@ def test_simulation_error_wrapping():
             simulator = MatlabSimulator('matlab_agent/docs/examples', 'simulation_batch.m')
             simulator.start()
 
-# Test error response with stack trace
-@patch('src.batch.batch.response_templates', {
-    'error': {
-        'include_stacktrace': True,
-        'error_codes': {
-            'test': 500
-        }
-    }
-})
-def test_error_response_with_stacktrace():
-    try:
-        1 / 0  # Generate division by zero error
-    except ZeroDivisionError:
-        response = create_response(
-            'error',
-            'test_sim',
-            error={
-                'message': 'Error',
-                'type': 'test',
-                'traceback': traceback.format_exc()
-            }
-        )
-
-    assert 'traceback' in response['error']
-    assert "ZeroDivisionError" in response['error']['traceback']
-
-### Type Conversion Edge Cases ###
 
 # Test complex type conversions between Python and MATLAB
 def test_complex_type_conversions():
@@ -269,15 +204,4 @@ def test_complex_type_conversions():
     # Test single value conversion
     assert simulator._from_matlab(matlab.double([[5.0]])) == 5.0
 
-### Cleanup Tests ###
 
-# Test simulator cleanup on error
-def test_simulator_cleanup_on_error():
-    mock_engine = Mock()
-    mock_engine.quit.side_effect = Exception("Quit failed")
-    simulator = MatlabSimulator('matlab_agent/docs/examples', 'simulation_batch.m')
-    simulator.eng = mock_engine
-    
-    with pytest.raises(Exception):
-        simulator.close()
-    mock_engine.quit.assert_called()

@@ -28,6 +28,7 @@ import pika
 from ..utils.logger import get_logger
 from ..utils.config_loader import load_config
 from ..core.rabbitmq_manager import RabbitMQManager
+from ..utils.create_response import create_response
 from yaml import SafeLoader  # Requires types-PyYAML for type hints
 
 # Configure logger
@@ -131,15 +132,15 @@ class MatlabStreamingController:
             logger.debug("MATLAB process started successfully")
             
             # Send initial progress message
-            progress_template: Dict[str, Any] = response_templates.get('progress', {})
-            if progress_template.get('include_percentage', False):
-                progress_response: Dict[str, Any] = create_response(
-                    'progress', 
-                    self.sim_file, 
-                    percentage=0,
-                    message="MATLAB simulation started"
-                )
-                self.rabbitmq_manager.send_result(self.source, progress_response)
+            progress_response: Dict[str, Any] = create_response(
+                'progress', 
+                self.sim_file, 
+                'streaming',
+                response_templates,
+                percentage=0,
+                message="MATLAB simulation started"
+            )
+            self.rabbitmq_manager.send_result(self.source, progress_response)
             
         except socket.error as e:
             logger.error(f"Failed to create socket server: {str(e)}")
@@ -205,6 +206,8 @@ class MatlabStreamingController:
                                 streaming_response: Dict[str, Any] = create_response(
                                     template_type,
                                     self.sim_file,
+                                    'streaming',
+                                    response_templates,
                                     percentage=percentage,
                                     data=output.get('data', {}),
                                     metadata=metadata,
@@ -216,6 +219,8 @@ class MatlabStreamingController:
                                 streaming_response = create_response(
                                     template_type,
                                     self.sim_file,
+                                    'streaming',
+                                    response_templates,
                                     data=output,
                                     sequence=sequence
                                 )
@@ -301,84 +306,6 @@ class MatlabStreamingController:
                 logger.warning(f"Error while terminating MATLAB process: {str(e)}")
 
 
-def create_response(template_type: str, sim_file: str, **kwargs) -> Dict[str, Any]:
-    """
-    Create a response based on the template defined in the configuration.
-    
-    Args:
-        template_type: Type of template to use ('success', 'error', 'progress', 'streaming')
-        sim_file: Name of the simulation
-        **kwargs: Additional fields to include in the response
-        
-    Returns:
-        Formatted response dictionary
-    """
-    template: Dict[str, Any] = response_templates.get(template_type, {})
-    
-    # Create base response structure
-    response: Dict[str, Any] = {
-        'simulation': {
-            'file': sim_file,
-            'type': 'streaming'
-        },
-        'status': template.get('status', template_type)
-    }
-    
-    # Add timestamp according to configured format
-    timestamp_format: str = template.get('timestamp_format', '%Y-%m-%dT%H:%M:%SZ')
-    response['timestamp'] = datetime.now().strftime(timestamp_format)
-    
-    # Add sequence number if available
-    if 'sequence' in kwargs:
-        response['sequence'] = kwargs['sequence']
-    
-    # Add metadata if configured
-    if template.get('include_metadata', False) and 'metadata' in kwargs:
-        response['metadata'] = kwargs.get('metadata')
-    
-    # Handle specific template types
-    if template_type == 'success':
-        response['simulation']['outputs'] = kwargs.get('data', {})
-    
-    elif template_type == 'error':
-        error_info: Dict[str, Any] = kwargs.get('error', {})
-        response['error'] = {
-            'message': error_info.get('message', 'Unknown error'),
-            'code': template.get('error_codes', {}).get(
-                error_info.get('type', 'execution_error'), 500)
-        }
-        
-        # Add error type if available
-        if 'type' in error_info:
-            response['error']['type'] = error_info['type']
-            
-        # Add stack trace if configured
-        if template.get('include_stacktrace', False) and 'traceback' in error_info:
-            response['error']['traceback'] = error_info['traceback']
-    
-    elif template_type == 'progress':
-        if template.get('include_percentage', False) and 'percentage' in kwargs:
-            response['progress'] = {
-                'percentage': kwargs['percentage']
-            }
-            
-        # Add streaming data if available
-        if 'data' in kwargs and kwargs['data']:
-            response['data'] = kwargs['data']
-    
-    elif template_type == 'streaming':
-        # Add streaming data
-        if 'data' in kwargs:
-            response['data'] = kwargs['data']
-    
-    # Add any additional keys passed in kwargs
-    for key, value in kwargs.items():
-        if key not in ['data', 'error', 'metadata', 'percentage', 'sequence']:
-            response[key] = value
-            
-    return response
-
-
 def handle_streaming_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_manager: RabbitMQManager) -> None:
     """
     Process a streaming simulation request and send the results back via RabbitMQ in real-time.
@@ -391,14 +318,16 @@ def handle_streaming_simulation(parsed_data: Dict[str, Any], source: str, rabbit
     data: Dict[str, Any] = parsed_data.get('simulation', {})
         
     # Validate input data
-    sim_path= config['simulation']['path'] # Default path from config
+    sim_path = config['simulation']['path']  # Default path from config
     sim_file: Optional[str] = data.get('file')
     logger.info(f"Processing streaming simulation: {sim_file}")
     
     if not sim_path or not sim_file:
         error_response: Dict[str, Any] = create_response(
             'error', 
-            sim_file, 
+            sim_file or '',
+            'streaming',
+            response_templates,
             error={
                 'message': "Missing 'path' or 'file' in simulation config.",
                 'type': 'invalid_config'
@@ -433,8 +362,10 @@ def handle_streaming_simulation(parsed_data: Dict[str, Any], source: str, rabbit
         # Send final success message indicating completion
         success_response: Dict[str, Any] = create_response(
             'success', 
-            sim_file, 
-            data={'status': 'completed'},
+            sim_file,
+            'streaming',
+            response_templates,
+            outputs={'status': 'completed'},
             metadata=metadata
         )
         
@@ -462,7 +393,9 @@ def handle_streaming_simulation(parsed_data: Dict[str, Any], source: str, rabbit
         # Create error response using the template
         error_response: Dict[str, Any] = create_response(
             'error', 
-            sim_file, 
+            sim_file,
+            'streaming',
+            response_templates,
             error={
                 'message': str(e),
                 'type': error_type,

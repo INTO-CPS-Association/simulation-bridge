@@ -44,8 +44,8 @@ def test_rabbitmq_manager_initialization(mock_pika_connection):
     mocked_connection.assert_called_once()
     mocked_channel.exchange_declare.assert_any_call(exchange="ex.bridge.output", exchange_type="topic", durable=True)
     mocked_channel.exchange_declare.assert_any_call(exchange="ex.sim.result", exchange_type="topic", durable=True)
-    mocked_channel.queue_declare.assert_called_once_with(queue=f"Q.matlab.{AGENT_ID}", durable=True)
-    mocked_channel.queue_bind.assert_called_once_with(exchange="ex.bridge.output", queue=f"Q.matlab.{AGENT_ID}", routing_key=f"*.{AGENT_ID}")
+    mocked_channel.queue_declare.assert_called_once_with(queue=f"Q.sim.{AGENT_ID}", durable=True)
+    mocked_channel.queue_bind.assert_called_once_with(exchange="ex.bridge.output", queue=f"Q.sim.{AGENT_ID}", routing_key=f"*.{AGENT_ID}")
     mocked_channel.basic_qos.assert_called_once_with(prefetch_count=1)
 
 
@@ -73,7 +73,7 @@ def test_start_consuming(mock_pika_connection):
     manager.start_consuming()
     
     mocked_channel.basic_consume.assert_called_once_with(
-        queue=f"Q.matlab.{AGENT_ID}",
+        queue=f"Q.sim.{AGENT_ID}",
         on_message_callback=mock_handler
     )
     mocked_channel.start_consuming.assert_called_once()

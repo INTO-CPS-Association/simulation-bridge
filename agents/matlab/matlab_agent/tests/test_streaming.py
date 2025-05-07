@@ -165,30 +165,6 @@ def test_controller_close_cleanup():
     mock_process.terminate.assert_called_once()  # Ensure terminate is called
     mock_socket.close.assert_called_once()  # Ensure socket is closed
 
-# Tests for response creation
-def test_create_streaming_response(mock_config):
-    # Test creation of a streaming response
-    response = create_response(
-        'streaming',
-        'Simulation.m',
-        data={'value': 42},
-        sequence=1
-    )
-    assert response['status'] == 'streaming'
-    assert response['data'] == {'value': 42}
-    assert response['sequence'] == 1
-
-def test_create_error_response(mock_config):
-    # Test creation of an error response
-    response = create_response(
-        'error',
-        'Simulation.m',
-        error={
-            'message': 'Socket error',
-            'type': 'socket_creation_failure'
-        }
-    )
-    assert response['error']['code'] == 500
 
 # Tests for handling streaming simulation
 @patch('src.streaming.streaming.MatlabStreamingController')

@@ -75,6 +75,18 @@ Refer to the configuration file for detailed descriptions of each parameter.
 
 For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](tests/README.md).
 
+## Interacting with the MATLAB Agent
+
+### Quick Start Example
+
+To quickly get started with the MATLAB Agent, refer to the example script provided in the `resources` folder:
+
+```plaintext
+resources/use_matlab_agent.py
+```
+
+This script demonstrates a practical approach to interacting with the MATLAB Agent, making it easier to understand its functionality and integration process.
+
 ## Workflow
 
 1. The agent connects to RabbitMQ and sets up the required queues and exchanges.

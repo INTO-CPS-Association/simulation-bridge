@@ -29,7 +29,7 @@ class RabbitMQManager:
         self.config: Dict[str, Any] = config
         self.connection: Optional[pika.BlockingConnection] = None
         self.channel: Optional[pika.adapters.blocking_connection.BlockingChannel] = None
-        self.input_queue_name: str = f'Q.matlab.{self.agent_id}'
+        self.input_queue_name: str = f'Q.sim.{self.agent_id}'
         self.message_handler: Optional[Callable[[pika.adapters.blocking_connection.BlockingChannel, pika.spec.Basic.Deliver, BasicProperties, bytes], None]] = None
         
         # Connect to RabbitMQ
@@ -214,7 +214,7 @@ class RabbitMQManager:
         success: bool = self.send_message(output_exchange, routing_key, payload_yaml, properties)
         
         if success:
-            logger.info(f"Sent result to {destination} with message ID: {message_id} and payload: {payload}")
+            logger.debug(f"Sent result to {destination} with message ID: {message_id} and payload: {payload}")
         else:
             logger.error(f"Failed to send result to {destination}")
         

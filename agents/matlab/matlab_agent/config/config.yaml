@@ -17,7 +17,7 @@ exchanges:
 
 queue:
   durable: true # Queue persists across broker restarts
-  prefetch_count: 1 # Process one message at a time
+  prefetch_count: 1 # Number of messages to prefetch
 
 logging:
   level: INFO # Log level (DEBUG, INFO, ERROR)

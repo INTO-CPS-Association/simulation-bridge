@@ -25,6 +25,7 @@ import matlab.engine
 from yaml import SafeLoader, SafeDumper
 from ..utils.logger import get_logger
 from ..utils.config_loader import load_config
+from ..utils.create_response import create_response
 from ..core.rabbitmq_manager import RabbitMQManager
 
 # Configure logger
@@ -215,7 +216,6 @@ class MatlabSimulator:
                 return [[value[i][j] for j in range(size[1])] for i in range(size[0])]
         return value
 
-
     def close(self) -> None:
         """
         Close the MATLAB engine and release resources.
@@ -226,75 +226,8 @@ class MatlabSimulator:
                 logger.debug("MATLAB engine closed successfully")
             except Exception as e:
                 logger.warning(f"Error while closing MATLAB engine: {str(e)}")
-                raise  # Rilancia l'eccezione
             finally:
                 self.eng = None
-
-
-
-def create_response(template_type: str, sim_file: str, **kwargs: Any) -> Dict[str, Any]:
-    """
-    Create a response based on the template defined in the configuration.
-    
-    Args:
-        template_type: Type of template to use ('success', 'error', 'progress')
-        sim_file: Name of the simulation
-        **kwargs: Additional fields to include in the response
-        
-    Returns:
-        Formatted response dictionary
-    """
-    template: Dict[str, Any] = response_templates.get(template_type, {})
-    
-    # Create base response structure
-    response: Dict[str, Any] = {
-        'simulation': {
-            'name': sim_file,
-            'type': 'batch'
-        },
-        'status': 'completed' if template_type == 'success' else template.get('status', template_type)
-    }
-    
-    # Add timestamp according to configured format
-    timestamp_format: str = template.get('timestamp_format', '%Y-%m-%dT%H:%M:%SZ')
-    response['timestamp'] = datetime.now().strftime(timestamp_format)
-    
-    # Add metadata if configured
-    if template.get('include_metadata', False) and 'metadata' in kwargs:
-        response['metadata'] = kwargs.get('metadata')
-    
-    # Handle specific template types
-    if template_type == 'success':
-        response['simulation']['outputs'] = kwargs.get('outputs', {})
-    
-    elif template_type == 'error':
-        error_info: Dict[str, Any] = kwargs.get('error', {})
-        response['error'] = {
-            'message': error_info.get('message', 'Unknown error'),
-            'code': template.get('error_codes', {}).get(
-                error_info.get('type', 'execution_error'), 500)
-        }
-        
-        # Add error type if available
-        if 'type' in error_info:
-            response['error']['type'] = error_info['type']
-            
-        # Add stack trace if configured
-        if template.get('include_stacktrace', False) and 'traceback' in error_info:
-            response['error']['traceback'] = error_info['traceback']
-    
-    elif template_type == 'progress':
-        if template.get('include_percentage', False) and 'percentage' in kwargs:
-            response['progress'] = {
-                'percentage': kwargs['percentage']
-            }
-    
-    # Add any additional keys passed in kwargs
-    for key, value in kwargs.items():
-        if key not in ['outputs', 'error', 'metadata', 'percentage']:
-            response[key] = value
-            
-    return response
 
 
 def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_manager: RabbitMQManager) -> None:
@@ -308,9 +241,8 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
     """
     data: Dict[str, Any] = parsed_data.get('simulation', {})
     
-    
     # Validate input data
-    sim_path= config['simulation']['path'] # Default path from config
+    sim_path = config['simulation']['path']  # Default path from config
     sim_file: Optional[str] = data.get('file')
     logger.info(f"Processing batch simulation: {sim_file}")
     function_name: Optional[str] = data.get('function_name')
@@ -318,7 +250,9 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
     if not sim_path or not sim_file:
         error_response: Dict[str, Any] = create_response(
             'error', 
-            sim_file, 
+            sim_file or "unknown", 
+            'batch',
+            response_templates,
             error={
                 'message': "Missing 'path' or 'file' in simulation config.",
                 'type': 'invalid_config'
@@ -348,6 +282,8 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
             progress_response: Dict[str, Any] = create_response(
                 'progress', 
                 sim_file, 
+                'batch',
+                response_templates,
                 percentage=0
             )
             rabbitmq_manager.send_result(source, progress_response)
@@ -370,6 +306,8 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
             progress_response = create_response(
                 'progress', 
                 sim_file, 
+                'batch',
+                response_templates,
                 percentage=50
             )
             rabbitmq_manager.send_result(source, progress_response)
@@ -386,6 +324,8 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         success_response: Dict[str, Any] = create_response(
             'success', 
             sim_file, 
+            'batch',
+            response_templates,
             outputs=results,
             metadata=metadata
         )
@@ -414,7 +354,9 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         # Create error response using the template
         error_response = create_response(
             'error', 
-            sim_file, 
+            sim_file or "unknown", 
+            'batch',
+            response_templates,
             error={
                 'message': str(e),
                 'type': error_type,
