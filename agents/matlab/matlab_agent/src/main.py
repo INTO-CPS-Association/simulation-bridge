@@ -1,39 +1,46 @@
 """
 Main entry point for the MATLAB Agent application.
 """
-import sys
 import logging
+import click
 from .utils.logger import setup_logger
 from .core.agent import MatlabAgent
+from .utils.config_loader import load_config
 
-def main() -> None:
+@click.command()
+@click.argument('agent_id', required=False)
+def main(agent_id=None) -> None:
     """
     Main function to initialize and start the MATLAB agent.
+    
+    Args:
+        agent_id: The ID of the agent to start. If not provided, will use default from config.
     """
+    config = load_config()
+    logging_level = config['logging']['level']
+    logging_file = config['logging']['file']
+    
     # Setup logger
-    logger: logging.Logger = setup_logger(level=logging.DEBUG)
+    logger: logging.Logger = setup_logger(
+        level=getattr(logging, logging_level.upper(), logging.INFO), #in case of invalid level, default to INFO
+        log_file=logging_file)
     
-    # Check command line arguments
-    if len(sys.argv) != 2:
-        logger.error("Usage: main.py <agent_id>")
-        sys.exit(1)
-    
-    # Get agent ID from command line
-    agent_id: str = sys.argv[1]
+    # Use default agent_id from config if not provided
+    if agent_id is None:
+        agent_id = config['agent']['agent_id']
+        logger.debug(f"Using default agent_id: {agent_id}")
     
     # Create and start the agent
     agent: MatlabAgent = MatlabAgent(agent_id)
     try:
-        logger.info(f"Starting MATLAB agent with ID: {agent_id}")
+        logger.debug(f"Starting MATLAB agent..")
         agent.start()
     except KeyboardInterrupt:
         logger.info("Shutting down agent due to keyboard interrupt")
         agent.stop()
-        sys.exit(0)  # Aggiungi questa riga per uscire dopo KeyboardInterrupt
     except Exception as e:
         logger.error(f"Error running agent: {e}")
         agent.stop()
-        sys.exit(1)
 
 if __name__ == "__main__":
     main()

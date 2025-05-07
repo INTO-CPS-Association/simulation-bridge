@@ -23,7 +23,7 @@ class MatlabAgent:
             agent_id (str): Unique identifier for this MATLAB agent
         """
         self.agent_id: str = agent_id
-        logger.info(f"Initializing MATLAB agent with ID: {self.agent_id}")
+        logger.info(f"MATLAB agent ID: {self.agent_id}")
         
         # Load configuration
         self.config_manager: ConfigManager = ConfigManager()
@@ -43,7 +43,7 @@ class MatlabAgent:
         Start consuming messages from the input queue.
         """
         try:
-            logger.info(f"MATLAB agent {self.agent_id} started. Listening for simulation requests...")
+            logger.info("MATLAB agent running and listening for requests")
             self.rabbitmq_manager.start_consuming()
         except KeyboardInterrupt:
             logger.info("Stopping MATLAB agent due to keyboard interrupt")

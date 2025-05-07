@@ -43,7 +43,7 @@ class RabbitMQManager:
         """
         rabbitmq_config: Dict[str, Any] = self.config.get('rabbitmq', {})
         try:
-            logger.info(f"Connecting to RabbitMQ at {rabbitmq_config.get('host', 'localhost')}...")
+            logger.debug(f"Connecting to RabbitMQ at {rabbitmq_config.get('host', 'localhost')}...")
             
             # Setup connection parameters
             credentials = pika.PlainCredentials(

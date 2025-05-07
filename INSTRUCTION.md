@@ -67,36 +67,6 @@ lsof -i :5672
 
 Alternatively, connect to an existing RabbitMQ instance hosted on a remote server (on-premise or cloud).
 
----
-
-## Agents
-
-### Matlab Agent
-
-#### 1. MATLAB Engine API for Python
-
-To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API for Python. Follow the official MathWorks installation guide for detailed steps:
-
-[MATLAB Engine API for Python Installation Guide](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
-
-> **Installation on macOS**
->
-> For macOS users (e.g., MATLAB R2024b), execute the following commands:
->
-> ```bash
-> poetry shell
-> cd /Applications/MATLAB_R2024b.app/extern/engines/python
-> python -m pip install .
-> ```
->
-> **Note:** Replace `MATLAB_R2024b.app` with the version installed on your system.
-
-Verify that the MATLAB Engine is properly installed and accessible within your Python environment.
-
-#### 2. Configuration
-
-For detailed instructions on configuring the MATLAB agent, refer to the [MATLAB Agent Configuration Guide](agents/matlab/README.md). Ensure that all necessary settings are correctly applied to enable seamless integration.
-
 ## Author
 
 <div align="left" style="display: flex; align-items: center; gap: 15px;">

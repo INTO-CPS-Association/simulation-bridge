@@ -11,6 +11,9 @@ license = "ICAPL"
 python = "^3.12"                               
 paho-mqtt = ">=2.1.0,<3.0.0"
 pyyaml = ">=6.0.2,<7.0.0"
+click = "^8.1.8"
+types-pyyaml = "^6.0.12.20250402"
+pydantic = "^2.11.4"
 
 [tool.poetry.scripts]
 matlab-agent = "matlab_agent.src.run_default_agent:run"  

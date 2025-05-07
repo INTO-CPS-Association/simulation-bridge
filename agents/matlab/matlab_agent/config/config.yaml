@@ -17,7 +17,7 @@ queue:
   prefetch_count: 1 # Process one message at a time
 
 logging:
-  level: INFO
+  level: INFO # Log level (DEBUG, INFO, ERROR)
   file: logs/matlab_agent.log
 
 tcp:
