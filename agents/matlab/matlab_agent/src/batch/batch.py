@@ -232,13 +232,13 @@ class MatlabSimulator:
 
 
 
-def create_response(template_type: str, sim_name: str, **kwargs: Any) -> Dict[str, Any]:
+def create_response(template_type: str, sim_file: str, **kwargs: Any) -> Dict[str, Any]:
     """
     Create a response based on the template defined in the configuration.
     
     Args:
         template_type: Type of template to use ('success', 'error', 'progress')
-        sim_name: Name of the simulation
+        sim_file: Name of the simulation
         **kwargs: Additional fields to include in the response
         
     Returns:
@@ -249,7 +249,7 @@ def create_response(template_type: str, sim_name: str, **kwargs: Any) -> Dict[st
     # Create base response structure
     response: Dict[str, Any] = {
         'simulation': {
-            'name': sim_name,
+            'name': sim_file,
             'type': 'batch'
         },
         'status': 'completed' if template_type == 'success' else template.get('status', template_type)
@@ -307,18 +307,18 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         rabbitmq_manager: Instance of RabbitMQManager to send responses
     """
     data: Dict[str, Any] = parsed_data.get('simulation', {})
-    sim_name: str = data.get('name', 'Unnamed')
-    logger.info(f"Processing batch simulation: {sim_name}")
+    
     
     # Validate input data
-    sim_path: Optional[str] = data.get('path')
+    sim_path= config['simulation']['path'] # Default path from config
     sim_file: Optional[str] = data.get('file')
+    logger.info(f"Processing batch simulation: {sim_file}")
     function_name: Optional[str] = data.get('function_name')
     
     if not sim_path or not sim_file:
         error_response: Dict[str, Any] = create_response(
             'error', 
-            sim_name, 
+            sim_file, 
             error={
                 'message': "Missing 'path' or 'file' in simulation config.",
                 'type': 'invalid_config'
@@ -347,7 +347,7 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         if send_progress:
             progress_response: Dict[str, Any] = create_response(
                 'progress', 
-                sim_name, 
+                sim_file, 
                 percentage=0
             )
             rabbitmq_manager.send_result(source, progress_response)
@@ -369,7 +369,7 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         if send_progress:
             progress_response = create_response(
                 'progress', 
-                sim_name, 
+                sim_file, 
                 percentage=50
             )
             rabbitmq_manager.send_result(source, progress_response)
@@ -385,7 +385,7 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         # Create success response using the template
         success_response: Dict[str, Any] = create_response(
             'success', 
-            sim_name, 
+            sim_file, 
             outputs=results,
             metadata=metadata
         )
@@ -395,10 +395,10 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         # Send the result back using the passed instance
         rabbitmq_manager.send_result(source, success_response)
         
-        logger.info(f"Simulation '{sim_name}' completed successfully")
+        logger.info(f"Simulation '{sim_file}' completed successfully")
         
     except Exception as e:
-        logger.error(f"Simulation '{sim_name}' failed: {str(e)}", exc_info=True)
+        logger.error(f"Simulation '{sim_file}' failed: {str(e)}", exc_info=True)
         
         # Determine error type for error code mapping
         error_type: str = 'execution_error'
@@ -414,7 +414,7 @@ def handle_batch_simulation(parsed_data: Dict[str, Any], source: str, rabbitmq_m
         # Create error response using the template
         error_response = create_response(
             'error', 
-            sim_name, 
+            sim_file, 
             error={
                 'message': str(e),
                 'type': error_type,
