@@ -14,18 +14,6 @@ poetry run simulation-bridge
 
 Verify that all required dependencies are installed and properly configured prior to execution.
 
-## Simulators
-
-### MATLAB Agent
-
-To launch the MATLAB agent, navigate to the `agent/matlab` directory within the project. Execute the following command to start the agent:
-
-```bash
-poetry run matlab-agent
-```
-
-Confirm that all dependencies are installed and correctly configured before initiating the agent.
-
 ## Author
 
 <div align="left" style="display: flex; align-items: center; gap: 15px;">

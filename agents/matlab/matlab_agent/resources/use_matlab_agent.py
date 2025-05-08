@@ -1,3 +1,8 @@
+"""
+This is a simple example script to demonstrate how to interact externally with the MATLAB agent.
+The script sets up communication channels using RabbitMQ, sends simulation requests to the MATLAB agent,
+and listens for results. It uses YAML for message formatting and threading to handle asynchronous listening.
+"""
 import pika
 import yaml
 import threading
