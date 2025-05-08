@@ -160,13 +160,14 @@ class MatlabStreamingController:
     def _process_output(self, output: Dict[str, Any], sequence: int) -> None:
         """Process and send individual output chunk."""
         template_type = 'progress' if 'progress' in output else 'streaming'
+        data_payload = output if template_type == 'streaming' else output.get('data', {})
         response = create_response(
             template_type,
             self.sim_file,
             'streaming',
             response_templates,
             percentage=output.get('progress', {}).get('percentage', sequence),
-            data=output.get('data', {}),
+            data=data_payload,
             metadata=output.get('metadata', {}),
             sequence=sequence
         )
@@ -192,6 +193,7 @@ class MatlabStreamingController:
                     line, buffer = buffer.split(b'\n', 1)
                     if line.strip():
                         try:
+                            logger.debug("Received line: %s", line)
                             self._process_output(json.loads(line.decode()), sequence)
                             sequence += 1
                         except json.JSONDecodeError as e:
@@ -295,6 +297,7 @@ def handle_streaming_simulation(
             rabbitmq_manager
         )
         controller.start()
+        logger.debug("Simulation inputs: %s", data.get('inputs', {}))
         controller.run(data.get('inputs', {}))
         rabbitmq_manager.send_result(
             source,

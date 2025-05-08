@@ -8,6 +8,7 @@ from src.main import main
 
 ### Fixtures ###
 
+
 @pytest.fixture
 def config_data():
     # Returns a sample configuration with logging and agent details
@@ -15,6 +16,7 @@ def config_data():
         'logging': {'level': 'DEBUG', 'file': 'debug.log'},
         'agent': {'agent_id': 'test_logger'}
     }
+
 
 @pytest.fixture
 def default_config():
@@ -24,6 +26,7 @@ def default_config():
         'agent': {'agent_id': 'default_agent'}
     }
 
+
 @pytest.fixture
 def missing_agent_config():
     # Returns a configuration missing the agent_id
@@ -31,6 +34,7 @@ def missing_agent_config():
         'logging': {'level': 'INFO', 'file': 'app.log'},
         'agent': {}  # Missing agent_id
     }
+
 
 @pytest.fixture
 def mock_agent():
@@ -41,6 +45,7 @@ def mock_agent():
     return agent
 
 ### Tests ###
+
 
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
@@ -56,6 +61,7 @@ def test_main_with_custom_agent_id(mock_load_config, mock_setup_logger, MockAgen
     MockAgent.assert_called_once_with('custom_agent')
     mock_agent.start.assert_called_once()
     assert result.exit_code == 0
+
 
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
@@ -73,6 +79,7 @@ def test_main_default_agent_id(mock_load_config, mock_setup_logger, MockAgent, d
     mock_agent.start.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
@@ -88,6 +95,7 @@ def test_main_keyboard_interrupt(mock_load_config, mock_setup_logger, MockAgent,
     mock_agent.stop.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
@@ -102,6 +110,7 @@ def test_main_general_error(mock_load_config, mock_setup_logger, MockAgent, defa
 
     mock_agent.stop.assert_called_once()
     assert result.exit_code == 0
+
 
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
@@ -121,6 +130,7 @@ def test_invalid_log_level(mock_load_config, mock_setup_logger, MockAgent, missi
         log_file='app.log'
     )
     assert result.exit_code == 0
+
 
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')

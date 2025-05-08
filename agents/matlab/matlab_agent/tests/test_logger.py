@@ -41,7 +41,8 @@ def test_setup_logger_creates_handlers(tmp_path, monkeypatch):
     log_file_str = str(fake_log)
 
     mkdir_calls = []
-    monkeypatch.setattr(Path, "mkdir", lambda self, **kwargs: mkdir_calls.append(self))
+    monkeypatch.setattr(Path, "mkdir", lambda self, **
+                        kwargs: mkdir_calls.append(self))
 
     logger = setup_logger(
         name=LOG_NAME,
@@ -63,13 +64,15 @@ def test_setup_logger_creates_handlers(tmp_path, monkeypatch):
     assert logging.StreamHandler in types
 
     # Verify RotatingFileHandler configuration
-    fh = next(h for h in logger.handlers if isinstance(h, logging.handlers.RotatingFileHandler))
+    fh = next(h for h in logger.handlers if isinstance(
+        h, logging.handlers.RotatingFileHandler))
     assert fh.maxBytes == MAX_LOG_SIZE
     assert fh.backupCount == BACKUP_COUNT
     assert fh.level == logging.DEBUG
 
     # Verify StreamHandler configuration
-    ch = next(h for h in logger.handlers if isinstance(h, logging.StreamHandler))
+    ch = next(h for h in logger.handlers if isinstance(
+        h, logging.StreamHandler))
     assert ch.level == logging.DEBUG
 
 
@@ -78,10 +81,12 @@ def test_double_setup_does_not_duplicate_handlers(tmp_path):
     Ensure that calling setup_logger multiple times does not duplicate handlers.
     """
     log_file_str = str(tmp_path / "test.log")
-    logger1 = setup_logger(name=LOG_NAME, log_file=log_file_str, enable_console=False)
+    logger1 = setup_logger(
+        name=LOG_NAME, log_file=log_file_str, enable_console=False)
     count1 = len(logger1.handlers)
 
-    logger2 = setup_logger(name=LOG_NAME, log_file=log_file_str, enable_console=False)
+    logger2 = setup_logger(
+        name=LOG_NAME, log_file=log_file_str, enable_console=False)
     count2 = len(logger2.handlers)
 
     # Verify logger instance and handler count remain consistent
@@ -108,7 +113,8 @@ def test_disable_console_only_file_handler(tmp_path):
     Verify that setup_logger does not create a StreamHandler when enable_console=False.
     """
     log_file_str = str(tmp_path / "no_console.log")
-    logger = setup_logger(name=LOG_NAME, log_file=log_file_str, enable_console=False)
+    logger = setup_logger(
+        name=LOG_NAME, log_file=log_file_str, enable_console=False)
     types = {type(h) for h in logger.handlers}
     # Verify handler types
     assert logging.StreamHandler not in types

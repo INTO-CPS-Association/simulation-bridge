@@ -130,4 +130,3 @@ def test_initialization_with_invalid_path():
     with mock.patch.object(Path, "exists", return_value=False):
         manager = ConfigManager("/invalid/path/config.yaml")
         assert manager.config == manager.get_default_config()
-

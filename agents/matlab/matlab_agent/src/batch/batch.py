@@ -64,27 +64,16 @@ class MatlabSimulator:
         self._validate()
 
     def _validate(self) -> None:
-        """
-        Validate the simulation path and file.
-
-        Raises:
-            FileNotFoundError: If the simulation file does not exist
-        """
+        """Validate the simulation path and file."""
         if not self.sim_path.is_dir():
-            raise FileNotFoundError(
-                f"Simulation directory not found: {self.sim_path}")
+            raise FileNotFoundError(f"Simulation directory not found: {self.sim_path}")
 
         if not (self.sim_path / self.sim_file).exists():
-            raise FileNotFoundError(
-                f"Simulation file '{self.sim_file}' not found at {self.sim_path}")
+            raise FileNotFoundError(f"Simulation file '{self.sim_file}' not \
+                found at {self.sim_path}")
 
     def start(self) -> None:
-        """
-        Start the MATLAB engine and prepare for simulation.
-
-        Raises:
-            MatlabSimulationError: If MATLAB engine fails to start
-        """
+        """Start the MATLAB engine and prepare for simulation."""
         logger.debug("Starting MATLAB engine for simulation: %s", self.sim_file)
         try:
             self.start_time = time.time()
@@ -92,145 +81,88 @@ class MatlabSimulator:
             self.eng.eval("clear; clc;", nargout=0)
             self.eng.addpath(str(self.sim_path), nargout=0)
             logger.debug("MATLAB engine started successfully")
-        except Exception as e:
-            logger.error("Failed to start MATLAB engine: %s",
-                         str(e))
-            raise MatlabSimulationError(
-                f"Failed to start MATLAB engine: {str(e)}") from e
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error("Failed to start MATLAB engine: %s", str(e))
+            raise MatlabSimulationError(f"Failed to start MATLAB engine: {str(e)}") from e
 
-    def run(self,
-            inputs: Dict[str, Any],
-            outputs: List[str]
-            ) -> Dict[str, Any]:
-        """
-        Run the MATLAB simulation and return the results.
-
-        Args:
-            inputs: Dictionary of input parameter names to values
-            outputs: List of output parameter names to return
-
-        Returns:
-            Dictionary mapping output names to their computed values
-
-        Raises:
-            MatlabSimulationError: If MATLAB engine is not started or simulation fails
-        """
+    def run(self, inputs: Dict[str, Any], outputs: List[str]) -> Dict[str, Any]:
+        """Run the MATLAB simulation and return the results."""
         if not self.eng:
             raise MatlabSimulationError("MATLAB engine is not started")
 
         try:
-            logger.debug("Running simulation %s with inputs: %s",
-                         self.function_name,
-                         inputs)
-
+            logger.debug("Running simulation %s with inputs: %s", self.function_name, inputs)
             self.eng.eval("clear variables;", nargout=0)
-
-            # Convert inputs to MATLAB types
-            matlab_args: List[Any] = [
-                self._to_matlab(v) for v in inputs.values()]
-
-            # Run the MATLAB function
+            matlab_args: List[Any] = [self._to_matlab(v) for v in inputs.values()]
             result: Union[Any, Tuple[Any, ...]] = self.eng.feval(
                 self.function_name, *matlab_args, nargout=len(outputs))
 
-            # Convert the results back to Python types
-            if len(outputs) == 1:
-                # Handle the case where there's only one output
-                return {outputs[0]: self._from_matlab(result)}
+            return self._process_results(result, outputs)
 
-            # Handle multiple outputs
-            return {name: self._from_matlab(result[i]) for i, name in enumerate(outputs)}
-
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
             msg = f"Simulation error: {str(e)}"
             logger.error(msg, exc_info=True)
             raise MatlabSimulationError(msg) from e
 
+    def _process_results(self,
+                         result: Union[Any, Tuple[Any, ...]],
+                         outputs: List[str]) -> Dict[str, Any]:
+        """Process MATLAB results into Python types."""
+        if len(outputs) == 1:
+            return {outputs[0]: self._from_matlab(result)}
+        return {name: self._from_matlab(result[i]) for i, name in enumerate(outputs)}
+
     def get_metadata(self) -> Dict[str, Any]:
-        """
-        Get metadata about the simulation execution.
-
-        Returns:
-            Dictionary containing metadata
-        """
+        """Get metadata about the simulation execution."""
         metadata: Dict[str, Any] = {}
-
-        # Add execution time if available
         if self.start_time:
             metadata['execution_time'] = time.time() - self.start_time
 
-        # Get memory usage
         process = psutil.Process(os.getpid())
-        metadata['memory_usage'] = process.memory_info().rss / \
-            (1024 * 1024)  # In MB
+        metadata['memory_usage'] = process.memory_info().rss / (1024 * 1024)  # MB
 
-        # Get MATLAB version if available
         if self.eng:
             try:
-                matlab_version: str = self.eng.eval("version", nargout=1)
-                metadata['matlab_version'] = matlab_version
+                metadata['matlab_version'] = self.eng.eval("version", nargout=1)
             except Exception as e:
-                logger.warning("Unexpected error retrieving MATLAB version: %s",
-                               str(e))
-
+                logger.warning("Error retrieving MATLAB version: %s", str(e))
         return metadata
 
-    def _to_matlab(self, value: Any) -> Any:
-        """
-        Convert Python values to MATLAB types.
-
-        Args:
-            value: Python value to convert
-
-        Returns:
-            MATLAB-compatible value
-        """
+    @staticmethod
+    def _to_matlab(value: Any) -> Any:
+        """Convert Python values to MATLAB types."""
         if isinstance(value, (list, tuple)):
             if not value:
                 return matlab.double([])
-            if isinstance(value[0], (list, tuple)):
-                # 2D arrays
-                return matlab.double(list(value))
-            # 1D arrays
-            return matlab.double([list(value)])
+            return matlab.double(
+                list(value)
+                if isinstance(value[0],
+                              (list, tuple))
+                else [list(value)])
         if isinstance(value, (int, float)):
             return float(value)
         return value
 
-    def _from_matlab(self, value: Any) -> Any:
-        """
-        Convert MATLAB types back to Python types.
-
-        Args:
-            value: MATLAB value to convert
-
-        Returns:
-            Python-compatible value
-        """
+    @staticmethod
+    def _from_matlab(value: Any) -> Any:
+        """Convert MATLAB types back to Python types."""
         if isinstance(value, matlab.double):
-            # Get the size of the matlab array
             size = value.size
             if size == (1, 1):
-                # Single value
                 return float(value[0][0])
             if size[0] == 1 or size[1] == 1:
-                # 1D array (row or column vector)
                 return [value[i][0] for i in range(size[0])] if size[0] > 1 else value[0]
-            # 2D array
             return [[value[i][j] for j in range(size[1])] for i in range(size[0])]
         return value
 
     def close(self) -> None:
-        """
-        Close the MATLAB engine and release resources.
-        """
+        """Close the MATLAB engine and release resources."""
         if self.eng:
             try:
                 self.eng.quit()
                 logger.debug("MATLAB engine closed successfully")
             except Exception as e:
-                logger.warning("Error while closing MATLAB engine: %s",
-                               str(e))
+                logger.warning("Error closing MATLAB engine: %s", str(e))
             finally:
                 self.eng = None
 
@@ -238,156 +170,116 @@ class MatlabSimulator:
 def handle_batch_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    rabbitmq_manager: RabbitMQManager) -> None:
-    """
-    Process a batch simulation request and send the results back via RabbitMQ.
-
-    Args:
-        parsed_data: The parsed YAML data containing simulation configuration
-        source: Identifier for the simulation request source
-        rabbitmq_manager: Instance of RabbitMQManager to send responses
-    """
+    rabbitmq_manager: RabbitMQManager
+) -> None:
+    """Process a batch simulation request and send results via RabbitMQ."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
+    sim_file = data.get('file')
 
-    # Validate input data
-    sim_path = config['simulation']['path']  # Default path from config
-    sim_file: Optional[str] = data.get('file')
-    logger.info("Processing batch simulation: %s", sim_file)
-    function_name: Optional[str] = data.get('function_name')
-
-    if not sim_path or not sim_file:
-        error_response: Dict[str, Any] = create_response(
-            'error',
-            sim_file or "unknown",
-            'batch',
-            response_templates,
-            error={
-                'message': "Missing 'path' or 'file' in simulation config.",
-                'type': 'invalid_config'
-            }
-        )
-        print(yaml.dump(error_response))
-        rabbitmq_manager.send_result(source, error_response)
-        return
-
-    sim: Optional[MatlabSimulator] = None
     try:
-        # Prepare input and output specifications
-        inputs: Dict[str, Any] = data.get('inputs', {})
-        outputs: List[str] = data.get('outputs', [])
-
-        if not outputs:
-            raise ValueError("No outputs specified in simulation config")
-
-        # Initialize and run the simulation
+        sim_path, function_name = _validate_simulation_data(data)
+        inputs, outputs = _extract_io_specs(data)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
+        _send_progress(rabbitmq_manager, source, sim_file, 0)
 
-        # Send progress update if configured
-        progress_template: Dict[str, Any] = response_templates.get(
-            'progress', {})
-        send_progress: bool = progress_template.get(
-            'include_percentage', False)
+        _start_matlab_with_retry(sim)
+        _send_progress(rabbitmq_manager, source, sim_file, 50)
 
-        if send_progress:
-            progress_response: Dict[str, Any] = create_response(
-                'progress',
-                sim_file,
-                'batch',
-                response_templates,
-                percentage=0
-            )
-            rabbitmq_manager.send_result(source, progress_response)
+        results = sim.run(inputs, outputs)
+        metadata = _get_metadata(sim) \
+            if response_templates.get('success', {}).get('include_metadata', False) \
+            else None
 
-        # Attempt to start MATLAB engine with retry logic
-        max_retries: int = 3
-        retry_count: int = 0
-        while retry_count < max_retries:
-            try:
-                sim.start()
-                break
-            except MatlabSimulationError:
-                retry_count += 1
-                if retry_count >= max_retries:
-                    raise
-                logger.warning(
-                    "MATLAB engine start failed (attempt %s/%s). Retrying...",
-                    retry_count,
-                    max_retries)
-
-
-        # Send progress update if configured
-        if send_progress:
-            progress_response = create_response(
-                'progress',
-                sim_file,
-                'batch',
-                response_templates,
-                percentage=50
-            )
-            rabbitmq_manager.send_result(source, progress_response)
-
-        # Run the simulation
-        results: Dict[str, Any] = sim.run(inputs, outputs)
-
-        # Get metadata if configured
-        metadata: Optional[Dict[str, Any]] = None
-        if response_templates.get('success', {}).get('include_metadata', False):
-            metadata = sim.get_metadata()
-
-        # Create success response using the template
-        success_response: Dict[str, Any] = create_response(
-            'success',
-            sim_file,
-            'batch',
-            response_templates,
-            outputs=results,
-            metadata=metadata
+        success_response = create_response(
+            'success', sim_file, 'batch', response_templates,
+            outputs=results, metadata=metadata
         )
+        _send_response(rabbitmq_manager, source, success_response)
+        logger.info("Simulation '%s' completed successfully", sim_file)
 
-        print(yaml.dump(success_response))
-
-        # Send the result back using the passed instance
-        rabbitmq_manager.send_result(source, success_response)
-
-        logger.info("Simulation '%s' completed successfully",sim_file)
-
-    except Exception as e:
-        logger.error(
-            "Simulation '%s' failed: %s",
-            sim_file,
-            str(e),
-            exc_info=True)
-
-        # Determine error type for error code mapping
-        error_type: str = 'execution_error'
-        if isinstance(e, FileNotFoundError):
-            error_type = 'missing_file'
-        elif isinstance(e, MatlabSimulationError) and 'MATLAB engine' in str(e):
-            error_type = 'matlab_start_failure'
-        elif isinstance(e, TimeoutError):
-            error_type = 'timeout'
-        elif isinstance(e, ValueError):
-            error_type = 'invalid_config'
-
-        # Create error response using the template
-        error_template = response_templates.get('error', {})
-        include_stacktrace = error_template.get('include_stacktrace', False)
-
-        error_response = create_response(
-            'error',
-            sim_file or "unknown",
-            'batch',
-            response_templates,
-            error={
-                'message': str(e),
-                'type': error_type,
-                'traceback': sys.exc_info() if include_stacktrace else None
-            }
-        )
-
-        print(yaml.dump(error_response))
-        rabbitmq_manager.send_result(source, error_response)
-
+    except Exception as e:  # pylint: disable=broad-except
+        _handle_error(e, sim_file, rabbitmq_manager, source)
     finally:
-        if sim:
+        if 'sim' in locals():
             sim.close()
+
+
+def _validate_simulation_data(data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
+    """Validate and extract simulation parameters."""
+    sim_path = config['simulation'].get('path')
+    sim_file = data.get('file')
+    if not sim_path or not sim_file:
+        raise ValueError("Missing 'path' or 'file' in simulation config")
+    return sim_path, data.get('function_name')
+
+
+def _extract_io_specs(data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """Extract input and output specifications from data."""
+    inputs = data.get('inputs', {})
+    outputs = data.get('outputs', [])
+    if not outputs:
+        raise ValueError("No outputs specified in simulation config")
+    return inputs, outputs
+
+
+def _start_matlab_with_retry(sim: MatlabSimulator, max_retries: int = 3) -> None:
+    """Attempt to start MATLAB engine with retries."""
+    for attempt in range(1, max_retries + 1):
+        try:
+            sim.start()
+            return
+        except MatlabSimulationError:
+            if attempt == max_retries:
+                raise
+            logger.warning("MATLAB start failed (attempt %s/%s). Retrying...", attempt, max_retries)
+            time.sleep(1)
+
+
+def _send_progress(manager: RabbitMQManager, source: str, sim_file: str, percentage: int) -> None:
+    """Send progress update if configured."""
+    if response_templates.get('progress', {}).get('include_percentage', False):
+        progress_response = create_response(
+            'progress', sim_file, 'batch', response_templates, percentage=percentage
+        )
+        _send_response(manager, source, progress_response)
+
+
+def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
+    """Retrieve simulation metadata."""
+    return sim.get_metadata()
+
+
+def _send_response(manager: RabbitMQManager, source: str, response: Dict[str, Any]) -> None:
+    """Send response through RabbitMQ."""
+    print(yaml.dump(response))
+    manager.send_result(source, response)
+
+
+def _handle_error(error: Exception,
+                  sim_file: Optional[str],
+                  manager: RabbitMQManager,
+                  source: str) -> None:
+    """Handle errors and send error response."""
+    logger.error("Simulation '%s' failed: %s", sim_file, str(error), exc_info=True)
+    error_type = _determine_error_type(error)
+    error_response = create_response(
+        'error', sim_file or "unknown", 'batch', response_templates,
+        error={'message': str(error), 'type': error_type,
+               'traceback': sys.exc_info()
+               if response_templates.get('error', {}).get('include_stacktrace', False)
+               else None}
+    )
+    _send_response(manager, source, error_response)
+
+
+def _determine_error_type(error: Exception) -> str:
+    """Map Python exceptions to error types."""
+    if isinstance(error, FileNotFoundError):
+        return 'missing_file'
+    if isinstance(error, MatlabSimulationError):
+        return 'matlab_start_failure' if 'MATLAB engine' in str(error) else 'execution_error'
+    if isinstance(error, TimeoutError):
+        return 'timeout'
+    if isinstance(error, ValueError):
+        return 'invalid_config'
+    return 'execution_error'

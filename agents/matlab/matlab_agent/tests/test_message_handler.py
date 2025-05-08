@@ -98,7 +98,7 @@ def test_handle_message_batch(
         assert args[0] == yaml.safe_load(valid_batch_message)
         assert args[1] == "source"
         assert args[2] == message_handler.rabbitmq_manager
-        
+
         # Verify acknowledgment is sent
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
@@ -122,7 +122,7 @@ def test_handle_message_streaming(
         assert args[0] == yaml.safe_load(valid_streaming_message)
         assert args[1] == "source"
         assert args[2] == message_handler.rabbitmq_manager
-        
+
         # Verify acknowledgment is sent before handling streaming (asynchronous pattern)
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
@@ -141,8 +141,9 @@ def test_handle_message_invalid_yaml(
     )
 
     # Verify negative acknowledgment is sent
-    mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
-    
+    mock_channel.basic_nack.assert_called_once_with(
+        delivery_tag=123, requeue=False)
+
     # Verify error response is sent
     message_handler.rabbitmq_manager.send_result.assert_called_once()
     error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
@@ -172,8 +173,9 @@ def test_handle_message_invalid_structure(
     )
 
     # Verify negative acknowledgment is sent
-    mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
-    
+    mock_channel.basic_nack.assert_called_once_with(
+        delivery_tag=123, requeue=False)
+
     # Verify error response is sent
     message_handler.rabbitmq_manager.send_result.assert_called_once()
     error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
@@ -204,7 +206,7 @@ def test_handle_message_invalid_simulation_type(
         mock_instance.simulation.type = 'invalid_type'
         mock_instance.simulation.file = 'test_file.mat'
         mock_payload.return_value = mock_instance
-        
+
         message_handler.handle_message(
             ch=mock_channel,
             method=basic_deliver,
@@ -213,8 +215,9 @@ def test_handle_message_invalid_simulation_type(
         )
 
         # Verify negative acknowledgment is sent
-        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
-        
+        mock_channel.basic_nack.assert_called_once_with(
+            delivery_tag=123, requeue=False)
+
         # Verify error response is sent
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
@@ -227,9 +230,9 @@ def test_handle_message_batch_error(
 ):
     """Test handling when batch simulation handler raises an exception."""
     # Patch the batch simulation handler to raise an exception
-    with patch("src.handlers.message_handler.handle_batch_simulation", 
+    with patch("src.handlers.message_handler.handle_batch_simulation",
                side_effect=Exception("Batch processing error")):
-        
+
         message_handler.handle_message(
             ch=mock_channel,
             method=basic_deliver,
@@ -238,15 +241,16 @@ def test_handle_message_batch_error(
         )
 
         # Verify negative acknowledgment is sent
-        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
-        
+        mock_channel.basic_nack.assert_called_once_with(
+            delivery_tag=123, requeue=False)
+
         # Verify error response is sent
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
         assert error_response['status'] == 'error'
         assert 'Error processing message' in error_response['error']['message']
-        assert 'Batch processing error' in error_response['error'].get('details', '')
-
+        assert 'Batch processing error' in error_response['error'].get(
+            'details', '')
 
 
 def test_handle_message_error_response_failure(
@@ -254,12 +258,13 @@ def test_handle_message_error_response_failure(
 ):
     """Test handling when both processing and sending error response fails."""
     # Patch batch handler to raise exception and rabbitmq_manager to also raise exception
-    with patch("src.handlers.message_handler.handle_batch_simulation", 
+    with patch("src.handlers.message_handler.handle_batch_simulation",
                side_effect=Exception("Batch processing error")):
-        
+
         # Also make the send_result method fail
-        message_handler.rabbitmq_manager.send_result.side_effect = Exception("Send error")
-        
+        message_handler.rabbitmq_manager.send_result.side_effect = Exception(
+            "Send error")
+
         message_handler.handle_message(
             ch=mock_channel,
             method=basic_deliver,
@@ -268,8 +273,9 @@ def test_handle_message_error_response_failure(
         )
 
         # Verify negative acknowledgment is sent
-        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
-        
+        mock_channel.basic_nack.assert_called_once_with(
+            delivery_tag=123, requeue=False)
+
         # Verify we tried to send an error response
         message_handler.rabbitmq_manager.send_result.assert_called_once()
 
@@ -287,7 +293,7 @@ def test_pydantic_model_validation():
         'destinations': ['dest1', 'dest2'],
         'request_id': 'test-id'
     }
-    
+
     # Should not raise an exception
     payload = MessagePayload(**valid_data)
     assert payload.simulation.type == 'batch'
@@ -314,7 +320,7 @@ def test_handle_message_with_no_message_id(
     # Create properties with no message_id
     properties = MagicMock()
     properties.message_id = None
-    
+
     with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
         message_handler.handle_message(
             ch=mock_channel,
@@ -322,10 +328,10 @@ def test_handle_message_with_no_message_id(
             properties=properties,
             body=valid_batch_message.encode()
         )
-        
+
         # Processing should still work
         mock_handle_batch.assert_called_once()
-        
+
         # Verify acknowledgment is sent
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
@@ -333,8 +339,9 @@ def test_handle_message_with_no_message_id(
 def test_message_handler_initialization():
     """Test that MessageHandler initializes correctly."""
     rabbitmq_manager = MagicMock()
-    handler = MessageHandler(agent_id="test_agent", rabbitmq_manager=rabbitmq_manager)
-    
+    handler = MessageHandler(agent_id="test_agent",
+                             rabbitmq_manager=rabbitmq_manager)
+
     assert handler.agent_id == "test_agent"
     assert handler.rabbitmq_manager == rabbitmq_manager
 
@@ -347,7 +354,7 @@ def test_handle_message_with_complex_routing_key(
     complex_deliver = MagicMock()
     complex_deliver.routing_key = "source.subtype.test_agent.additional"
     complex_deliver.delivery_tag = 123
-    
+
     with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
         message_handler.handle_message(
             ch=mock_channel,
@@ -355,7 +362,7 @@ def test_handle_message_with_complex_routing_key(
             properties=basic_properties,
             body=valid_batch_message.encode()
         )
-        
+
         # Processing should still extract the correct source
         mock_handle_batch.assert_called_once()
         assert mock_handle_batch.call_args[0][1] == "source"

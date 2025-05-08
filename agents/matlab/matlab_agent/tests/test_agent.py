@@ -77,8 +77,7 @@ def test_agent_start_handles_keyboard_interrupt(matlab_agent, mock_rabbitmq_mana
 
 def test_agent_start_handles_exception(matlab_agent, mock_rabbitmq_manager):
     """Test that the agent handles generic exceptions correctly."""
-    mock_rabbitmq_manager.start_consuming.side_effect = Exception("Generic error")
+    mock_rabbitmq_manager.start_consuming.side_effect = Exception(
+        "Generic error")
     matlab_agent.start()
     mock_rabbitmq_manager.close.assert_called_once()
-
-

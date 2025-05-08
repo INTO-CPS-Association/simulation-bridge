@@ -26,23 +26,21 @@ class SimulationOutputs(BaseModel):
     """Model for simulation outputs - dynamic fields allowed"""
     model_config = ConfigDict(extra="allow")  # <-- Use ConfigDict
 
-
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
     simulator: str
     type: str = Field(default="batch")
     file: str
-    inputs: SimulationInputs
-    outputs: Optional[SimulationOutputs] = None
+    inputs: 'SimulationInputs'  # assuming this is defined elsewhere
+    outputs: Optional['SimulationOutputs'] = None  # assuming this is defined elsewhere
 
     @field_validator('type')
-    def validate_sim_type(self, v):
+    def validate_sim_type(cls, v):
         """Validate that simulation type is either 'batch' or 'streaming'"""
         if v not in ['batch', 'streaming']:
             raise ValueError(
                 f"Invalid simulation type: {v}. Must be 'batch' or 'streaming'")
         return v
-
 
 class MessagePayload(BaseModel):
     """Model for the entire message payload"""
