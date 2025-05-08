@@ -11,7 +11,7 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
   <img src="matlab_agent/images/structure.png" alt="MATLAB Agent Structure" width="600" style="border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
 </div>
 
-## Instruction
+## Requirements
 
 To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API for Python. Follow the official MathWorks installation guide for detailed steps:
 
@@ -31,61 +31,107 @@ To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API fo
 
 Verify that the MATLAB Engine is properly installed and accessible within your Python environment.
 
-## Usage
-
-### Running the Agent
-
-To launch the MATLAB Agent using the default configuration (`agent_id=matlab`), follow these steps:
-
-1. Open a terminal and navigate to the root directory of the project.
-2. Execute the following command:
-
-```bash
-poetry run matlab-agent
-```
-
-If you want to specify a custom `agent_id`, add your desired identifier in the command:
-
-```bash
-poetry run matlab-agent <custom_agent_id>
-```
-
-For example, to use `agent_id_custom` as the identifier, run:
-
-```bash
-poetry run matlab-agent agent_id_custom
-```
-
-To modify the default `agent_id` setting, update the configuration file before launching the agent.
-
 ### Configuration
 
-The agent's behavior is controlled through the configuration file. Key options include:
+Create a `config.yaml` file with the following structure:
 
-- **Agent Settings**: Define the agent's ID and other operational parameters.
-- **RabbitMQ Settings**: Configure server connection details like `host`, `port`, `username`, and `password`.
-- **Exchange and Queue Settings**: Specify input/output exchanges, queue durability, and message prefetch limits.
-- **Logging**: Adjust logging levels and file paths.
-- **TCP Settings**: Set up host and port for TCP connections.
-- **Response Templates**: Customize formats for success, error, and progress responses.
+```yaml
+agent:
+  agent_id: matlab # Specifies the unique identifier for the agent. This ID is used to distinguish the agent in the system.
 
-Refer to the configuration file for detailed descriptions of each parameter.
+rabbitmq:
+  host: localhost # The hostname or IP address of the RabbitMQ server.
+  port: 5672 # The port number for RabbitMQ communication (default is 5672).
+  username: guest # The username for authenticating with RabbitMQ.
+  password: guest # The password for authenticating with RabbitMQ.
+  heartbeat: 600 # The heartbeat interval (in seconds) to keep the connection alive.
+
+simulation:
+  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples # The file path to the folder containing MATLAB simulation files.
+
+exchanges:
+  input: ex.bridge.output # The RabbitMQ exchange from which the agent receives commands.
+  output: ex.sim.result # The RabbitMQ exchange to which the agent sends simulation results.
+
+queue:
+  durable: true # Ensures that the queue persists across RabbitMQ broker restarts.
+  prefetch_count: 1 # Limits the number of unacknowledged messages the agent can receive at a time.
+
+logging:
+  level: INFO # Specifies the logging level. Options include DEBUG, INFO, and ERROR.
+  file: logs/matlab_agent.log # The file path where logs will be stored.
+
+tcp:
+  host: localhost # The hostname or IP address for TCP communication.
+  port: 5678 # The port number for TCP communication.
+
+response_templates:
+  success:
+    status: success # Indicates a successful simulation response.
+    simulation:
+      type: batch # Specifies the type of simulation (e.g., batch or streaming).
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+    include_metadata: true # Determines whether metadata is included in the response.
+    metadata_fields: # Specifies the metadata fields to include in the response.
+      - execution_time
+      - memory_usage
+      - matlab_version
+
+  error:
+    status: error # Indicates an error response.
+    include_stacktrace: false # For security, stack traces are excluded in production environments.
+    error_codes: # Maps specific error scenarios to HTTP-like status codes.
+      invalid_config: 400 # Error code for invalid configuration.
+      matlab_start_failure: 500 # Error code for MATLAB startup failure.
+      execution_error: 500 # Error code for simulation execution errors.
+      timeout: 504 # Error code for simulation timeout.
+      missing_file: 404 # Error code for missing files.
+
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+
+  progress:
+    status: in_progress # Indicates that the simulation is currently in progress.
+    include_percentage: true # Includes the percentage of completion in progress updates.
+    update_interval: 5 # Specifies the interval (in seconds) for sending progress updates.
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+```
+
+To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-path` or `-c` option followed by the path to your configuration file:
+
+```bash
+matlab-agent --config-path <path_to_your_config.yaml>
+```
+
+## Usage
+
+To start the MATLAB Agent with the default configuration:
+
+1. Open a terminal and navigate to the project's root directory.
+2. Run the following command:
+
+```bash
+matlab-agent
+```
+
+To use a custom configuration file, specify its path with the `--config-file` option:
+
+```bash
+matlab-agent --config-file <path_to_config.yaml>
+```
 
 ## Testing
 
-For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](tests/README.md).
+For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](matlab_agent/tests/README.md).
 
-## Interacting with the MATLAB Agent
+## Quick Start: Interacting with the Matlab agent
 
-### Quick Start Example
-
-To quickly get started with the MATLAB Agent, refer to the example script provided in the `resources` folder:
+To quickly begin using the MATLAB Agent, refer to the example script in the `resources` folder:
 
 ```plaintext
 resources/use_matlab_agent.py
 ```
 
-This script demonstrates a practical approach to interacting with the MATLAB Agent, making it easier to understand its functionality and integration process.
+This script demonstrates how to interact with the MATLAB Agent, providing a clear example of its functionality and integration process.
 
 ## Workflow
 

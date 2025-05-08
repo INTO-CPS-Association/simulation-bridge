@@ -6,6 +6,7 @@ authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 readme = "README.md"
 packages = [{ include = "matlab_agent"}]  
 license = "ICAPL"
+include = ["matlab_agent/config/config.yaml"]
 
 [tool.poetry.dependencies]
 python = "^3.10"                               

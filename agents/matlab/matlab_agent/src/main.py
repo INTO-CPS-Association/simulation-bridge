@@ -9,29 +9,24 @@ from .utils.config_loader import load_config
 
 
 @click.command()
-@click.argument('agent_id', required=False)
-def main(agent_id=None) -> None:
+@click.option('--config-file', '-c', type=click.Path(exists=True),
+              default=None, help='Path to custom configuration file')
+def main(config_file=None) -> None:
     """
     Main function to initialize and start the MATLAB agent.
 
     Args:
         agent_id: The ID of the agent to start. If not provided, will use default from config.
     """
-    config = load_config()
+    config = load_config(config_file)
     logging_level = config['logging']['level']
     logging_file = config['logging']['file']
-
     # Setup logger
     logger: logging.Logger = setup_logger(
-        # in case of invalid level, default to INFO
         level=getattr(logging, logging_level.upper(), logging.INFO),
         log_file=logging_file)
-
-    # Use default agent_id from config if not provided
-    if agent_id is None:
-        agent_id = config['agent']['agent_id']
-        logger.debug("Using default agent_id: %s", agent_id)
-
+    agent_id = config['agent']['agent_id']
+    logger.debug("Using default agent_id: %s", agent_id)
     # Create and start the agent
     agent: MatlabAgent = MatlabAgent(agent_id)
     try:
