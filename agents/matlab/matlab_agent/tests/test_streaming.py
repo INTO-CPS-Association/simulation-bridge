@@ -1,276 +1,206 @@
-# Import necessary modules and dependencies
-import pytest
-from unittest.mock import Mock, MagicMock, patch, call
+import json
 import socket
 import subprocess
-import json
-from pathlib import Path
-from datetime import datetime
 import sys
+import time
+from pathlib import Path
+
+import pytest
+from unittest.mock import MagicMock, Mock, patch
+
 from src.streaming.streaming import (
+    StreamingConnection,
     MatlabStreamingController,
-    create_response,
+    MatlabStreamingError,
+    _handle_streaming_error,
     handle_streaming_simulation,
-    MatlabStreamingError
 )
 
-# Define pytest fixtures for reusable mock configurations
-@pytest.fixture
-def mock_config():
-    # Mock configuration for response templates and TCP settings
-    return {
-        'response_templates': {
-            'success': {
-                'status': 'completed',
-                'include_metadata': True
-            },
-            'error': {
-                'status': 'error',
-                'error_codes': {
-                    'invalid_config': 400,
-                    'socket_creation_failure': 500
-                }
-            },
-            'streaming': {
-                'status': 'streaming'
-            }
+# Sample configuration for testing
+response_templates = {
+    'error': {
+        'error_codes': {
+            'bad_request': 400,
+            'execution_error': 500,
+            'missing_file': 404,
         },
-        'tcp': {
-            'host': 'localhost',
-            'port': 5678
-        }
-    }
+        'include_stacktrace': False,
+    },
+}
 
-@pytest.fixture
-def mock_rabbitmq():
-    # Mock RabbitMQ instance
-    return Mock()
+@pytest.fixture(autouse=True)
+def patch_config(monkeypatch):
+    """
+    Patch the configuration and templates for isolation.
+    """
+    monkeypatch.setattr('src.streaming.streaming.response_templates', response_templates)
+    monkeypatch.setattr('src.streaming.streaming.tcp_settings', {'host': 'localhost', 'port': 1234})
 
-@pytest.fixture
-def sample_sim_data():
-    # Sample simulation data for testing
-    return {
-        'simulation': {
-            'file': 'simulation_streaming.m',
-            'inputs': {
-                'num_agents': 8,
-                'max_steps': 200,
-                'avoidance_threshold': 1,
-                'show_agent_index': 1,
-                'use_gui': True
-            }
-        }
-    }
 
-# Tests for MatlabStreamingController initialization
-@patch('subprocess.Popen')
-@patch('socket.socket')
-def test_controller_init_valid(mock_socket, mock_popen, mock_config):
-    # Test valid initialization of MatlabStreamingController
+def test_streaming_connection_start_and_close(tmp_path):
+    """
+    Test StreamingConnection start_server, accept_connection, and close.
+    """
+    conn = StreamingConnection('127.0.0.1', 0)
+    conn.start_server()
+    # Ensure socket is listening
+    assert conn.socket is not None
+    # Mock accept: use a pair of connected sockets
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('127.0.0.1', 0))
+    server.listen()
+    addr = server.getsockname()
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(addr)
+    conn.socket = server
+    server.settimeout(1)
+    conn.accept_connection(timeout=1)
+    assert conn.connection is not None
+    # Assign fake process and test close
+    fake_proc = MagicMock()
+    fake_proc.poll.return_value = None
+    conn.matlab_process = fake_proc
+    conn.close()
+    fake_proc.terminate.assert_called_once()
+    # Closing again no error
+    conn.close()
+
+@patch('src.streaming.streaming.subprocess.Popen')
+@patch('pathlib.Path.exists')
+@patch('pathlib.Path.is_dir')
+def test_controller_start_failure(mock_is_dir, mock_exists, mock_popen):
+    """
+    Test che controller.start sollevi un MatlabStreamingError in caso di fallimento di Popen.
+    """
+    # Mockiamo i metodi del filesystem per evitare il FileNotFoundError
+    mock_is_dir.return_value = True  # Mock che il percorso è una directory
+    mock_exists.return_value = True  # Mock che il file esiste (così la validazione non fallisce)
+
+    # Simuliamo il fallimento di Popen sollevando un'eccezione
+    mock_popen.side_effect = Exception('fail')
+
+    # Creiamo l'istanza del controller
     controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'test_source',
-        Mock()
+        str(Path.cwd()), 'file.m', 'src', MagicMock()
     )
-    assert controller.sim_path == Path('/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples').resolve()
 
-def test_controller_init_invalid_path():
-    # Test initialization with an invalid simulation path
-    with patch('pathlib.Path.exists', return_value=False):
-        with pytest.raises(FileNotFoundError):
-            MatlabStreamingController(
-                '/invalid/path',
-                'simulation_streaming.m',
-                'source',
-                Mock()
-            )
-
-# Tests for starting the MatlabStreamingController
-@patch('subprocess.Popen')
-@patch('socket.socket')
-def test_controller_start_success(mock_socket, mock_popen, mock_config):
-    # Test successful start of the controller
-    mock_sock_instance = MagicMock()
-    mock_socket.return_value = mock_sock_instance
-    
-    controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        Mock()
-    )
-    controller.start()
-    
-    mock_sock_instance.bind.assert_called_with(('localhost', 5678))
-    mock_sock_instance.listen.assert_called_once()
-
-@patch('subprocess.Popen')
-def test_controller_start_failure(mock_popen):
-    # Test failure during controller start due to MATLAB error
-    mock_popen.side_effect = Exception("MATLAB failed")
-    controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        Mock()
-    )
+    # Verifichiamo che venga sollevato un MatlabStreamingError quando chiamiamo start
     with pytest.raises(MatlabStreamingError):
         controller.start()
 
-# Tests for running the MatlabStreamingController
-@patch('socket.socket')
-def test_controller_run_success(mock_socket, mock_rabbitmq):
-    # Test successful execution of the controller's run method
-    mock_conn = MagicMock()
-    mock_socket_instance = MagicMock()
-    mock_socket_instance.accept.return_value = (mock_conn, ('localhost', 12345))
-    mock_socket.return_value = mock_socket_instance
-    
-    mock_conn.recv.side_effect = [b'{"data": 42}\n', b'']
-    
+@patch('src.streaming.streaming.StreamingConnection.start_server')
+@patch('src.streaming.streaming.subprocess.Popen')
+@patch('pathlib.Path.exists')
+@patch('pathlib.Path.is_dir')
+def test_controller_start_success(mock_is_dir, mock_exists, mock_popen, mock_start_server):
+    """
+    Test successful controller.start sends initial progress (without aprire realmente la socket).
+    """
+    # Mock filesystem checks
+    mock_is_dir.return_value = True
+    mock_exists.return_value = True
+
+    # Mock del processo MATLAB
+    fake_proc = MagicMock()
+    mock_popen.return_value = fake_proc
+
+    rabbit = Mock()
     controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        mock_rabbitmq
+        str(Path.cwd()), 'file.m', 'src', rabbit
     )
-    controller.socket = mock_socket_instance
-    controller.run({'num_agents': 8, 'max_steps': 200})
-    
-    # Verify data sent to RabbitMQ
-    assert mock_rabbitmq.send_result.call_count >= 1
 
-# Tests for cleanup during controller close
-def test_controller_close_cleanup():
-    # Test proper cleanup of resources during controller close
-    mock_process = MagicMock()
-    mock_socket = MagicMock()
-    
+    # Ora start_server è un no-op grazie al patch
+    controller.start()
+
+    # Verifichiamo che abbiamo inviato esattamente un messaggio di progresso
+    rabbit.send_result.assert_called_once()
+
+@patch('src.streaming.streaming.StreamingConnection.accept_connection')
+@patch('pathlib.Path.exists')
+@patch('pathlib.Path.is_dir')
+def test_controller_run_success(mock_is_dir, mock_exists, mock_accept):
+    """
+    Test controller.run processes JSON lines correctly.
+    """
+    # Mock filesystem checks
+    mock_is_dir.return_value = True
+    mock_exists.return_value = True
+
+    # Mock connection and data
+    conn = StreamingConnection('host', 0)
+    fake_sock = MagicMock()
+    fake_sock.recv.side_effect = [b'{"progress": {"percentage": 10}, "data": {"x":1}}\n', b'']
+    conn.connection = fake_sock
+
+    rabbit = Mock()
     controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        Mock()
+        str(Path.cwd()), 'file.m', 'src', rabbit
     )
-    controller.matlab_process = mock_process
-    controller.socket = mock_socket
-    controller.connection = MagicMock()
-    
-    # Simulate a running process
-    mock_process.poll.return_value = None
-    
-    controller.close()
-    
-    mock_process.terminate.assert_called_once()  # Ensure terminate is called
-    mock_socket.close.assert_called_once()  # Ensure socket is closed
+    controller.connection = conn
+    controller.run({'a': 1})
+    assert rabbit.send_result.call_count >= 1
 
 
-# Tests for handling streaming simulation
-@patch('src.streaming.streaming.MatlabStreamingController')
-def test_handle_streaming_success(MockController, mock_rabbitmq, sample_sim_data):
-    # Test successful handling of streaming simulation
-    mock_instance = Mock()
-    MockController.return_value = mock_instance
-    
-    handle_streaming_simulation(
-        {'simulation': sample_sim_data['simulation']},
-        'test_queue',
-        mock_rabbitmq
-    )
-    
-    MockController.assert_called_with(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'test_queue',
-        mock_rabbitmq
-    )
-    
-
-
-@patch('src.streaming.streaming.MatlabStreamingController')
-def test_handle_streaming_missing_fields(MockController, mock_rabbitmq):
-    # Test handling of streaming simulation with missing fields
-    invalid_data = {'simulation': {'name': 'test'}}
-    
-    handle_streaming_simulation(
-        invalid_data,
-        'test_queue',
-        mock_rabbitmq
-    )
-    
-    sent_response = mock_rabbitmq.send_result.call_args[0][1]
-    assert sent_response['error']['code'] == 400
-
-@patch('src.streaming.streaming.MatlabStreamingController')
-def test_handle_streaming_runtime_error(MockController, mock_rabbitmq, sample_sim_data):
-    # Test handling of runtime error during streaming simulation
-    mock_instance = Mock()
-    mock_instance.start.side_effect = MatlabStreamingError("Socket error")
-    MockController.return_value = mock_instance
-    
-    handle_streaming_simulation(
-        {'simulation': sample_sim_data['simulation']},
-        'test_queue',
-        mock_rabbitmq
-    )
-    
-    sent_response = mock_rabbitmq.send_result.call_args[0][1]
-    assert sent_response['status'] == 'error'
-
-# Tests for TCP communication
-@patch('socket.socket')
-def test_tcp_communication(mock_socket, mock_rabbitmq):
-    # Test TCP communication during simulation
-    mock_conn = MagicMock()
-    mock_sock_instance = MagicMock()
-    mock_sock_instance.accept.return_value = (mock_conn, ('localhost', 12345))
-    
-    test_data = [b'{"temp": 37.5}\n', b'{"temp": 38.0}\n']
-    mock_conn.recv.side_effect = test_data + [b'']
-    
+def test_get_metadata(monkeypatch):
+    """
+    Test get_metadata returns expected keys.
+    """
+    monkeypatch.setattr('pathlib.Path.is_dir', lambda self: True)
+    monkeypatch.setattr('pathlib.Path.exists', lambda self: True)
     controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        mock_rabbitmq
+        str(Path.cwd()), 'file.m', 'src', Mock()
     )
-    controller.socket = mock_sock_instance
-    controller.run({'num_agents': 8, 'max_steps': 200})
-    
-    # Verify correct number of data messages sent
-    assert mock_rabbitmq.send_result.call_count == len(test_data)
+    # Patch psutil to control memory/cpu values
+    class FakeProc:
+        def __init__(self):
+            self.pid = 1
+        def memory_info(self):
+            return MagicMock(rss=1024 * 1024)
+        def cpu_percent(self):
+            return 5.0
+    monkeypatch.setattr('src.streaming.streaming.psutil.Process', lambda pid: FakeProc())
+    controller.connection.matlab_process = FakeProc()
+    controller.start_time = time.time() - 2
+    meta = controller.get_metadata()
+    assert 'execution_time' in meta
+    assert 'memory_usage' in meta
+    assert 'matlab_memory' in meta
+    assert 'matlab_cpu' in meta
 
-# Tests for error handling
-def test_matlab_process_metadata():
-    # Test retrieval of MATLAB process metadata
-    controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        Mock()
-    )
-    controller.matlab_process = MagicMock()
-    controller.matlab_process.poll.return_value = None
-    
-    metadata = controller.get_metadata()
-    assert 'matlab_process_running' in metadata
-    assert metadata['matlab_process_running'] is True
 
-# Tests for forced termination of MATLAB process
-def test_force_kill_matlab():
-    # Test forced termination of MATLAB process on timeout
-    mock_process = MagicMock()
-    mock_process.poll.return_value = None
-    mock_process.wait.side_effect = subprocess.TimeoutExpired("", 10)
-    
-    controller = MatlabStreamingController(
-        '/Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples',
-        'simulation_streaming.m',
-        'source',
-        Mock()
+def test_handle_streaming_error_bad_request():
+    """
+    Test _handle_streaming_error sets HTTP 400 for bad requests.
+    """
+    rabbit = Mock()
+    _handle_streaming_error('', ValueError('Missing path/file configuration'), 'q', rabbit)
+    sent = rabbit.send_result.call_args[0][1]
+    assert sent['error']['code'] == 400
+    assert sent['error']['type'] == 'bad_request'
+
+
+def test_handle_streaming_simulation_missing_fields(monkeypatch):
+    """
+    Test handle_streaming_simulation without required fields.
+    """
+    monkeypatch.setattr('src.streaming.streaming.MatlabStreamingController', Mock())
+    rabbit = Mock()
+    handle_streaming_simulation({'simulation': {'foo': 'bar'}}, 'q', rabbit)
+    sent = rabbit.send_result.call_args[0][1]
+    assert sent['error']['code'] == 400
+
+def test_handle_streaming_simulation_success(monkeypatch):
+    """
+    Test handle_streaming_simulation end-to-end success path.
+    """
+    fake_ctrl = Mock()
+    monkeypatch.setattr(
+        'src.streaming.streaming.MatlabStreamingController', lambda path, f, s, r: fake_ctrl
     )
-    controller.matlab_process = mock_process
-    controller.close()
-    
-    mock_process.kill.assert_called_once()
+    rabbit = Mock()
+    data = {'simulation': {'file': 'f.m', 'inputs': {}}}
+    handle_streaming_simulation(data, 'q', rabbit)
+    # Ensure start, run, send_result called
+    fake_ctrl.start.assert_called_once()
+    fake_ctrl.run.assert_called_once()
+    rabbit.send_result.assert_called()

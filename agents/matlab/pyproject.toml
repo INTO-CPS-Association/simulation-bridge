@@ -16,6 +16,7 @@ types-pyyaml = "^6.0.12.20250402"
 pydantic = "^2.11.4"
 pika = "^1.3.2"
 psutil = "^7.0.0"
+pylint = "^3.3.7"
 
 [tool.poetry.scripts]
 matlab-agent = "matlab_agent.src.run_default_agent:run"  
