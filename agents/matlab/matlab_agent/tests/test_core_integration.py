@@ -12,10 +12,13 @@ def test_config_manager_defaults(tmp_path, monkeypatch):
     when the configuration file is missing or not provided. It ensures that the default values for
     agent ID and RabbitMQ host are set as expected.
     """
+    # Use to_dict() instead of model_dump() to get the nested structure
     monkeypatch.setattr(ConfigManager, "__init__", lambda self,
-                        config_path=None: setattr(self, 'config', Config().model_dump()))
+                        config_path=None: setattr(self, 'config', Config().to_dict()))
+    
     cm = ConfigManager()
     config = cm.get_config()
+    
     assert isinstance(config, dict)
     assert config['agent']['agent_id'] == 'matlab'
     assert config['rabbitmq']['host'] == 'localhost'
@@ -34,26 +37,36 @@ def test_rabbitmq_connect_and_setup(mock_creds, mock_params, mock_conn, monkeypa
     fake_channel = mock.Mock()
     fake_connection = mock.Mock(channel=mock.Mock(return_value=fake_channel))
     mock_conn.return_value = fake_connection
-
-    # Minimal config
-    cfg = Config().model_dump()
+    
+    # Minimal config - create a Config instance and get its nested dictionary representation
+    config_instance = Config()
+    cfg = config_instance.to_dict()  # Use to_dict() to get nested structure
+    
     rm = RabbitMQManager(agent_id='test', config=cfg)
+    
     # Verify connection called
     mock_creds.assert_called_once()
     mock_params.assert_called_once()
     mock_conn.assert_called_once()
+    
     # Verify exchanges declared
     fake_channel.exchange_declare.assert_any_call(
-        exchange=cfg['exchanges']['input'], exchange_type='topic', durable=True)
+        exchange=cfg['exchanges']['input'], exchange_type='topic', durable=True
+    )
     fake_channel.exchange_declare.assert_any_call(
-        exchange=cfg['exchanges']['output'], exchange_type='topic', durable=True)
+        exchange=cfg['exchanges']['output'], exchange_type='topic', durable=True
+    )
+    
     # Verify queue declared and bound
     fake_channel.queue_declare.assert_called_once_with(
-        queue='Q.sim.test', durable=cfg['queue']['durable'])
+        queue='Q.sim.test', durable=cfg['queue']['durable']
+    )
     fake_channel.queue_bind.assert_called_once()
+    
     # Verify QoS
     fake_channel.basic_qos.assert_called_once_with(
-        prefetch_count=cfg['queue']['prefetch_count'])
+        prefetch_count=cfg['queue']['prefetch_count']
+    )
 
 
 def test_matlab_agent_initialization(monkeypatch):

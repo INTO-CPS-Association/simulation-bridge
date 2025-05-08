@@ -8,8 +8,8 @@ with support for environment variable substitution and validation.
 import os
 from typing import Dict, Any, Optional, Union
 from pathlib import Path
-import yaml
 from importlib import resources
+import yaml
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
 
@@ -66,8 +66,10 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
             # Carico il file direttamente dal pacchetto
             with resources.open_text("matlab_agent.config", "config.yaml") as f:
                 config = yaml.safe_load(f)
-        except FileNotFoundError:
-            raise FileNotFoundError("Default configuration file not found inside the package.")
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(
+                "Default configuration file not found inside the package."
+            ) from exc
     else:
         # Altrimenti, uso il percorso specificato
         config_file: Path = Path(config_path)
