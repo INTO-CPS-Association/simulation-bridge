@@ -3,7 +3,7 @@ import yaml
 import pytest
 from pathlib import Path
 from yaml import YAMLError
-
+from importlib import resources
 from src.utils.config_loader import (
     get_base_dir,
     load_config,
@@ -96,8 +96,15 @@ def test_get_config_value_existing_and_default():
 
 def test_default_config_path_points_somewhere(tmp_path, monkeypatch):
     assert isinstance(DEFAULT_CONFIG_PATH, Path)
-    monkeypatch.setattr(Path, "exists", lambda self: False)
-    with pytest.raises(FileNotFoundError):
+
+    # 1️⃣ Monckeypatch di `resources.open_text` per simulare FileNotFoundError
+    def mock_open_text(*args, **kwargs):
+        raise FileNotFoundError("Default configuration file not found inside the package.")
+
+    monkeypatch.setattr(resources, "open_text", mock_open_text)
+
+    # 2️⃣ Controlla se il FileNotFoundError viene sollevato correttamente
+    with pytest.raises(FileNotFoundError, match="Default configuration file not found inside the package."):
         load_config()
 
 # Test loading a YAML configuration file and verifying key values

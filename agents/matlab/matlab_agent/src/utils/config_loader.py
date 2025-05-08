@@ -9,8 +9,9 @@ import os
 from typing import Dict, Any, Optional, Union
 from pathlib import Path
 import yaml
-from yaml import SafeLoader
+from importlib import resources
 
+DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
 
 def get_base_dir() -> Path:
     """
@@ -44,9 +45,6 @@ def get_base_dir() -> Path:
 # Base directory
 BASE_DIR: Path = get_base_dir()
 
-# Default configuration file path
-DEFAULT_CONFIG_PATH: Path = BASE_DIR.parent / "config" / "config.yaml"
-
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
     """
@@ -62,17 +60,23 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
         FileNotFoundError: If the configuration file does not exist
         yaml.YAMLError: If the YAML file is invalid
     """
+    # Se non è specificato un percorso, cerco nel pacchetto installato
     if not config_path:
-        config_path = os.environ.get("CONFIG_PATH", DEFAULT_CONFIG_PATH)
+        try:
+            # Carico il file direttamente dal pacchetto
+            with resources.open_text("matlab_agent.config", "config.yaml") as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
+            raise FileNotFoundError("Default configuration file not found inside the package.")
+    else:
+        # Altrimenti, uso il percorso specificato
+        config_file: Path = Path(config_path)
+        if not config_file.exists():
+            raise FileNotFoundError(f"Configuration file not found: {config_file}")
+        with open(config_file, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
 
-    config_file: Path = Path(config_path)
-
-    if not config_file.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_file}")
-
-    with open(config_file, 'r', encoding='utf-8') as f:
-        config: Dict[str, Any] = yaml.load(f, Loader=SafeLoader)
-
+    # Sostituzione delle variabili d'ambiente (se presenti nel file di configurazione)
     config = _substitute_env_vars(config)
 
     return config
