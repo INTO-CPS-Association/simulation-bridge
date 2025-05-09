@@ -14,7 +14,7 @@ import yaml
 from ..utils.logger import get_logger
 from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
-from ..core.rabbitmq_manager import RabbitMQManager
+from ..interfaces.rabbitmq_manager import IRabbitMQManager
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
 
 # Configure logger
@@ -30,7 +30,7 @@ response_templates: Dict[str, Any] = config.get('response_templates', {})
 def handle_batch_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    rabbitmq_manager: RabbitMQManager
+    rabbitmq_manager: IRabbitMQManager
 ) -> None:
     """Process a batch simulation request and send results via RabbitMQ."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
@@ -96,7 +96,7 @@ def _start_matlab_with_retry(sim: MatlabSimulator, max_retries: int = 3) -> None
             time.sleep(1)
 
 
-def _send_progress(manager: RabbitMQManager, source: str, sim_file: str, percentage: int) -> None:
+def _send_progress(manager: IRabbitMQManager, source: str, sim_file: str, percentage: int) -> None:
     """Send progress update if configured."""
     if response_templates.get('progress', {}).get('include_percentage', False):
         progress_response = create_response(
@@ -110,7 +110,7 @@ def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
     return sim.get_metadata()
 
 
-def _send_response(manager: RabbitMQManager, source: str, response: Dict[str, Any]) -> None:
+def _send_response(manager: IRabbitMQManager, source: str, response: Dict[str, Any]) -> None:
     """Send response through RabbitMQ."""
     print(yaml.dump(response))
     manager.send_result(source, response)
@@ -118,7 +118,7 @@ def _send_response(manager: RabbitMQManager, source: str, response: Dict[str, An
 
 def _handle_error(error: Exception,
                   sim_file: Optional[str],
-                  manager: RabbitMQManager,
+                  manager: IRabbitMQManager,
                   source: str) -> None:
     """Handle errors and send error response."""
     logger.error("Simulation '%s' failed: %s",

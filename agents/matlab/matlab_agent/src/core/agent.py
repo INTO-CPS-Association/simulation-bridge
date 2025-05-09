@@ -3,6 +3,9 @@ MATLAB Agent core implementation.
 """
 from typing import Any, Dict, Optional
 import pika
+from ..interfaces.config_manager import IConfigManager
+from ..interfaces.rabbitmq_manager import IRabbitMQManager
+from ..interfaces.message_handler import IMessageHandler
 from .config_manager import ConfigManager
 from .rabbitmq_manager import RabbitMQManager
 from ..handlers.message_handler import MessageHandler
@@ -25,15 +28,15 @@ class MatlabAgent:
         logger.info("MATLAB agent ID: %s", self.agent_id)
 
         # Load configuration
-        self.config_manager: ConfigManager = ConfigManager(config_path)
+        self.config_manager: IConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
 
         # Setup RabbitMQ manager
-        self.rabbitmq_manager: RabbitMQManager = RabbitMQManager(
+        self.rabbitmq_manager: IRabbitMQManager = RabbitMQManager(
             self.agent_id, self.config)
 
         # Setup message handler
-        self.message_handler: MessageHandler = MessageHandler(
+        self.message_handler: IMessageHandler = MessageHandler(
             self.agent_id, self.rabbitmq_manager)
 
         # Register message handler with RabbitMQ manager

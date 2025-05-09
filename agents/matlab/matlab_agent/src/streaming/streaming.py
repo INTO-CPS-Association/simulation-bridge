@@ -23,7 +23,7 @@ from typing import Any, Dict, Optional, Union
 
 import psutil
 
-from ..core.rabbitmq_manager import RabbitMQManager
+from ..interfaces.rabbitmq_manager import IRabbitMQManager
 from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
@@ -92,12 +92,12 @@ class MatlabStreamingController:
         path: str,
         file: str,
         source: str,
-        rabbitmq_manager: RabbitMQManager,
+        rabbitmq_manager: IRabbitMQManager,
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.source: str = source
-        self.rabbitmq_manager: RabbitMQManager = rabbitmq_manager
+        self.rabbitmq_manager: IRabbitMQManager = rabbitmq_manager
         self.start_time: Optional[float] = None
         host = tcp_settings.get('host', 'localhost')
         port = tcp_settings.get('port', 5678)
@@ -231,7 +231,7 @@ def _handle_streaming_error(
     sim_file: str,
     error: Exception,
     source: str,
-    rabbitmq_manager: RabbitMQManager
+    rabbitmq_manager: IRabbitMQManager
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -270,7 +270,7 @@ def _handle_streaming_error(
 def handle_streaming_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    rabbitmq_manager: RabbitMQManager
+    rabbitmq_manager: IRabbitMQManager
 ) -> None:
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})

@@ -5,6 +5,7 @@ import os
 import logging
 import click
 from .utils.logger import setup_logger
+from .interfaces.agent import IMatlabAgent
 from .core.agent import MatlabAgent
 from .utils.config_loader import load_config
 
@@ -51,7 +52,7 @@ def run_single_agent(config_file):
         log_file=logging_file
     )
     agent_id = config['agent']['agent_id']
-    agent: MatlabAgent = MatlabAgent(agent_id)
+    agent: IMatlabAgent = MatlabAgent(agent_id)
     try:
         logger.debug("Starting MATLAB agent with config: %s", config)
         agent.start()
