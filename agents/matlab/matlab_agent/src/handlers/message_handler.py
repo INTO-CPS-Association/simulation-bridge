@@ -34,7 +34,8 @@ class SimulationData(BaseModel):
     inputs: 'SimulationInputs'  # assuming this is defined elsewhere
     outputs: Optional['SimulationOutputs'] = None  # assuming this is defined elsewhere
 
-    @field_validator('type')
+    @field_validator('type', mode='before')
+    @classmethod
     def validate_sim_type(cls, v):
         """Validate that simulation type is either 'batch' or 'streaming'"""
         if v not in ['batch', 'streaming']:

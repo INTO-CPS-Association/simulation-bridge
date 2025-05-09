@@ -1,18 +1,10 @@
 import logging
 import sys
-import re
 from pathlib import Path
-import pytest
-from unittest import mock
 
-from src.utils.logger import (
-    setup_logger,
-    get_logger,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOG_FORMAT,
-    MAX_LOG_SIZE,
-    BACKUP_COUNT,
-)
+import pytest
+from src.utils.logger import (BACKUP_COUNT, DEFAULT_LOG_FORMAT, MAX_LOG_SIZE,
+                              get_logger, setup_logger)
 
 LOG_NAME = "TEST-LOGGER"
 DUMMY_LOG_FILE = "logs/test.log"

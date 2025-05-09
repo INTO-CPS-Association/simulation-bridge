@@ -1,7 +1,6 @@
 
-import pytest
-from unittest.mock import patch, MagicMock
-from datetime import datetime
+from unittest.mock import MagicMock, patch
+
 from src.utils.create_response import create_response
 
 # Test basic success response for batch simulation

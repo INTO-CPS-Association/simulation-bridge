@@ -144,7 +144,8 @@ class MatlabSimulator:
             if size == (1, 1):
                 return float(value[0][0])
             if size[0] == 1 or size[1] == 1:
-                return [value[i][0] for i in range(size[0])] if size[0] > 1 else value[0]
+                return [value[0][i] for i in range(size[1])] \
+                    if size[0] == 1 else [value[i][0] for i in range(size[0])]
             return [[value[i][j] for j in range(size[1])] for i in range(size[0])]
         return value
 

@@ -1,19 +1,15 @@
 # tests/test_batch.py
 
 # Import necessary libraries and modules
-import pytest
-from unittest.mock import Mock, patch, MagicMock, call
-import matlab.engine
-import sys
-import traceback
+import time
 from pathlib import Path
-from datetime import datetime
-from src.batch.batch import (
-    MatlabSimulator,
-    create_response,
-    handle_batch_simulation,
-    MatlabSimulationError
-)
+from unittest.mock import Mock, patch
+
+import matlab.engine
+import psutil
+import pytest
+from src.batch.batch import (MatlabSimulationError, MatlabSimulator,
+                             handle_batch_simulation)
 
 ### Fixtures ###
 
@@ -241,3 +237,158 @@ def test_complex_type_conversions():
 
     # Test single value conversion
     assert simulator._from_matlab(matlab.double([[5.0]])) == 5.0
+
+### Fixtures for filesystem ###
+
+
+@pytest.fixture
+def tmp_sim_dir(tmp_path):
+    sim_dir = tmp_path / "sim"
+    sim_dir.mkdir()
+    # Crea un file vuoto simulation.m
+    (sim_dir / "simulation.m").write_text("% MATLAB code")
+    return sim_dir
+
+### Validation Tests ###
+
+
+def test_validate_missing_file(tmp_path):
+    # directory esiste ma manca il file
+    sim_dir = tmp_path / "sim2"
+    sim_dir.mkdir()
+    with pytest.raises(FileNotFoundError) as exc:
+        MatlabSimulator(str(sim_dir), "nonexistent.m")
+    assert "Simulation file 'nonexistent.m' not" in str(exc.value)
+
+### Start / Run Tests ###
+
+
+def test_run_without_start(tmp_sim_dir):
+    """Chiamare run() prima di start() solleva MatlabSimulationError."""
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    with pytest.raises(MatlabSimulationError) as exc:
+        sim.run({}, ["out1"])
+    assert "MATLAB engine is not started" in str(exc.value)
+
+
+def test_run_exception_in_feval(tmp_sim_dir):
+    """Se feval solleva, viene wrapped in MatlabSimulationError."""
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    mock_eng = Mock()
+    mock_eng.feval.side_effect = Exception("Feval fail")
+    sim.eng = mock_eng
+    with pytest.raises(MatlabSimulationError) as exc:
+        sim.run({"a": 1}, ["out"])
+    assert "Simulation error: Feval fail" in str(exc.value)
+
+### _process_results Tests ###
+
+
+def test_process_results_single_and_multiple(tmp_sim_dir):
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    # singolo output
+    res1 = sim._process_results(matlab.double([[3.0]]), ["only"])
+    assert res1 == {"only": 3.0}
+    # doppio output
+    tup = (matlab.double([[1.0]]), matlab.double([[2.0]]))
+    res2 = sim._process_results(tup, ["x", "y"])
+    assert res2 == {"x": 1.0, "y": 2.0}
+
+### get_metadata Tests ###
+
+
+def test_get_metadata_minimal(tmp_sim_dir, monkeypatch):
+    """Senza start_time né eng, ritorna solo memory_usage."""
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    # forziamo un valore di RSS
+    fake_info = Mock(rss=10 * 1024 * 1024)
+    monkeypatch.setattr(
+        psutil, "Process", lambda pid: Mock(
+            memory_info=lambda: fake_info))
+    meta = sim.get_metadata()
+    assert "memory_usage" in meta
+    assert "execution_time" not in meta
+    assert "matlab_version" not in meta
+
+
+def test_get_metadata_with_start_and_version(tmp_sim_dir, monkeypatch):
+    """Con start_time e eng, include execution_time e matlab_version."""
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    sim.start_time = time.time() - 0.5
+    mock_eng = Mock()
+    mock_eng.eval.return_value = "9.12.0"
+    sim.eng = mock_eng
+    fake_info = Mock(rss=5 * 1024 * 1024)
+    monkeypatch.setattr(
+        psutil, "Process", lambda pid: Mock(
+            memory_info=lambda: fake_info))
+    meta = sim.get_metadata()
+    assert pytest.approx(meta["execution_time"], rel=0.1) == 0.5
+    assert meta["matlab_version"] == "9.12.0"
+    assert meta["memory_usage"] == 5
+
+
+def test_get_metadata_version_failure(tmp_sim_dir, monkeypatch):
+    """Se eng.eval solleva, matlab_version non viene inserito."""
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    sim.start_time = time.time()
+    mock_eng = Mock()
+    mock_eng.eval.side_effect = Exception("oops")
+    sim.eng = mock_eng
+    fake_info = Mock(rss=1 * 1024 * 1024)
+    monkeypatch.setattr(
+        psutil, "Process", lambda pid: Mock(
+            memory_info=lambda: fake_info))
+    meta = sim.get_metadata()
+    assert "matlab_version" not in meta
+
+### _to_matlab / _from_matlab Tests ###
+
+
+def test_to_matlab_empty_and_numeric(tmp_sim_dir):
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    # lista vuota
+    empty = sim._to_matlab([])
+    assert isinstance(empty, matlab.double)
+    # numero intero e float
+    assert sim._to_matlab(5) == 5.0
+    assert sim._to_matlab(3.14) == 3.14
+    # tuple
+    dbl = sim._to_matlab((1, 2, 3))
+    assert isinstance(dbl, matlab.double)
+
+
+def test_to_matlab_other_types(tmp_sim_dir):
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    # stringa passa inalterata
+    assert sim._to_matlab("hello") == "hello"
+
+
+def test_from_matlab_various_shapes(tmp_sim_dir):
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    # scala 1x1
+    one = matlab.double([[7.0]])
+    assert sim._from_matlab(one) == 7.0
+    # vettore riga
+    row = matlab.double([[1.0, 2.0, 3.0]])
+    assert sim._from_matlab(row) == [1.0, 2.0, 3.0]
+    # vettore colonna
+    col = matlab.double([[4.0], [5.0], [6.0]])
+    assert sim._from_matlab(col) == [4.0, 5.0, 6.0]
+    # matrice 2x2
+    mat2 = matlab.double([[1.0, 2.0], [3.0, 4.0]])
+    assert sim._from_matlab(mat2) == [[1.0, 2.0], [3.0, 4.0]]
+
+### close() Warning Branch ###
+
+
+def test_close_with_quit_error(tmp_sim_dir, caplog):
+    sim = MatlabSimulator(str(tmp_sim_dir), "simulation.m")
+    mock_eng = Mock()
+    mock_eng.quit.side_effect = Exception("quit failed")
+    sim.eng = mock_eng
+    caplog.set_level("WARNING")
+    sim.close()
+    # non deve sollevare, ma loggare warning
+    assert "Error closing MATLAB engine: quit failed" in caplog.text
+    assert sim.eng is None

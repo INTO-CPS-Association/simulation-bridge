@@ -1,12 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
 import yaml
-import json
-from unittest.mock import MagicMock, patch
-from src.handlers.message_handler import MessageHandler, MessagePayload, SimulationData
+from src.handlers.message_handler import (MessageHandler, MessagePayload,
+                                          SimulationData)
 
 # Import functions from batch and streaming modules
-from src.batch.batch import handle_batch_simulation
-from src.streaming.streaming import handle_streaming_simulation
 
 
 @pytest.fixture
@@ -29,7 +28,9 @@ def mock_channel():
 @pytest.fixture
 def message_handler(mock_rabbitmq_manager):
     """Instantiate a MessageHandler with a mocked RabbitMQManager."""
-    return MessageHandler(agent_id="test_agent", rabbitmq_manager=mock_rabbitmq_manager)
+    return MessageHandler(
+        agent_id="test_agent",
+        rabbitmq_manager=mock_rabbitmq_manager)
 
 
 @pytest.fixture
@@ -80,8 +81,11 @@ def valid_streaming_message():
 
 
 def test_handle_message_batch(
-    message_handler, mock_channel, basic_deliver, basic_properties, valid_batch_message
-):
+        message_handler,
+        mock_channel,
+        basic_deliver,
+        basic_properties,
+        valid_batch_message):
     """Test handling of a 'batch' type message."""
     # Patch the batch simulation handler
     with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
@@ -104,8 +108,11 @@ def test_handle_message_batch(
 
 
 def test_handle_message_streaming(
-    message_handler, mock_channel, basic_deliver, basic_properties, valid_streaming_message
-):
+        message_handler,
+        mock_channel,
+        basic_deliver,
+        basic_properties,
+        valid_streaming_message):
     """Test handling of a 'streaming' type message."""
     # Patch the streaming simulation handler
     with patch("src.handlers.message_handler.handle_streaming_simulation") as mock_handle_streaming:
@@ -123,7 +130,8 @@ def test_handle_message_streaming(
         assert args[1] == "source"
         assert args[2] == message_handler.rabbitmq_manager
 
-        # Verify acknowledgment is sent before handling streaming (asynchronous pattern)
+        # Verify acknowledgment is sent before handling streaming (asynchronous
+        # pattern)
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
 
@@ -226,8 +234,11 @@ def test_handle_message_invalid_simulation_type(
 
 
 def test_handle_message_batch_error(
-    message_handler, mock_channel, basic_deliver, basic_properties, valid_batch_message
-):
+        message_handler,
+        mock_channel,
+        basic_deliver,
+        basic_properties,
+        valid_batch_message):
     """Test handling when batch simulation handler raises an exception."""
     # Patch the batch simulation handler to raise an exception
     with patch("src.handlers.message_handler.handle_batch_simulation",
@@ -254,10 +265,14 @@ def test_handle_message_batch_error(
 
 
 def test_handle_message_error_response_failure(
-    message_handler, mock_channel, basic_deliver, basic_properties, valid_batch_message
-):
+        message_handler,
+        mock_channel,
+        basic_deliver,
+        basic_properties,
+        valid_batch_message):
     """Test handling when both processing and sending error response fails."""
-    # Patch batch handler to raise exception and rabbitmq_manager to also raise exception
+    # Patch batch handler to raise exception and rabbitmq_manager to also
+    # raise exception
     with patch("src.handlers.message_handler.handle_batch_simulation",
                side_effect=Exception("Batch processing error")):
 

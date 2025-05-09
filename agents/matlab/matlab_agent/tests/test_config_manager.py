@@ -1,9 +1,9 @@
-import pytest
-from unittest import mock
 from pathlib import Path
-from src.core.config_manager import ConfigManager
-from src.core.config_manager import Config
+from unittest import mock
+
+import pytest
 from pydantic import ValidationError
+from src.core.config_manager import ConfigManager
 
 # Mock path for the configuration file
 MOCK_CONFIG_PATH = "/fake/path/config.yaml"

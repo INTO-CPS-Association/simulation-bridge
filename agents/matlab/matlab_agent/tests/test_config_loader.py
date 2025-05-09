@@ -1,18 +1,16 @@
 import os
-import yaml
-import pytest
-from pathlib import Path
-from yaml import YAMLError
 from importlib import resources
-from src.utils.config_loader import (
-    get_base_dir,
-    load_config,
-    _substitute_env_vars,
-    get_config_value,
-    DEFAULT_CONFIG_PATH,
-)
+from pathlib import Path
 
-# Test that `get_base_dir` returns the current working directory when no base directory exists
+import pytest
+import yaml
+from src.utils.config_loader import (DEFAULT_CONFIG_PATH, _substitute_env_vars,
+                                     get_base_dir, get_config_value,
+                                     load_config)
+from yaml import YAMLError
+
+# Test that `get_base_dir` returns the current working directory when no
+# base directory exists
 
 
 def test_get_base_dir_defaults_to_cwd(tmp_path, monkeypatch):
@@ -21,7 +19,8 @@ def test_get_base_dir_defaults_to_cwd(tmp_path, monkeypatch):
     result = get_base_dir()
     assert result == tmp_path
 
-# Test that `load_config` raises FileNotFoundError when the configuration file is missing
+# Test that `load_config` raises FileNotFoundError when the configuration
+# file is missing
 
 
 def test_load_config_file_not_found(tmp_path):
@@ -41,7 +40,8 @@ def test_load_config_yaml_error(tmp_path, monkeypatch):
     with pytest.raises(YAMLError):
         load_config(str(cfg))
 
-# Test that `load_config` substitutes environment variables in the configuration file
+# Test that `load_config` substitutes environment variables in the
+# configuration file
 
 
 def test_load_config_env_substitution(tmp_path, monkeypatch):
@@ -62,7 +62,8 @@ def test_load_config_env_substitution(tmp_path, monkeypatch):
     assert result["nested"][0] == "aX"
     assert result["nested"][1] == "val2"
 
-# Test that `_substitute_env_vars` substitutes environment variables in a dictionary
+# Test that `_substitute_env_vars` substitutes environment variables in a
+# dictionary
 
 
 def test_substitute_env_vars_direct():
@@ -80,7 +81,8 @@ def test_substitute_env_vars_direct():
     assert result["c"][1] == "ydee"
     assert result["c"][2]["e"] == ""
 
-# Test that `get_config_value` retrieves existing values and defaults for missing keys
+# Test that `get_config_value` retrieves existing values and defaults for
+# missing keys
 
 
 def test_get_config_value_existing_and_default():
@@ -91,7 +93,8 @@ def test_get_config_value_existing_and_default():
     assert get_config_value(cfg, "x.missing", default="d") == "d"
     assert get_config_value(cfg, "nope", default=None) is None
 
-# Test that `DEFAULT_CONFIG_PATH` is a valid path and raises an error if the file is missing
+# Test that `DEFAULT_CONFIG_PATH` is a valid path and raises an error if
+# the file is missing
 
 
 def test_default_config_path_points_somewhere(tmp_path, monkeypatch):
@@ -99,7 +102,8 @@ def test_default_config_path_points_somewhere(tmp_path, monkeypatch):
 
     # 1️⃣ Monckeypatch di `resources.open_text` per simulare FileNotFoundError
     def mock_open_text(*args, **kwargs):
-        raise FileNotFoundError("Default configuration file not found inside the package.")
+        raise FileNotFoundError(
+            "Default configuration file not found inside the package.")
 
     monkeypatch.setattr(resources, "open_text", mock_open_text)
 

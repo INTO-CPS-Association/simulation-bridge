@@ -16,8 +16,9 @@ class SimpleUsageMatlabAgent:
     This class facilitates communication with a MATLAB agent via RabbitMQ.
     It allows sending simulation requests and receiving results asynchronously.
     """
-    def __init__(self, agent_identifier="dt"):
+    def __init__(self, agent_identifier="dt",destination_identifier="matlab"):
         self.agent_id = agent_identifier
+        self.destination_id = destination_identifier
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters('localhost'))
         self.channel = self.connection.channel()
@@ -50,7 +51,7 @@ class SimpleUsageMatlabAgent:
         self.channel.queue_bind(
             exchange='ex.sim.result',
             queue=self.result_queue,
-            routing_key=f"matlab.result.{self.agent_id}"
+            routing_key=f"{self.destination_id}.result.{self.agent_id}"
         )
 
         print(f"[{self.agent_id.upper()}] Infrastructure configured successfully.")
@@ -70,7 +71,7 @@ class SimpleUsageMatlabAgent:
         payload_yaml = yaml.dump(payload, default_flow_style=False)
 
         # Routing key: {agent_id}.matlab
-        routing_key = f"{self.agent_id}.matlab"
+        routing_key = f"{self.agent_id}.{self.destination_id}"
 
         # Send message
         self.channel.basic_publish(
@@ -85,7 +86,7 @@ class SimpleUsageMatlabAgent:
         )
         print(f"[{self.agent_id.upper()}] Message sent to matlab: {payload}")
 
-    def handle_result(self, ch, method, body):
+    def handle_result(self, ch, method, properties, body):
         """
         Handle simulation results
         """
@@ -133,13 +134,14 @@ def start_listener(agent_identifier):
 
 if __name__ == "__main__":
     AGENT_ID = "dt"
+    DESTINATION = "matlab"
     # Start listener in separate thread
     listener_thread = threading.Thread(target=start_listener, args=(AGENT_ID,))
     listener_thread.daemon = True
     listener_thread.start()
 
     # Create main instance for sending requests
-    agent = SimpleUsageMatlabAgent(AGENT_ID)
+    agent = SimpleUsageMatlabAgent(AGENT_ID,DESTINATION)
 
     try:
         # Example: You can load simulation data from a YAML file here

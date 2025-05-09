@@ -1,7 +1,7 @@
 """
 MATLAB Agent core implementation.
 """
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import pika
 from .config_manager import ConfigManager
 from .rabbitmq_manager import RabbitMQManager
@@ -17,18 +17,15 @@ class MatlabAgent:
     This component handles message reception, processing, and result distribution.
     """
 
-    def __init__(self, agent_id: str) -> None:
+    def __init__(self, agent_id: str, config_path: Optional[str] = None) -> None:
         """
-        Initialize the MATLAB agent with the specified ID.
-
-        Args:
-            agent_id (str): Unique identifier for this MATLAB agent
+        Initialize the MATLAB agent with the specified ID, and optionally a configuration file.
         """
         self.agent_id: str = agent_id
         logger.info("MATLAB agent ID: %s", self.agent_id)
 
         # Load configuration
-        self.config_manager: ConfigManager = ConfigManager()
+        self.config_manager: ConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
 
         # Setup RabbitMQ manager

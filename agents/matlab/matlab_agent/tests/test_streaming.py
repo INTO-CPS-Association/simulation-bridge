@@ -1,20 +1,13 @@
-import json
 import socket
-import subprocess
-import sys
 import time
 from pathlib import Path
-
-import pytest
 from unittest.mock import MagicMock, Mock, patch
 
-from src.streaming.streaming import (
-    StreamingConnection,
-    MatlabStreamingController,
-    MatlabStreamingError,
-    _handle_streaming_error,
-    handle_streaming_simulation,
-)
+import pytest
+from src.streaming.streaming import (MatlabStreamingController,
+                                     MatlabStreamingError, StreamingConnection,
+                                     _handle_streaming_error,
+                                     handle_streaming_simulation)
 
 # Sample configuration for testing
 response_templates = {
@@ -89,7 +82,8 @@ def test_controller_start_failure(mock_is_dir, mock_exists, mock_popen):
         str(Path.cwd()), 'file.m', 'src', MagicMock()
     )
 
-    # Verifichiamo che venga sollevato un MatlabStreamingError quando chiamiamo start
+    # Verifichiamo che venga sollevato un MatlabStreamingError quando
+    # chiamiamo start
     with pytest.raises(MatlabStreamingError):
         controller.start()
 
@@ -98,7 +92,11 @@ def test_controller_start_failure(mock_is_dir, mock_exists, mock_popen):
 @patch('src.streaming.streaming.subprocess.Popen')
 @patch('pathlib.Path.exists')
 @patch('pathlib.Path.is_dir')
-def test_controller_start_success(mock_is_dir, mock_exists, mock_popen, mock_start_server):
+def test_controller_start_success(
+        mock_is_dir,
+        mock_exists,
+        mock_popen,
+        mock_start_server):
     """
     Test successful controller.start sends initial progress (without aprire realmente la socket).
     """
@@ -210,8 +208,11 @@ def test_handle_streaming_simulation_success(monkeypatch):
     """
     fake_ctrl = Mock()
     monkeypatch.setattr(
-        'src.streaming.streaming.MatlabStreamingController', lambda path, f, s, r: fake_ctrl
-    )
+        'src.streaming.streaming.MatlabStreamingController',
+        lambda path,
+        f,
+        s,
+        r: fake_ctrl)
     rabbit = Mock()
     data = {'simulation': {'file': 'f.m', 'inputs': {}}}
     handle_streaming_simulation(data, 'q', rabbit)

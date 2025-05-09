@@ -1,13 +1,13 @@
 import logging
+from unittest.mock import MagicMock, call, patch
+
 import pytest
 from click.testing import CliRunner
-from unittest.mock import patch, MagicMock
-import os
-
-# Import the main function dalla tua entry-point
-from src.main import main
+# Import the main function from the entry-point
+from src.main import main, run_single_agent
 
 ### Fixtures ###
+
 
 @pytest.fixture
 def default_config():
@@ -16,12 +16,22 @@ def default_config():
         'agent': {'agent_id': 'default_agent'}
     }
 
+
 @pytest.fixture
 def custom_config():
     return {
         'logging': {'level': 'DEBUG', 'file': 'debug.log'},
         'agent': {'agent_id': 'custom_agent'}
     }
+
+
+@pytest.fixture
+def second_config():
+    return {
+        'logging': {'level': 'INFO', 'file': 'agent2.log'},
+        'agent': {'agent_id': 'second_agent'}
+    }
+
 
 @pytest.fixture
 def invalid_log_config():
@@ -30,12 +40,14 @@ def invalid_log_config():
         'agent': {'agent_id': 'agent_x'}
     }
 
+
 @pytest.fixture
 def missing_agent_config():
     return {
         'logging': {'level': 'INFO', 'file': 'app.log'},
-        'agent': {}  # manca agent_id
+        'agent': {}  # missing agent_id
     }
+
 
 @pytest.fixture
 def mock_agent():
@@ -46,10 +58,16 @@ def mock_agent():
 
 ### Tests ###
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_main_with_config_file(mock_load_config, mock_setup_logger, MockAgent, custom_config, mock_agent):
+def test_main_with_config_file(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        custom_config,
+        mock_agent):
     mock_load_config.return_value = custom_config
     MockAgent.return_value = mock_agent
 
@@ -62,11 +80,17 @@ def test_main_with_config_file(mock_load_config, mock_setup_logger, MockAgent, c
     mock_agent.start.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_main_without_config_file(mock_load_config, mock_setup_logger, MockAgent, default_config, mock_agent):
-    # Se non passo -c, deve chiamare load_config con None
+def test_main_without_config_file(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        default_config,
+        mock_agent):
+    # Should call load_config with None if -c is not provided
     mock_load_config.return_value = default_config
     MockAgent.return_value = mock_agent
 
@@ -78,11 +102,17 @@ def test_main_without_config_file(mock_load_config, mock_setup_logger, MockAgent
     mock_agent.start.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_main_keyboard_interrupt(mock_load_config, mock_setup_logger, MockAgent, default_config, mock_agent):
-    # Simulo KeyboardInterrupt in start()
+def test_main_keyboard_interrupt(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        default_config,
+        mock_agent):
+    # Simulate KeyboardInterrupt in start()
     mock_load_config.return_value = default_config
     mock_agent.start.side_effect = KeyboardInterrupt()
     MockAgent.return_value = mock_agent
@@ -93,11 +123,17 @@ def test_main_keyboard_interrupt(mock_load_config, mock_setup_logger, MockAgent,
     mock_agent.stop.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_main_general_error(mock_load_config, mock_setup_logger, MockAgent, default_config, mock_agent):
-    # Simulo errore generico in start()
+def test_main_general_error(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        default_config,
+        mock_agent):
+    # Simulate general error in start()
     mock_load_config.return_value = default_config
     mock_agent.start.side_effect = Exception("Simulated failure")
     MockAgent.return_value = mock_agent
@@ -108,11 +144,17 @@ def test_main_general_error(mock_load_config, mock_setup_logger, MockAgent, defa
     mock_agent.stop.assert_called_once()
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_invalid_log_level(mock_load_config, mock_setup_logger, MockAgent, invalid_log_config, mock_agent):
-    # Se il livello di log è invalido, deve ricadere su INFO
+def test_invalid_log_level(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        invalid_log_config,
+        mock_agent):
+    # If log level is invalid, should fall back to INFO
     mock_load_config.return_value = invalid_log_config
     MockAgent.return_value = mock_agent
 
@@ -125,14 +167,93 @@ def test_invalid_log_level(mock_load_config, mock_setup_logger, MockAgent, inval
     )
     assert result.exit_code == 0
 
+
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
-def test_missing_agent_id(mock_load_config, mock_setup_logger, MockAgent, missing_agent_config):
-    # Se manca agent_id nella config, lancia KeyError => exit_code != 0
+def test_missing_agent_id(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        missing_agent_config):
+    # If agent_id is missing in config, raises KeyError => exit_code != 0
     mock_load_config.return_value = missing_agent_config
 
     runner = CliRunner()
     result = runner.invoke(main, [])
 
     assert result.exit_code != 0
+
+# New tests for multiagent mode and other uncovered lines
+
+
+@patch('os.fork')
+@patch('os.waitpid')
+@patch('os._exit')
+@patch('src.main.run_single_agent')
+def test_multi_config(
+        mock_run_single_agent,
+        mock_exit,
+        mock_waitpid,
+        mock_fork):
+    """Test the multi-config mode that uses forking."""
+    # Simulate the parent process (fork returns non-zero pid)
+    mock_fork.side_effect = [123, 456]
+
+    runner = CliRunner()
+    result = runner.invoke(main, ['-m', 'config1.yml,config2.yml'])
+
+    # Should have called fork twice (once for each config)
+    assert mock_fork.call_count == 2
+
+    # Should have called waitpid twice (once for each child process)
+    assert mock_waitpid.call_count == 2
+    mock_waitpid.assert_has_calls([call(123, 0), call(456, 0)])
+
+    # run_single_agent should not be called in the parent process
+    mock_run_single_agent.assert_not_called()
+
+    assert result.exit_code == 0
+
+
+@patch('os.fork')
+@patch('os._exit')
+@patch('src.main.run_single_agent')
+def test_multi_config_child_process(
+        mock_run_single_agent,
+        mock_exit,
+        mock_fork):
+    """Test the child process branch in multi-config mode."""
+    # Simulate the child process (fork returns 0)
+    mock_fork.return_value = 0
+
+    runner = CliRunner()
+    result = runner.invoke(main, ['-m', 'config1.yml'])
+
+    # In child process, should run the agent with config
+    mock_run_single_agent.assert_called_once_with('config1.yml')
+
+    # Should exit after running the agent
+    mock_exit.assert_called_once_with(0)
+
+    assert result.exit_code == 0
+
+
+@patch('src.main.MatlabAgent')
+@patch('src.main.setup_logger')
+@patch('src.main.load_config')
+def test_run_single_agent_direct(
+        mock_load_config,
+        mock_setup_logger,
+        MockAgent,
+        custom_config,
+        mock_agent):
+    """Test the run_single_agent function directly."""
+    mock_load_config.return_value = custom_config
+    MockAgent.return_value = mock_agent
+
+    run_single_agent('test_config.yml')
+
+    mock_load_config.assert_called_once_with('test_config.yml')
+    MockAgent.assert_called_once_with('custom_agent')
+    mock_agent.start.assert_called_once()
