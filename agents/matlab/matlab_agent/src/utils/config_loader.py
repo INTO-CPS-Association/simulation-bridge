@@ -22,7 +22,7 @@ def get_base_dir() -> Path:
     """
     current_dir: Path = Path(__file__).resolve().parent
 
-    while current_dir.parent != current_dir:  # Stop at filesystem root
+    while current_dir.parent != current_dir:
         if (current_dir / "main.py").exists():
             return current_dir
         if (current_dir / "app.py").exists() or (current_dir / "run.py").exists():
@@ -34,17 +34,15 @@ def get_base_dir() -> Path:
         return cwd
 
     test_dir: Path = Path(__file__).resolve().parent
-    while test_dir.parent != test_dir:  # Stop at filesystem root
+    while test_dir.parent != test_dir:
         if (test_dir / "config").is_dir() and (test_dir / "config" / "config.yaml").exists():
             return test_dir
         test_dir = test_dir.parent
 
     return cwd
 
-
 # Base directory
 BASE_DIR: Path = get_base_dir()
-
 
 def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
     """
@@ -60,10 +58,8 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
         FileNotFoundError: If the configuration file does not exist
         yaml.YAMLError: If the YAML file is invalid
     """
-    # Se non è specificato un percorso, cerco nel pacchetto installato
     if not config_path:
         try:
-            # Carico il file direttamente dal pacchetto
             with resources.open_text("matlab_agent.config", "config.yaml") as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError as exc:
@@ -71,14 +67,11 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
                 "Default configuration file not found inside the package."
             ) from exc
     else:
-        # Altrimenti, uso il percorso specificato
         config_file: Path = Path(config_path)
         if not config_file.exists():
             raise FileNotFoundError(f"Configuration file not found: {config_file}")
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-
-    # Sostituzione delle variabili d'ambiente (se presenti nel file di configurazione)
     config = _substitute_env_vars(config)
 
     return config

@@ -1,10 +1,13 @@
 """
-utils/logger.py - Centralized logging system
+This module provides utilities for configuring and managing loggers with support 
+for file-based logging, console output, and optional colorized log messages. 
+It ensures proper log file rotation and customizable logging formats.
 """
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+import colorlog
 
 DEFAULT_LOG_FORMAT: str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEFAULT_LOG_LEVEL: int = logging.INFO
@@ -20,7 +23,8 @@ def setup_logger(
     enable_console: bool = True
 ) -> logging.Logger:
     """
-    Configures a logger with handlers for file and console.
+    Configures a logger with handlers for file and console, with optional 
+    colorization for console logs.
 
     Args:
         name: Name of the logger
@@ -55,13 +59,27 @@ def setup_logger(
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
-    # Configure console handler if enabled
+    # Configure console handler with color if enabled
     if enable_console:
-        console_handler: logging.StreamHandler = logging.StreamHandler(
-            sys.stdout)
+        # Create a ColorFormatter for console logs
+        console_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(level)
-        console_formatter: logging.Formatter = logging.Formatter(log_format)
-        console_handler.setFormatter(console_formatter)
+
+        # Define a colorized log format for console output
+        console_format = '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        color_formatter = colorlog.ColoredFormatter(
+            console_format,
+            datefmt='%Y-%m-%d %H:%M:%S',
+            log_colors={
+                'DEBUG': 'cyan',
+                'INFO': 'green',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red',
+            }
+        )
+
+        console_handler.setFormatter(color_formatter)
         logger.addHandler(console_handler)
 
     return logger
