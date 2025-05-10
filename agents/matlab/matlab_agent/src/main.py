@@ -1,7 +1,6 @@
 """
 Main entry point for the MATLAB Agent application.
 """
-import os
 import logging
 import click
 from .utils.logger import setup_logger
@@ -13,34 +12,12 @@ from .utils.config_loader import load_config
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
               default=None, help='Path to custom configuration file')
-@click.option('--multi-config', '-m', type=str,
-              default=None, help='Comma-separated list of configuration files for multiple agents')
-def main(config_file=None, multi_config=None) -> None:
+def main(config_file=None) -> None:
     """
     Main function to initialize and start the MATLAB agent.
     Supports single or multiple agents with different configurations.
     """
-    if multi_config:
-        configs = [config.strip() for config in multi_config.split(',')]
-        processes = []
-
-        for config in configs:
-            pid = os.fork()
-            if pid == 0:
-                # Child process: run the agent with the given config
-                run_single_agent(config)
-                os._exit(0)
-            else:
-                # Parent process: keep track of child processes
-                processes.append(pid)
-
-        # Wait for all child processes
-        for pid in processes:
-            os.waitpid(pid, 0)
-    else:
-        # Single agent mode
-        run_single_agent(config_file)
-
+    run_single_agent(config_file)
 
 def run_single_agent(config_file):
     """ Initializes and starts a single MATLAB agent instance. """

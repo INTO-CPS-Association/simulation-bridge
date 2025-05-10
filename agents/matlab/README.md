@@ -125,26 +125,6 @@ Alternatively, you can use the shorthand `-c` option:
 matlab-agent -c <path_to_config.yaml>
 ```
 
-### Multi-Configuration Support
-
-The MATLAB Agent also supports running multiple agents on the same thread using different configuration files.
-
-To enable multi-configuration, use the `--multi-config` or `-m` option followed by a comma-separated list of configuration file paths:
-
-```bash
-matlab-agent --multi-config <config1.yaml>,<config2.yaml>,<config3.yaml>
-```
-
-Alternatively, you can use the shorthand `-m` option:
-
-```bash
-matlab-agent -m <config1.yaml>,<config2.yaml>,<config3.yaml>
-```
-
-Each configuration file defines the parameters for an individual MATLAB Agent instance. The agents will run concurrently on the same thread, processing their respective tasks independently.
-
-> **Note:** Ensure that each configuration file specifies unique identifiers (e.g., `agent_id`) and avoids conflicts in RabbitMQ queues, exchanges, or TCP ports.
-
 ## Testing
 
 For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](matlab_agent/tests/README.md).
