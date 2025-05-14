@@ -123,7 +123,7 @@ response_templates:
 To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-path` or `-c` option followed by the path to your configuration file:
 
 ```bash
-matlab-agent --config-path <path_to_your_config.yaml>
+poetry run matlab-agent --config-path <path_to_your_config.yaml>
 ```
 
 ## Usage
