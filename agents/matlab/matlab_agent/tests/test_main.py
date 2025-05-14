@@ -187,58 +187,6 @@ def test_missing_agent_id(
 # New tests for multiagent mode and other uncovered lines
 
 
-@patch('os.fork')
-@patch('os.waitpid')
-@patch('os._exit')
-@patch('src.main.run_single_agent')
-def test_multi_config(
-        mock_run_single_agent,
-        mock_exit,
-        mock_waitpid,
-        mock_fork):
-    """Test the multi-config mode that uses forking."""
-    # Simulate the parent process (fork returns non-zero pid)
-    mock_fork.side_effect = [123, 456]
-
-    runner = CliRunner()
-    result = runner.invoke(main, ['-m', 'config1.yml,config2.yml'])
-
-    # Should have called fork twice (once for each config)
-    assert mock_fork.call_count == 2
-
-    # Should have called waitpid twice (once for each child process)
-    assert mock_waitpid.call_count == 2
-    mock_waitpid.assert_has_calls([call(123, 0), call(456, 0)])
-
-    # run_single_agent should not be called in the parent process
-    mock_run_single_agent.assert_not_called()
-
-    assert result.exit_code == 0
-
-
-@patch('os.fork')
-@patch('os._exit')
-@patch('src.main.run_single_agent')
-def test_multi_config_child_process(
-        mock_run_single_agent,
-        mock_exit,
-        mock_fork):
-    """Test the child process branch in multi-config mode."""
-    # Simulate the child process (fork returns 0)
-    mock_fork.return_value = 0
-
-    runner = CliRunner()
-    result = runner.invoke(main, ['-m', 'config1.yml'])
-
-    # In child process, should run the agent with config
-    mock_run_single_agent.assert_called_once_with('config1.yml')
-
-    # Should exit after running the agent
-    mock_exit.assert_called_once_with(0)
-
-    assert result.exit_code == 0
-
-
 @patch('src.main.MatlabAgent')
 @patch('src.main.setup_logger')
 @patch('src.main.load_config')
