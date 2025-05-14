@@ -13,23 +13,47 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
 
 ## Requirements
 
-To integrate MATLAB with the Simulation Bridge, install the MATLAB Engine API for Python. Follow the official MathWorks installation guide for detailed steps:
+To integrate MATLAB with the Simulation Bridge, you need to install the MATLAB Engine API for Python. Follow the official MathWorks installation guide for detailed steps:
 
 [MATLAB Engine API for Python Installation Guide](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
 
-> **Installation on macOS**
->
-> For macOS users (e.g., MATLAB R2024b), execute the following commands:
->
-> ```bash
-> poetry env activate
-> cd /Applications/MATLAB_R2024b.app/extern/engines/python
-> python -m pip install .
-> ```
->
-> **Note:** Replace `MATLAB_R2024b.app` with the version installed on your system.
+### e.g. Installation on macOS
 
-Verify that the MATLAB Engine is properly installed and accessible within your Python environment.
+For macOS users (e.g., MATLAB R2024b), follow these steps:
+
+1. Navigate to the MATLAB Engine API folder:
+
+```bash
+cd /Applications/MATLAB_R2024b.app/extern/engines/python
+```
+
+2. Activate the Poetry virtual environment:
+
+```bash
+poetry env use $(pyenv which python)
+```
+
+3. Install the MATLAB Engine within the Poetry environment:
+
+```bash
+poetry run python -m pip install .
+```
+
+4. Verify the installation:
+
+```bash
+poetry run python -c "import matlab.engine; print('MATLAB Engine is installed!')"
+```
+
+If the installation is successful, you should see the message:
+
+```
+MATLAB Engine is installed!
+```
+
+> **Note:** Replace `MATLAB_R2024b.app` with the version of MATLAB installed on your system.
+
+Ensure that the MATLAB Engine is properly installed and accessible within your Python environment before proceeding.
 
 ### Configuration
 
@@ -110,19 +134,19 @@ To start the MATLAB Agent with the default configuration:
 2. Run the following command:
 
 ```bash
-matlab-agent
+poetry run matlab-agent
 ```
 
 To use a custom configuration file, provide its path using the `--config-path` option:
 
 ```bash
-matlab-agent --config-path <path_to_config.yaml>
+poetry run matlab-agent --config-path <path_to_config.yaml>
 ```
 
 Alternatively, you can use the shorthand `-c` option:
 
 ```bash
-matlab-agent -c <path_to_config.yaml>
+poetry run matlab-agent -c <path_to_config.yaml>
 ```
 
 ## Testing
