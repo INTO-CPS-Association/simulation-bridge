@@ -26,13 +26,15 @@ class SimulationOutputs(BaseModel):
     """Model for simulation outputs - dynamic fields allowed"""
     model_config = ConfigDict(extra="allow")  # <-- Use ConfigDict
 
+
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
     simulator: str
     type: str = Field(default="batch")
     file: str
     inputs: 'SimulationInputs'  # assuming this is defined elsewhere
-    outputs: Optional['SimulationOutputs'] = None  # assuming this is defined elsewhere
+    # assuming this is defined elsewhere
+    outputs: Optional['SimulationOutputs'] = None
 
     @field_validator('type', mode='before')
     @classmethod
@@ -42,6 +44,7 @@ class SimulationData(BaseModel):
             raise ValueError(
                 f"Invalid simulation type: {v}. Must be 'batch' or 'streaming'")
         return v
+
 
 class MessagePayload(BaseModel):
     """Model for the entire message payload"""
@@ -98,7 +101,8 @@ class MessageHandler:
         try:
             # Load the message body as YAML
             try:
-                # Initialize msg_dict to avoid reference issues in case of parsing error
+                # Initialize msg_dict to avoid reference issues in case of
+                # parsing error
                 msg_dict = {}
                 msg_dict = yaml.safe_load(body)
                 logger.debug("Parsed message: %s", msg_dict)
@@ -166,7 +170,8 @@ class MessageHandler:
                 handle_streaming_simulation(
                     msg_dict, source, self.rabbitmq_manager)
             else:
-                # This shouldn't happen due to Pydantic validation, but just in case
+                # This shouldn't happen due to Pydantic validation, but just in
+                # case
                 logger.error("Unknown simulation type: %s", sim_type)
                 error_response = create_response(
                     template_type='error',

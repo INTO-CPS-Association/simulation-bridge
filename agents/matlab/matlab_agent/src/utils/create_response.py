@@ -144,7 +144,8 @@ def create_response(
     if handler:
         handler()
 
-    # Add any additional keys passed in kwargs that aren't handled by specific cases
+    # Add any additional keys passed in kwargs that aren't handled by specific
+    # cases
     excluded_keys = ['outputs', 'data', 'error',
                      'metadata', 'percentage', 'sequence', 'message']
     for key, value in kwargs.items():

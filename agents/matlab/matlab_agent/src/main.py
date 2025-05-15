@@ -19,6 +19,7 @@ def main(config_file=None) -> None:
     """
     run_single_agent(config_file)
 
+
 def run_single_agent(config_file):
     """ Initializes and starts a single MATLAB agent instance. """
     config = load_config(config_file)

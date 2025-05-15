@@ -13,6 +13,7 @@ import yaml
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
 
+
 def get_base_dir() -> Path:
     """
     Find the base directory by looking for main.py file by traversing up from the current file.
@@ -30,21 +31,26 @@ def get_base_dir() -> Path:
         current_dir = current_dir.parent
 
     cwd: Path = Path.cwd()
-    if (cwd / "main.py").exists() or (cwd / "app.py").exists() or (cwd / "run.py").exists():
+    if (cwd / "main.py").exists() or (cwd / \
+        "app.py").exists() or (cwd / "run.py").exists():
         return cwd
 
     test_dir: Path = Path(__file__).resolve().parent
     while test_dir.parent != test_dir:
-        if (test_dir / "config").is_dir() and (test_dir / "config" / "config.yaml").exists():
+        if (test_dir / "config").is_dir() and (test_dir / \
+            "config" / "config.yaml").exists():
             return test_dir
         test_dir = test_dir.parent
 
     return cwd
 
+
 # Base directory
 BASE_DIR: Path = get_base_dir()
 
-def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+
+def load_config(
+        config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
     """
     Load configuration from a YAML file.
 
@@ -69,7 +75,8 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
     else:
         config_file: Path = Path(config_path)
         if not config_file.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_file}")
+            raise FileNotFoundError(
+                f"Configuration file not found: {config_file}")
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
     config = _substitute_env_vars(config)
@@ -80,7 +87,6 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any
 def _substitute_env_vars(
     config: Union[Dict[str, Any], list, str]
 ) -> Union[Dict[str, Any], list, str]:
-
     """
     Recursively substitute environment variables in configuration values.
     Environment variables should be in the format ${ENV_VAR} or ${ENV_VAR:default_value}
@@ -112,7 +118,8 @@ def _substitute_env_vars(
     return config
 
 
-def get_config_value(config: Dict[str, Any], path: str, default: Any = None) -> Any:
+def get_config_value(config: Dict[str, Any],
+                     path: str, default: Any = None) -> Any:
     """
     Get a configuration value by its dotted path.
 

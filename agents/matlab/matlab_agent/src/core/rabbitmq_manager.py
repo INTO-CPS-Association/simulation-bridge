@@ -15,6 +15,7 @@ from ..utils.logger import get_logger
 
 logger = get_logger()
 
+
 class RabbitMQManager:
     """
     Manager for RabbitMQ connections, channels, exchanges, and queues.
@@ -49,7 +50,10 @@ class RabbitMQManager:
         rabbitmq_config: Dict[str, Any] = self.config.get('rabbitmq', {})
         try:
             logger.debug(
-                "Connecting to RabbitMQ at %s...", rabbitmq_config.get('host', 'localhost'))
+                "Connecting to RabbitMQ at %s...",
+                rabbitmq_config.get(
+                    'host',
+                    'localhost'))
 
             # Setup connection parameters
             credentials = pika.PlainCredentials(
@@ -120,18 +124,19 @@ class RabbitMQManager:
             )
 
         except pika.exceptions.ChannelClosedByBroker as e:
-            logger.error("Channel closed by broker while setting up infrastructure: %s", e)
+            logger.error(
+                "Channel closed by broker while setting up infrastructure: %s", e)
             sys.exit(1)
 
     def register_message_handler(
-    self,
-    handler_func: Callable[
-        [pika.adapters.blocking_connection.BlockingChannel,
-         pika.spec.Basic.Deliver,
-         BasicProperties,
-         bytes],
-    None]
-) -> None:
+        self,
+        handler_func: Callable[
+            [pika.adapters.blocking_connection.BlockingChannel,
+             pika.spec.Basic.Deliver,
+             BasicProperties,
+             bytes],
+            None]
+    ) -> None:
         """
         Register a function to handle incoming messages.
 
@@ -145,7 +150,8 @@ class RabbitMQManager:
         Start consuming messages from the input queue.
         """
         if not self.message_handler:
-            logger.error("No message handler registered. Cannot start consuming.")
+            logger.error(
+                "No message handler registered. Cannot start consuming.")
             return
 
         try:
@@ -154,22 +160,24 @@ class RabbitMQManager:
                 on_message_callback=self.message_handler
             )
             logger.debug(
-                "Started consuming messages from queue: %s", self.input_queue_name)
+                "Started consuming messages from queue: %s",
+                self.input_queue_name)
             self.channel.start_consuming()
 
         except KeyboardInterrupt:
-            logger.info("Stopping message consumption due to keyboard interrupt")
+            logger.info(
+                "Stopping message consumption due to keyboard interrupt")
             self.channel.stop_consuming()
         except pika.exceptions.AMQPError as e:
             logger.error("Error while consuming messages: %s", e)
             self.close()
 
     def send_message(
-        self,
-        exchange: str,
-        routing_key: str,
-        body: str,
-        properties: Optional[BasicProperties] = None) -> bool:
+            self,
+            exchange: str,
+            routing_key: str,
+            body: str,
+            properties: Optional[BasicProperties] = None) -> bool:
         """
         Send a message to a specified exchange with a routing key.
 
@@ -192,7 +200,9 @@ class RabbitMQManager:
                 )
             )
             logger.debug(
-                "Sent message to exchange %s with routing key %s", exchange, routing_key)
+                "Sent message to exchange %s with routing key %s",
+                exchange,
+                routing_key)
             return True
         except pika.exceptions.AMQPError as e:
             logger.error("Failed to send message: %s", e)

@@ -4,6 +4,7 @@ This module defines the `IMessageHandler` interface.
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
+
 class IMessageHandler(ABC):
     """
     Interface for handling incoming messages from RabbitMQ.
@@ -18,7 +19,7 @@ class IMessageHandler(ABC):
     ) -> None:
         """
         Process incoming messages from RabbitMQ.
-        
+
         Args:
             ch (Any): Channel object
             method (Any): Delivery method

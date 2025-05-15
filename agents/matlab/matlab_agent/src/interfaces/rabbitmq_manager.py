@@ -6,6 +6,7 @@ from typing import Dict, Any, Callable, Optional
 import pika
 from pika.spec import BasicProperties
 
+
 class IRabbitMQManager(ABC):
     """
     Interface for managing RabbitMQ connections, exchanges, queues, and message handling.

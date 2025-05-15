@@ -10,20 +10,19 @@ import pika
 import yaml
 
 
-
 class SimpleUsageMatlabAgent:
     """
     This class facilitates communication with a MATLAB agent via RabbitMQ.
     It allows sending simulation requests and receiving results asynchronously.
     """
-    def __init__(self, agent_identifier="dt",destination_identifier="matlab"):
+
+    def __init__(self, agent_identifier="dt", destination_identifier="matlab"):
         self.agent_id = agent_identifier
         self.destination_id = destination_identifier
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters('localhost'))
         self.channel = self.connection.channel()
         self.setup_channels()
-
 
     def setup_channels(self):
         """
@@ -47,7 +46,8 @@ class SimpleUsageMatlabAgent:
         self.result_queue = f'Q.{self.agent_id}.matlab.result'
         self.channel.queue_declare(queue=self.result_queue, durable=True)
 
-        # Bind queue to ex.sim.result with routing key `matlab.result.{agent_id}`
+        # Bind queue to ex.sim.result with routing key
+        # `matlab.result.{agent_id}`
         self.channel.queue_bind(
             exchange='ex.sim.result',
             queue=self.result_queue,
@@ -132,6 +132,7 @@ def start_listener(agent_identifier):
     matlab_agent = SimpleUsageMatlabAgent(agent_identifier)
     matlab_agent.start_listening()
 
+
 if __name__ == "__main__":
     AGENT_ID = "dt"
     DESTINATION = "matlab"
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     listener_thread.start()
 
     # Create main instance for sending requests
-    agent = SimpleUsageMatlabAgent(AGENT_ID,DESTINATION)
+    agent = SimpleUsageMatlabAgent(AGENT_ID, DESTINATION)
 
     try:
         # Example: You can load simulation data from a YAML file here

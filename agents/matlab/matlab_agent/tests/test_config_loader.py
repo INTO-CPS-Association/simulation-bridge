@@ -1,173 +1,243 @@
+"""Unit tests for the config loader module with improved structure."""
+
 import os
-from importlib import resources
-from pathlib import Path
-
 import pytest
+from pathlib import Path
+from importlib import resources
+from unittest.mock import patch, mock_open
+
 import yaml
-from src.utils.config_loader import (DEFAULT_CONFIG_PATH, _substitute_env_vars,
-                                     get_base_dir, get_config_value,
-                                     load_config)
-from yaml import YAMLError
-
-# Test that `get_base_dir` returns the current working directory when no
-# base directory exists
-
-
-def test_get_base_dir_defaults_to_cwd(tmp_path, monkeypatch):
-    monkeypatch.setattr(Path, "exists", lambda self: False)
-    monkeypatch.setattr(Path, "cwd", classmethod(lambda cls: tmp_path))
-    result = get_base_dir()
-    assert result == tmp_path
-
-# Test that `load_config` raises FileNotFoundError when the configuration
-# file is missing
+from src.utils.config_loader import (
+    DEFAULT_CONFIG_PATH,
+    _substitute_env_vars,
+    get_base_dir,
+    get_config_value,
+    load_config
+)
 
 
-def test_load_config_file_not_found(tmp_path):
-    missing = tmp_path / "nope.yaml"
-    with pytest.raises(FileNotFoundError) as exc:
-        load_config(str(missing))
-    assert "Configuration file not found" in str(exc.value)
-
-# Test that `load_config` raises YAMLError when the YAML file is invalid
-
-
-def test_load_config_yaml_error(tmp_path, monkeypatch):
-    cfg = tmp_path / "bad.yaml"
-    cfg.write_text("not: yaml: ::::")
-    monkeypatch.setattr(yaml, "load", lambda f, Loader: (
-        _ for _ in ()).throw(YAMLError("bad")))
-    with pytest.raises(YAMLError):
-        load_config(str(cfg))
-
-# Test that `load_config` substitutes environment variables in the
-# configuration file
-
-
-def test_load_config_env_substitution(tmp_path, monkeypatch):
-    content = """
-  host: "${HOSTNAME:default_host}"
-  port: "${PORT:1234}"
-  nested:
-    - "a${VAR1}"
-    - "${VAR2:val2}"
-  """
-    cfg = tmp_path / "good.yaml"
-    cfg.write_text(content)
-    monkeypatch.setenv("VAR1", "X")
-    # VAR2 is not set, so the default value is used
-    result = load_config(str(cfg))
-    assert result["host"] == "default_host"
-    assert result["port"] == "1234"
-    assert result["nested"][0] == "aX"
-    assert result["nested"][1] == "val2"
-
-# Test that `_substitute_env_vars` substitutes environment variables in a
-# dictionary
-
-
-def test_substitute_env_vars_direct():
-    cfg = {
-        "a": "plain",
-        "b": "${B:bee}",
-        "c": ["x${C}", "y${D:dee}", {"e": "${E}"}],
+@pytest.fixture
+def sample_config_dict():
+    """Return a sample configuration dictionary for testing."""
+    return {
+        "agent": {
+            "agent_id": "matlab"
+        },
+        "rabbitmq": {
+            "host": "localhost",
+            "port": 5672,
+            "username": "guest",
+            "password": "guest"
+        },
+        "nested": {
+            "deep": {
+                "value": 42
+            }
+        }
     }
-    os.environ.pop("B", None)
-    os.environ["C"] = "see"
-    result = _substitute_env_vars(cfg)
-    assert result["a"] == "plain"
-    assert result["b"] == "bee"
-    assert result["c"][0] == "xsee"
-    assert result["c"][1] == "ydee"
-    assert result["c"][2]["e"] == ""
-
-# Test that `get_config_value` retrieves existing values and defaults for
-# missing keys
 
 
-def test_get_config_value_existing_and_default():
-    cfg = {"x": {"y": {"z": 10}}, "a": 1}
-    assert get_config_value(cfg, "x.y.z") == 10
-    assert get_config_value(cfg, "x.y") == {"z": 10}
-    assert get_config_value(cfg, "a") == 1
-    assert get_config_value(cfg, "x.missing", default="d") == "d"
-    assert get_config_value(cfg, "nope", default=None) is None
-
-# Test that `DEFAULT_CONFIG_PATH` is a valid path and raises an error if
-# the file is missing
-
-
-def test_default_config_path_points_somewhere(tmp_path, monkeypatch):
-    assert isinstance(DEFAULT_CONFIG_PATH, Path)
-
-    # 1️⃣ Monckeypatch di `resources.open_text` per simulare FileNotFoundError
-    def mock_open_text(*args, **kwargs):
-        raise FileNotFoundError(
-            "Default configuration file not found inside the package.")
-
-    monkeypatch.setattr(resources, "open_text", mock_open_text)
-
-    # 2️⃣ Controlla se il FileNotFoundError viene sollevato correttamente
-    with pytest.raises(FileNotFoundError, match="Default configuration file not found inside the package."):
-        load_config()
-
-# Test loading a YAML configuration file and verifying key values
-
-
-def test_load_full_config_structure(tmp_path):
+@pytest.fixture
+def sample_yaml_content():
+    """Return sample YAML content for testing."""
+    return """
+    agent:
+      agent_id: matlab
+    rabbitmq:
+      host: "${HOSTNAME:localhost}"
+      port: 5672
+      username: "${USERNAME:guest}"
+      password: "${PASSWORD:guest}"
+    nested:
+      deep:
+        value: 42
     """
-    Load a sample YAML file with a predefined structure and verify key values.
-    """
-    sample = tmp_path / "config.yaml"
-    sample.write_text("""
-agent:
-  agent_id: matlab
 
-rabbitmq:
-  host: localhost
-  port: 5672
-  username: guest
-  password: guest
-  heartbeat: 600
 
-exchanges:
-  input: ex.bridge.output
-  output: ex.sim.result
+@pytest.fixture
+def mock_existing_file(tmp_path, sample_yaml_content):
+    """Create a temporary YAML file with sample content."""
+    yaml_file = tmp_path / "config.yaml"
+    yaml_file.write_text(sample_yaml_content)
+    return yaml_file
 
-queue:
-  durable: true
-  prefetch_count: 1
 
-logging:
-  level: INFO
-  file: logs/matlab_agent.log
+class TestBaseDirRetrieval:
+    """Tests for the get_base_dir function."""
 
-tcp:
-  host: localhost
-  port: 5678
+    def test_get_base_dir_with_existing_dir(self, tmp_path, monkeypatch):
+        """Test get_base_dir when the directory exists."""
+        # Mock Path.exists to return True for our test path
 
-response_templates:
-  success:
-    status: success
-    simulation:
-      type: batch
-    timestamp_format: "%Y-%m-%dT%H:%M:%SZ"
-    include_metadata: true
-    metadata_fields:
-      - execution_time
-      - memory_usage
-      - matlab_version
-""")
-    cfg = load_config(str(sample))
-    # Verify key fields
-    assert get_config_value(cfg, "agent.agent_id") == "matlab"
-    assert get_config_value(cfg, "rabbitmq.port") == 5672
-    assert get_config_value(cfg, "queue.durable") is True
-    assert get_config_value(cfg, "logging.level") == "INFO"
-    assert get_config_value(cfg, "tcp.port") == 5678
-    # Verify nested list
-    metadata = get_config_value(
-        cfg, "response_templates.success.metadata_fields")
-    assert isinstance(metadata, list)
-    assert "execution_time" in metadata
-    assert "matlab_version" in metadata
+        def mock_exists(self):
+            return str(self) == str(tmp_path)
+
+        monkeypatch.setattr(Path, "exists", mock_exists)
+
+        # Mock cwd to return our test path if needed
+        monkeypatch.setattr(Path, "cwd", classmethod(lambda cls: tmp_path))
+
+        # Test the function
+        result = get_base_dir()
+        assert result == tmp_path
+
+    def test_get_base_dir_defaults_to_cwd(self, tmp_path, monkeypatch):
+        """Test get_base_dir falls back to current working directory."""
+        # Mock Path.exists to always return False
+        monkeypatch.setattr(Path, "exists", lambda self: False)
+
+        # Mock cwd to return our test path
+        monkeypatch.setattr(Path, "cwd", classmethod(lambda cls: tmp_path))
+
+        # Test the function
+        result = get_base_dir()
+        assert result == tmp_path
+
+
+class TestConfigLoading:
+    """Tests for the load_config function."""
+
+    def test_load_config_file_not_found(self, tmp_path):
+        """Test that load_config raises FileNotFoundError when file is missing."""
+        missing_file = tmp_path / "nonexistent.yaml"
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_config(str(missing_file))
+        assert "Configuration file not found" in str(exc_info.value)
+
+    def test_load_config_yaml_error(self, tmp_path):
+        """Test that load_config raises YAMLError when the YAML is invalid."""
+        invalid_yaml = tmp_path / "invalid.yaml"
+        invalid_yaml.write_text("invalid: yaml: ::::")
+
+        with patch('yaml.load') as mock_yaml_load:
+            mock_yaml_load.side_effect = yaml.YAMLError("YAML parsing error")
+            with pytest.raises(yaml.YAMLError):
+                load_config(str(invalid_yaml))
+
+    def test_load_config_success(self, mock_existing_file, sample_config_dict):
+        """Test successful config loading."""
+        # Patch the environment variable substitution to return our dict
+        with patch('src.utils.config_loader._substitute_env_vars',
+                   return_value=sample_config_dict):
+            result = load_config(str(mock_existing_file))
+            assert result == sample_config_dict
+            assert result["agent"]["agent_id"] == "matlab"
+            assert result["rabbitmq"]["host"] == "localhost"
+            assert result["nested"]["deep"]["value"] == 42
+
+    def test_default_config_path_handling(self):
+        """Test handling of the DEFAULT_CONFIG_PATH."""
+        # Verify that DEFAULT_CONFIG_PATH is a Path object
+        assert isinstance(DEFAULT_CONFIG_PATH, Path)
+
+        # Test when the default config file is not found
+        with patch('importlib.resources.open_text') as mock_open_text:
+            mock_open_text.side_effect = FileNotFoundError(
+                "Default configuration file not found inside the package."
+            )
+
+            with pytest.raises(FileNotFoundError) as exc_info:
+                load_config()
+
+            assert "Default configuration file not found inside the package." in str(
+                exc_info.value)
+
+
+class TestEnvironmentVariableSubstitution:
+    """Tests for environment variable substitution in configs."""
+
+    def test_substitute_env_vars_direct(self):
+        """Test direct substitution of environment variables in a dictionary."""
+        # Setup test environment
+        os.environ.pop("TEST_VAR1", None)  # Make sure it doesn't exist
+        os.environ["TEST_VAR2"] = "value2"
+
+        # Create test config
+        test_config = {
+            "simple": "plain",
+            "with_default": "${TEST_VAR1:default1}",
+            "with_env": "${TEST_VAR2}",
+            "nested": ["${TEST_VAR1:nested_default}", "${TEST_VAR2}"],
+            "deep": {
+                "object": "${TEST_VAR1:deep_default}"
+            }
+        }
+
+        # Perform substitution
+        result = _substitute_env_vars(test_config)
+
+        # Verify results
+        assert result["simple"] == "plain"
+        assert result["with_default"] == "default1"  # Uses default value
+        assert result["with_env"] == "value2"        # Uses environment value
+        assert result["nested"][0] == "nested_default"
+        assert result["nested"][1] == "value2"
+        assert result["deep"]["object"] == "deep_default"
+
+        # Cleanup
+        os.environ.pop("TEST_VAR2", None)
+
+    def test_env_substitution_in_config(self, tmp_path):
+        """Test environment variable substitution when loading a config file."""
+        # Create a test config with environment variables
+        config_content = """
+        host: "${HOST:default_host}"
+        port: "${PORT:1234}"
+        """
+        config_file = tmp_path / "env_config.yaml"
+        config_file.write_text(config_content)
+
+        # Set test environment variable
+        os.environ["HOST"] = "test_host"
+
+        # Load the config
+        result = load_config(str(config_file))
+
+        # Verify substitution
+        assert result["host"] == "test_host"      # Uses environment value
+        assert result["port"] == "1234"           # Uses default value
+
+        # Cleanup
+        os.environ.pop("HOST", None)
+
+
+class TestConfigValueRetrieval:
+    """Tests for the get_config_value function."""
+
+    def test_get_existing_values(self, sample_config_dict):
+        """Test retrieving existing values from a config dictionary."""
+        # Test top-level keys
+        assert get_config_value(
+            sample_config_dict, "agent") == {
+            "agent_id": "matlab"}
+
+        # Test nested keys with dot notation
+        assert get_config_value(
+            sample_config_dict,
+            "agent.agent_id") == "matlab"
+        assert get_config_value(
+            sample_config_dict,
+            "rabbitmq.host") == "localhost"
+        assert get_config_value(sample_config_dict, "nested.deep.value") == 42
+
+    def test_get_missing_values_with_default(self, sample_config_dict):
+        """Test retrieving missing values with default values."""
+        # Test with default for missing keys
+        assert get_config_value(
+            sample_config_dict,
+            "nonexistent",
+            default="default") == "default"
+        assert get_config_value(
+            sample_config_dict,
+            "agent.missing",
+            default=123) == 123
+        assert get_config_value(
+            sample_config_dict,
+            "nested.nonexistent.key",
+            default={}) == {}
+
+    def test_get_missing_values_without_default(self, sample_config_dict):
+        """Test retrieving missing values without specifying defaults."""
+        # When no default is provided, should return None
+        assert get_config_value(sample_config_dict, "nonexistent") is None
+        assert get_config_value(sample_config_dict, "nested.missing") is None

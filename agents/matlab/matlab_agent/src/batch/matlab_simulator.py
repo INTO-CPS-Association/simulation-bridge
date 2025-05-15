@@ -33,7 +33,11 @@ class MatlabSimulator:
     error handling and type conversions.
     """
 
-    def __init__(self, path: str, file: str, function_name: Optional[str] = None) -> None:
+    def __init__(
+            self,
+            path: str,
+            file: str,
+            function_name: Optional[str] = None) -> None:
         """
         Initialize a MATLAB simulator.
 
@@ -74,7 +78,8 @@ class MatlabSimulator:
             raise MatlabSimulationError(
                 f"Failed to start MATLAB engine: {str(e)}") from e
 
-    def run(self, inputs: Dict[str, Any], outputs: List[str]) -> Dict[str, Any]:
+    def run(self, inputs: Dict[str, Any],
+            outputs: List[str]) -> Dict[str, Any]:
         """Run the MATLAB simulation and return the results."""
         if not self.eng:
             raise MatlabSimulationError("MATLAB engine is not started")
@@ -101,7 +106,10 @@ class MatlabSimulator:
         """Process MATLAB results into Python types."""
         if len(outputs) == 1:
             return {outputs[0]: self._from_matlab(result)}
-        return {name: self._from_matlab(result[i]) for i, name in enumerate(outputs)}
+        return {
+            name: self._from_matlab(
+                result[i]) for i,
+            name in enumerate(outputs)}
 
     def get_metadata(self) -> Dict[str, Any]:
         """Get metadata about the simulation execution."""
@@ -146,7 +154,8 @@ class MatlabSimulator:
             if size[0] == 1 or size[1] == 1:
                 return [value[0][i] for i in range(size[1])] \
                     if size[0] == 1 else [value[i][0] for i in range(size[0])]
-            return [[value[i][j] for j in range(size[1])] for i in range(size[0])]
+            return [[value[i][j]
+                     for j in range(size[1])] for i in range(size[0])]
         return value
 
     def close(self) -> None:

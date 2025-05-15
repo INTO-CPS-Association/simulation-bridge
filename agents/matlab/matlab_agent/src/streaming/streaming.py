@@ -46,7 +46,8 @@ class MatlabStreamingError(Exception):
 
 
 class StreamingConnection:
-    """Manages socket connection and MATLAB process lifecycle."""    
+    """Manages socket connection and MATLAB process lifecycle."""
+
     def __init__(self, host: str, port: int) -> None:
         self.host = host
         self.port = port
@@ -130,7 +131,8 @@ class MatlabStreamingController:
             )
         except (subprocess.SubprocessError, Exception) as e:
             logger.error("Failed to start MATLAB process: %s", str(e))
-            raise MatlabStreamingError(f"Failed to start MATLAB process: {e}") from e
+            raise MatlabStreamingError(
+                f"Failed to start MATLAB process: {e}") from e
 
     def start(self) -> None:
         """Start streaming server and MATLAB process."""
@@ -138,7 +140,10 @@ class MatlabStreamingController:
         try:
             self.start_time = time.time()
             self.connection.start_server()
-            logger.debug("Server started on %s:%d", self.connection.host, self.connection.port)
+            logger.debug(
+                "Server started on %s:%d",
+                self.connection.host,
+                self.connection.port)
             self._start_matlab()
             logger.debug("MATLAB process started")
             self.rabbitmq_manager.send_result(
@@ -160,7 +165,8 @@ class MatlabStreamingController:
     def _process_output(self, output: Dict[str, Any], sequence: int) -> None:
         """Process and send individual output chunk."""
         template_type = 'progress' if 'progress' in output else 'streaming'
-        data_payload = output if template_type == 'streaming' else output.get('data', {})
+        data_payload = output if template_type == 'streaming' else output.get('data', {
+        })
         response = create_response(
             template_type,
             self.sim_file,
@@ -179,7 +185,8 @@ class MatlabStreamingController:
             logger.debug("Waiting for MATLAB connection...")
             self.connection.accept_connection()
             logger.debug("Sending inputs: %s", inputs)
-            self.connection.connection.sendall(json.dumps(inputs).encode() + b'\n')
+            self.connection.connection.sendall(
+                json.dumps(inputs).encode() + b'\n')
 
             buffer = b""
             sequence = 0
@@ -194,7 +201,8 @@ class MatlabStreamingController:
                     if line.strip():
                         try:
                             logger.debug("Received line: %s", line)
-                            self._process_output(json.loads(line.decode()), sequence)
+                            self._process_output(
+                                json.loads(line.decode()), sequence)
                             sequence += 1
                         except json.JSONDecodeError as e:
                             logger.warning("Invalid JSON: %s", str(e))
@@ -208,17 +216,17 @@ class MatlabStreamingController:
 
     def get_metadata(self) -> Dict[str, Any]:
         """Collect system resource metadata."""
-        metadata = {'execution_time': time.time() - self.start_time} if self.start_time else {}
+        metadata = {'execution_time': time.time(
+        ) - self.start_time} if self.start_time else {}
         process = psutil.Process(os.getpid())
         metadata['memory_usage'] = process.memory_info().rss // (1024 * 1024)
 
         if self.connection.matlab_process:
             try:
-                matlab_proc = psutil.Process(self.connection.matlab_process.pid)
-                metadata.update({
-                    'matlab_memory': matlab_proc.memory_info().rss // (1024 * 1024),
-                    'matlab_cpu': matlab_proc.cpu_percent()
-                })
+                matlab_proc = psutil.Process(
+                    self.connection.matlab_process.pid)
+                metadata.update({'matlab_memory': matlab_proc.memory_info(
+                ).rss // (1024 * 1024), 'matlab_cpu': matlab_proc.cpu_percent()})
             except psutil.NoSuchProcess:
                 pass
         return metadata
@@ -226,6 +234,7 @@ class MatlabStreamingController:
     def close(self) -> None:
         """Clean up resources."""
         self.connection.close()
+
 
 def _handle_streaming_error(
     sim_file: str,
@@ -239,7 +248,9 @@ def _handle_streaming_error(
         error_type = 'missing_file'
     if isinstance(error, MatlabStreamingError):
         error_type = 'matlab_error'
-    if isinstance(error, ValueError) and "Missing path/file configuration" in str(error):
+    if isinstance(
+            error,
+            ValueError) and "Missing path/file configuration" in str(error):
         error_type = 'bad_request'
 
     # Log the error type to help debug the issue
@@ -258,13 +269,9 @@ def _handle_streaming_error(
                 'message': str(error),
                 'type': error_type,
                 'code': 400 if error_type == 'bad_request' else 500,
-                'traceback': sys.exc_info()
-                if response_templates.get('error', {}).get('include_stacktrace')
-                else None
-            }
-        )
-    )
-
+                'traceback': sys.exc_info() if response_templates.get(
+                    'error',
+                    {}).get('include_stacktrace') else None}))
 
 
 def handle_streaming_simulation(

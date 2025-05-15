@@ -4,6 +4,7 @@ This module defines the `IConfigManager` interface.
 from abc import ABC, abstractmethod
 from typing import Dict, Any
 
+
 class IConfigManager(ABC):
     """
     Interface for managing configuration.

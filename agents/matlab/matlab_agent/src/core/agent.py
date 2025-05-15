@@ -20,7 +20,10 @@ class MatlabAgent:
     This component handles message reception, processing, and result distribution.
     """
 
-    def __init__(self, agent_id: str, config_path: Optional[str] = None) -> None:
+    def __init__(
+            self,
+            agent_id: str,
+            config_path: Optional[str] = None) -> None:
         """
         Initialize the MATLAB agent with the specified ID, and optionally a configuration file.
         """

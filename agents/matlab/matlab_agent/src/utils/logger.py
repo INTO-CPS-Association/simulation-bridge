@@ -1,6 +1,6 @@
 """
-This module provides utilities for configuring and managing loggers with support 
-for file-based logging, console output, and optional colorized log messages. 
+This module provides utilities for configuring and managing loggers with support
+for file-based logging, console output, and optional colorized log messages.
 It ensures proper log file rotation and customizable logging formats.
 """
 import logging
@@ -23,7 +23,7 @@ def setup_logger(
     enable_console: bool = True
 ) -> logging.Logger:
     """
-    Configures a logger with handlers for file and console, with optional 
+    Configures a logger with handlers for file and console, with optional
     colorization for console logs.
 
     Args:
@@ -62,7 +62,8 @@ def setup_logger(
     # Configure console handler with color if enabled
     if enable_console:
         # Create a ColorFormatter for console logs
-        console_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
+        console_handler: logging.StreamHandler = logging.StreamHandler(
+            sys.stdout)
         console_handler.setLevel(level)
 
         # Define a colorized log format for console output

@@ -46,9 +46,8 @@ def handle_batch_simulation(
         _send_progress(rabbitmq_manager, source, sim_file, 50)
 
         results = sim.run(inputs, outputs)
-        metadata = _get_metadata(sim) \
-            if response_templates.get('success', {}).get('include_metadata', False) \
-            else None
+        metadata = _get_metadata(sim) if response_templates.get(
+            'success', {}).get('include_metadata', False) else None
 
         success_response = create_response(
             'success', sim_file, 'batch', response_templates,
@@ -64,7 +63,8 @@ def handle_batch_simulation(
             sim.close()
 
 
-def _validate_simulation_data(data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
+def _validate_simulation_data(
+        data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
     """Validate and extract simulation parameters."""
     sim_path = config['simulation'].get('path')
     sim_file = data.get('file')
@@ -73,7 +73,8 @@ def _validate_simulation_data(data: Dict[str, Any]) -> Tuple[str, Optional[str]]
     return sim_path, data.get('function_name')
 
 
-def _extract_io_specs(data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+def _extract_io_specs(data: Dict[str, Any]
+                      ) -> Tuple[Dict[str, Any], List[str]]:
     """Extract input and output specifications from data."""
     inputs = data.get('inputs', {})
     outputs = data.get('outputs', [])
@@ -82,7 +83,9 @@ def _extract_io_specs(data: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
     return inputs, outputs
 
 
-def _start_matlab_with_retry(sim: MatlabSimulator, max_retries: int = 3) -> None:
+def _start_matlab_with_retry(
+        sim: MatlabSimulator,
+        max_retries: int = 3) -> None:
     """Attempt to start MATLAB engine with retries."""
     for attempt in range(1, max_retries + 1):
         try:
@@ -92,16 +95,25 @@ def _start_matlab_with_retry(sim: MatlabSimulator, max_retries: int = 3) -> None
             if attempt == max_retries:
                 raise
             logger.warning(
-                "MATLAB start failed (attempt %s/%s). Retrying...", attempt, max_retries)
+                "MATLAB start failed (attempt %s/%s). Retrying...",
+                attempt,
+                max_retries)
             time.sleep(1)
 
 
-def _send_progress(manager: IRabbitMQManager, source: str, sim_file: str, percentage: int) -> None:
+def _send_progress(
+        manager: IRabbitMQManager,
+        source: str,
+        sim_file: str,
+        percentage: int) -> None:
     """Send progress update if configured."""
     if response_templates.get('progress', {}).get('include_percentage', False):
         progress_response = create_response(
-            'progress', sim_file, 'batch', response_templates, percentage=percentage
-        )
+            'progress',
+            sim_file,
+            'batch',
+            response_templates,
+            percentage=percentage)
         _send_response(manager, source, progress_response)
 
 
@@ -110,7 +122,8 @@ def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
     return sim.get_metadata()
 
 
-def _send_response(manager: IRabbitMQManager, source: str, response: Dict[str, Any]) -> None:
+def _send_response(manager: IRabbitMQManager, source: str,
+                   response: Dict[str, Any]) -> None:
     """Send response through RabbitMQ."""
     print(yaml.dump(response))
     manager.send_result(source, response)
@@ -125,12 +138,18 @@ def _handle_error(error: Exception,
                  sim_file, str(error), exc_info=True)
     error_type = _determine_error_type(error)
     error_response = create_response(
-        'error', sim_file or "unknown", 'batch', response_templates,
-        error={'message': str(error), 'type': error_type,
-               'traceback': sys.exc_info()
-               if response_templates.get('error', {}).get('include_stacktrace', False)
-               else None}
-    )
+        'error',
+        sim_file or "unknown",
+        'batch',
+        response_templates,
+        error={
+            'message': str(error),
+            'type': error_type,
+            'traceback': sys.exc_info() if response_templates.get(
+                'error',
+                {}).get(
+                'include_stacktrace',
+                False) else None})
     _send_response(manager, source, error_response)
 
 
@@ -139,7 +158,8 @@ def _determine_error_type(error: Exception) -> str:
     if isinstance(error, FileNotFoundError):
         return 'missing_file'
     if isinstance(error, MatlabSimulationError):
-        return 'matlab_start_failure' if 'MATLAB engine' in str(error) else 'execution_error'
+        return 'matlab_start_failure' if 'MATLAB engine' in str(
+            error) else 'execution_error'
     if isinstance(error, TimeoutError):
         return 'timeout'
     if isinstance(error, ValueError):
