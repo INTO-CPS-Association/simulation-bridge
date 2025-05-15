@@ -2,14 +2,7 @@
 streaming.py - MATLAB Simulation Streaming Processor
 
 This module provides functionality to process MATLAB simulation requests requiring
-real-time output streaming through RabbitMQ. It handles streaming simulation jobs by:
-1. Starting a MATLAB engine via TCP socket connection
-2. Running specified simulation files with provided inputs
-3. Collecting and streaming simulation outputs in real-time via the message queue
-4. Providing proper error handling and logging
-
-Part of the simulation service infrastructure that enables distributed
-MATLAB computational workloads with continuous feedback.
+real-time output streaming through the Connect messaging abstraction layer.
 """
 
 import json
@@ -23,7 +16,7 @@ from typing import Any, Dict, Optional, Union
 
 import psutil
 
-from ..interfaces.rabbitmq_manager import IRabbitMQManager
+from ..comm.interfaces import IMessageBroker
 from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
@@ -93,12 +86,12 @@ class MatlabStreamingController:
         path: str,
         file: str,
         source: str,
-        rabbitmq_manager: IRabbitMQManager,
+        message_broker: IMessageBroker,
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.source: str = source
-        self.rabbitmq_manager: IRabbitMQManager = rabbitmq_manager
+        self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
         host = tcp_settings.get('host', 'localhost')
         port = tcp_settings.get('port', 5678)
@@ -146,7 +139,7 @@ class MatlabStreamingController:
                 self.connection.port)
             self._start_matlab()
             logger.debug("MATLAB process started")
-            self.rabbitmq_manager.send_result(
+            self.message_broker.send_result(
                 self.source,
                 create_response(
                     'progress',
@@ -177,7 +170,7 @@ class MatlabStreamingController:
             metadata=output.get('metadata', {}),
             sequence=sequence
         )
-        self.rabbitmq_manager.send_result(self.source, response)
+        self.message_broker.send_result(self.source, response)
 
     def run(self, inputs: Dict[str, Any]) -> None:
         """Run simulation and handle streaming data."""
@@ -240,7 +233,7 @@ def _handle_streaming_error(
     sim_file: str,
     error: Exception,
     source: str,
-    rabbitmq_manager: IRabbitMQManager
+    message_broker: IMessageBroker
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -258,7 +251,7 @@ def _handle_streaming_error(
                  error_type,
                  str(error))
 
-    rabbitmq_manager.send_result(
+    message_broker.send_result(
         source,
         create_response(
             'error',
@@ -277,7 +270,7 @@ def _handle_streaming_error(
 def handle_streaming_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    rabbitmq_manager: IRabbitMQManager
+    message_broker: IMessageBroker
 ) -> None:
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})
@@ -289,7 +282,7 @@ def handle_streaming_simulation(
             '',
             ValueError("Missing path/file configuration"),
             source,
-            rabbitmq_manager
+            message_broker
         )
         return
 
@@ -301,12 +294,12 @@ def handle_streaming_simulation(
             sim_path,
             sim_file,
             source,
-            rabbitmq_manager
+            message_broker
         )
         controller.start()
         logger.debug("Simulation inputs: %s", data.get('inputs', {}))
         controller.run(data.get('inputs', {}))
-        rabbitmq_manager.send_result(
+        message_broker.send_result(
             source,
             create_response(
                 'success',
@@ -321,7 +314,7 @@ def handle_streaming_simulation(
 
     except Exception as e:  # pylint: disable=broad-except
         logger.error("Simulation failed: %s", str(e))
-        _handle_streaming_error(sim_file, e, source, rabbitmq_manager)
+        _handle_streaming_error(sim_file, e, source, message_broker)
     finally:
         if controller:
             controller.close()

@@ -1,8 +1,8 @@
 """
-batch_processor.py - MATLAB Simulation Batch Processor
+batch.py - MATLAB Simulation Batch Processor
 
 This module provides functionality to process MATLAB simulation requests received through
-a message queue system (RabbitMQ).
+the Connect messaging abstraction layer.
 """
 
 import sys
@@ -14,7 +14,7 @@ import yaml
 from ..utils.logger import get_logger
 from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
-from ..interfaces.rabbitmq_manager import IRabbitMQManager
+from ..comm.interfaces import IMessageBroker
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
 
 # Configure logger
@@ -30,9 +30,9 @@ response_templates: Dict[str, Any] = config.get('response_templates', {})
 def handle_batch_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    rabbitmq_manager: IRabbitMQManager
+    message_broker: IMessageBroker
 ) -> None:
-    """Process a batch simulation request and send results via RabbitMQ."""
+    """Process a batch simulation request and send results via message broker."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
     sim_file = data.get('file')
 
@@ -40,10 +40,10 @@ def handle_batch_simulation(
         sim_path, function_name = _validate_simulation_data(data)
         inputs, outputs = _extract_io_specs(data)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
-        _send_progress(rabbitmq_manager, source, sim_file, 0)
+        _send_progress(message_broker, source, sim_file, 0)
 
         _start_matlab_with_retry(sim)
-        _send_progress(rabbitmq_manager, source, sim_file, 50)
+        _send_progress(message_broker, source, sim_file, 50)
 
         results = sim.run(inputs, outputs)
         metadata = _get_metadata(sim) if response_templates.get(
@@ -53,11 +53,11 @@ def handle_batch_simulation(
             'success', sim_file, 'batch', response_templates,
             outputs=results, metadata=metadata
         )
-        _send_response(rabbitmq_manager, source, success_response)
+        _send_response(message_broker, source, success_response)
         logger.info("Simulation '%s' completed successfully", sim_file)
 
     except Exception as e:  # pylint: disable=broad-except
-        _handle_error(e, sim_file, rabbitmq_manager, source)
+        _handle_error(e, sim_file, message_broker, source)
     finally:
         if 'sim' in locals():
             sim.close()
@@ -102,7 +102,7 @@ def _start_matlab_with_retry(
 
 
 def _send_progress(
-        manager: IRabbitMQManager,
+        broker: IMessageBroker,
         source: str,
         sim_file: str,
         percentage: int) -> None:
@@ -114,7 +114,7 @@ def _send_progress(
             'batch',
             response_templates,
             percentage=percentage)
-        _send_response(manager, source, progress_response)
+        _send_response(broker, source, progress_response)
 
 
 def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
@@ -122,16 +122,16 @@ def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
     return sim.get_metadata()
 
 
-def _send_response(manager: IRabbitMQManager, source: str,
+def _send_response(broker: IMessageBroker, source: str,
                    response: Dict[str, Any]) -> None:
-    """Send response through RabbitMQ."""
+    """Send response through message broker."""
     print(yaml.dump(response))
-    manager.send_result(source, response)
+    broker.send_result(source, response)
 
 
 def _handle_error(error: Exception,
                   sim_file: Optional[str],
-                  manager: IRabbitMQManager,
+                  broker: IMessageBroker,
                   source: str) -> None:
     """Handle errors and send error response."""
     logger.error("Simulation '%s' failed: %s",
@@ -150,7 +150,7 @@ def _handle_error(error: Exception,
                 {}).get(
                 'include_stacktrace',
                 False) else None})
-    _send_response(manager, source, error_response)
+    _send_response(broker, source, error_response)
 
 
 def _determine_error_type(error: Exception) -> str:

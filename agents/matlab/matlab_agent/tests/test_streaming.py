@@ -6,10 +6,12 @@ import subprocess
 
 import pytest
 
-from agents.matlab.matlab_agent.src.core.streaming import (MatlabStreamingController,
-                                     MatlabStreamingError, StreamingConnection,
-                                     _handle_streaming_error,
-                                     handle_streaming_simulation)
+from agents.matlab.matlab_agent.src.core.streaming import (
+    MatlabStreamingController,
+    MatlabStreamingError,
+    StreamingConnection,
+    _handle_streaming_error,
+    handle_streaming_simulation)
 
 
 @pytest.fixture

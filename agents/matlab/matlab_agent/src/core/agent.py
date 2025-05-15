@@ -1,58 +1,112 @@
 """
-MATLAB Agent core implementation.
+MatlabAgent implementation - An implementation of the MatlabAgent class using the Connect
+abstraction to manage communication and handle simulation processing.
 """
-from typing import Any, Dict, Optional
-import pika
-from ..interfaces.config_manager import IConfigManager
-from ..interfaces.rabbitmq_manager import IRabbitMQManager
-from ..interfaces.message_handler import IMessageHandler
-from ..utils.config_manager import ConfigManager
-from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
-from ..comm.rabbitmq.message_handler import MessageHandler
-from ..utils.logger import get_logger
 
+from typing import Any, Dict, Optional
+import json
+
+from ..interfaces.config_manager import IConfigManager
+from ..utils.config_manager import ConfigManager
+from ..utils.logger import get_logger
+from ..comm.connect import Connect
+from .batch import handle_batch_simulation
+from .streaming import handle_streaming_simulation
+
+# Configure logger
 logger = get_logger()
 
 
 class MatlabAgent:
     """
-    An agent that interfaces with a MATLAB simulation via RabbitMQ.
-    This component handles message reception, processing, and result distribution.
+    An agent that interfaces with a MATLAB simulation through a communication layer.
+    This component handles message reception, processing, and result distribution
+    while remaining decoupled from the specific messaging technology.
     """
 
     def __init__(
             self,
             agent_id: str,
-            config_path: Optional[str] = None) -> None:
+            config_path: Optional[str] = None,
+            broker_type: str = "rabbitmq") -> None:
         """
-        Initialize the MATLAB agent with the specified ID, and optionally a configuration file.
+        Initialize the MATLAB agent.
+
+        Args:
+            agent_id (str): The ID of the agent
+            config_path (Optional[str]): Path to the configuration file (optional)
+            broker_type (str): The type of message broker to use (default: "rabbitmq")
         """
         self.agent_id: str = agent_id
-        logger.info("MATLAB agent ID: %s", self.agent_id)
-
+        logger.info("Initializing MATLAB agent with ID: %s", self.agent_id)
+        
         # Load configuration
         self.config_manager: IConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
+        
+        # Initialize the communication layer
+        self.comm = Connect(self.agent_id, self.config, broker_type)
+        
+        # Set up the communication infrastructure
+        self.comm.connect()
+        self.comm.setup()
+        
+        # Register the custom message handler
+        self.comm.register_message_handler(self._message_handler)
+        
+        logger.debug("MATLAB agent initialized successfully")
 
-        # Setup RabbitMQ manager
-        self.rabbitmq_manager: IRabbitMQManager = RabbitMQManager(
-            self.agent_id, self.config)
-
-        # Setup message handler
-        self.message_handler: IMessageHandler = MessageHandler(
-            self.agent_id, self.rabbitmq_manager)
-
-        # Register message handler with RabbitMQ manager
-        self.rabbitmq_manager.register_message_handler(
-            self.message_handler.handle_message)
+    def _message_handler(self, channel: Any, method: Any, 
+                       properties: Any, body: bytes) -> None:
+        """
+        Custom message handler that routes messages to the appropriate processor.
+        
+        Args:
+            channel: The channel object
+            method: The method frame
+            properties: Message properties
+            body: Message body
+        """
+        logger.debug("Received message: %s", body)
+        
+        try:
+            # Parse the message
+            message = json.loads(body.decode('utf-8'))
+            
+            # Extract source information (typically from routing key or header)
+            source = properties.reply_to if properties and hasattr(properties, 'reply_to') else "unknown"
+            
+            # Determine message type and route to appropriate handler
+            simulation_type = message.get('simulation', {}).get('type', 'batch')
+            
+            if simulation_type == 'streaming':
+                handle_streaming_simulation(message, source, self.comm)
+            else:  # Default to batch
+                handle_batch_simulation(message, source, self.comm)
+                
+            # Acknowledge message processing
+            if channel and method:
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+                
+        except json.JSONDecodeError as e:
+            logger.error("Failed to parse message as JSON: %s", str(e))
+            if channel and method:
+                # Negative acknowledgment for malformed messages
+                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+        except Exception as e:
+            logger.error("Error processing message: %s", str(e))
+            logger.exception("Stack trace:")
+            if channel and method:
+                # Negative acknowledgment for processing errors
+                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def start(self) -> None:
         """
-        Start consuming messages from the input queue.
+        Start the agent and begin consuming messages.
         """
         try:
             logger.info("MATLAB agent running and listening for requests")
-            self.rabbitmq_manager.start_consuming()
+            self.comm.start_consuming()
         except KeyboardInterrupt:
             logger.info("Stopping MATLAB agent due to keyboard interrupt")
             self.stop()
@@ -64,14 +118,8 @@ class MatlabAgent:
             # Specific handling for TimeoutError
             logger.error("Timeout error while consuming messages: %s", e)
             self.stop()
-        except (pika.exceptions.AMQPError,
-                pika.exceptions.ChannelError,
-                pika.exceptions.ConnectionClosedByBroker) as e:
-            # More specific RabbitMQ-related exceptions
-            logger.error("RabbitMQ error while consuming messages: %s", e)
-            self.stop()
         except Exception as e:
-            # Only for truly unexpected errors not covered by specific cases
+            # For all other unexpected errors
             logger.error("Unexpected error while consuming messages: %s", e)
             # This will log the full stack trace
             logger.exception("Stack trace:")
@@ -79,7 +127,20 @@ class MatlabAgent:
 
     def stop(self) -> None:
         """
-        Stop the agent and close connections.
+        Stop the agent and close all connections.
         """
         logger.info("Stopping MATLAB agent")
-        self.rabbitmq_manager.close()
+        self.comm.close()
+
+    def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
+        """
+        Send operation results to the specified destination.
+
+        Args:
+            destination (str): The destination identifier
+            result (Dict[str, Any]): The result data to be sent
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        return self.comm.send_result(destination, result)

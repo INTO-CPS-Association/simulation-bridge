@@ -9,6 +9,7 @@ from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.batch import handle_batch_simulation
@@ -19,12 +20,12 @@ logger = get_logger()
 
 class SimulationInputs(BaseModel):
     """Model for simulation inputs - dynamic fields allowed"""
-    model_config = ConfigDict(extra="allow")  # <-- Use ConfigDict
+    model_config = ConfigDict(extra="allow")
 
 
 class SimulationOutputs(BaseModel):
     """Model for simulation outputs - dynamic fields allowed"""
-    model_config = ConfigDict(extra="allow")  # <-- Use ConfigDict
+    model_config = ConfigDict(extra="allow")
 
 
 class SimulationData(BaseModel):
@@ -32,8 +33,7 @@ class SimulationData(BaseModel):
     simulator: str
     type: str = Field(default="batch")
     file: str
-    inputs: 'SimulationInputs'  # assuming this is defined elsewhere
-    # assuming this is defined elsewhere
+    inputs: 'SimulationInputs'
     outputs: Optional['SimulationOutputs'] = None
 
     @field_validator('type', mode='before')
@@ -53,14 +53,16 @@ class MessagePayload(BaseModel):
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 
-class MessageHandler:
+class MessageHandler(IRabbitMQMessageHandler):
     """
     Handler for processing incoming messages from RabbitMQ.
+    Implements the IRabbitMQMessageHandler interface.
     """
 
     def __init__(self, agent_id: str, rabbitmq_manager: Any) -> None:
         """
         Initialize the message handler.
+
         Args:
             agent_id (str): The ID of the agent
             rabbitmq_manager (RabbitMQManager): The RabbitMQ manager instance
@@ -71,6 +73,7 @@ class MessageHandler:
     def get_agent_id(self) -> str:
         """
         Retrieve the agent ID.
+
         Returns:
             str: The ID of the agent
         """
@@ -85,6 +88,7 @@ class MessageHandler:
     ) -> None:
         """
         Process incoming messages from RabbitMQ with Pydantic validation.
+
         Args:
             ch (BlockingChannel): Channel object
             method (Basic.Deliver): Delivery method

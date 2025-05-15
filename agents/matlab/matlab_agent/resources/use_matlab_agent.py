@@ -137,7 +137,8 @@ def start_listener(agent_identifier: str) -> None:
     """
     Start listener in separate thread
     """
-    matlab_agent: SimpleUsageMatlabAgent = SimpleUsageMatlabAgent(agent_identifier)
+    matlab_agent: SimpleUsageMatlabAgent = SimpleUsageMatlabAgent(
+        agent_identifier)
     matlab_agent.start_listening()
 
 
@@ -145,16 +146,19 @@ if __name__ == "__main__":
     AGENT_ID: str = "dt"
     DESTINATION: str = "matlab"
     # Start listener in separate thread
-    listener_thread: threading.Thread = threading.Thread(target=start_listener, args=(AGENT_ID,))
+    listener_thread: threading.Thread = threading.Thread(
+        target=start_listener, args=(AGENT_ID,))
     listener_thread.daemon = True
     listener_thread.start()
 
     # Create main instance for sending requests
-    agent: SimpleUsageMatlabAgent = SimpleUsageMatlabAgent(AGENT_ID, DESTINATION)
+    agent: SimpleUsageMatlabAgent = SimpleUsageMatlabAgent(
+        AGENT_ID, DESTINATION)
 
     try:
         # Example: You can load simulation data from a YAML file here
-        simulation_data: Dict[str, Any] = agent.load_yaml("../api/simulation.yaml")
+        simulation_data: Dict[str, Any] = agent.load_yaml(
+            "../api/simulation.yaml")
 
         # Send simulation request
         agent.send_request(simulation_data)
