@@ -92,6 +92,7 @@ class SimpleUsageMatlabAgent:
     def handle_result(self,
                       ch: pika.adapters.blocking_connection.BlockingChannel,
                       method: pika.spec.Basic.Deliver,
+                      properties: pika.spec.BasicProperties,
                       body: bytes) -> None:
         """
         Handle simulation results

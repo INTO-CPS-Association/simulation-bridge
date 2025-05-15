@@ -5,8 +5,8 @@ import pytest
 from unittest import mock
 
 from src.core.agent import MatlabAgent
-from src.core.config_manager import Config, ConfigManager
-from src.core.rabbitmq_manager import RabbitMQManager
+from agents.matlab.matlab_agent.src.utils.config_manager import Config, ConfigManager
+from agents.matlab.matlab_agent.src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
 
 @pytest.fixture

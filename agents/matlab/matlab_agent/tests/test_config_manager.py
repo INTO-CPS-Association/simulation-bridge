@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from unittest import mock
 from pydantic import ValidationError
-from src.core.config_manager import ConfigManager
+from agents.matlab.matlab_agent.src.utils.config_manager import ConfigManager
 
 
 @pytest.fixture

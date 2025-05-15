@@ -2,7 +2,7 @@ import pytest
 import yaml
 from unittest.mock import MagicMock, patch
 
-from src.handlers.message_handler import (
+from agents.matlab.matlab_agent.src.comm.rabbitmq.message_handler import (
     MessageHandler, MessagePayload, SimulationData
 )
 

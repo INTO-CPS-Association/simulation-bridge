@@ -7,8 +7,8 @@ from typing import Optional, Dict, Any, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
-from ..utils.logger import get_logger
-from ..utils.config_loader import load_config
+from .logger import get_logger
+from .config_loader import load_config
 
 logger = get_logger()
 

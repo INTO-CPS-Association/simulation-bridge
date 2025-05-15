@@ -6,9 +6,9 @@ import pika
 from ..interfaces.config_manager import IConfigManager
 from ..interfaces.rabbitmq_manager import IRabbitMQManager
 from ..interfaces.message_handler import IMessageHandler
-from .config_manager import ConfigManager
-from .rabbitmq_manager import RabbitMQManager
-from ..handlers.message_handler import MessageHandler
+from ..utils.config_manager import ConfigManager
+from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
+from ..comm.rabbitmq.message_handler import MessageHandler
 from ..utils.logger import get_logger
 
 logger = get_logger()

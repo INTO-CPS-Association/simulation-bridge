@@ -6,7 +6,7 @@ import pika
 from pika import BasicProperties
 from pika.exceptions import AMQPError, ChannelClosedByBroker
 
-from src.core.rabbitmq_manager import RabbitMQManager
+from agents.matlab.matlab_agent.src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
 
 @pytest.fixture

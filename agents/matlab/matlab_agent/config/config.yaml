@@ -7,6 +7,7 @@ rabbitmq:
   username: guest
   password: guest
   heartbeat: 600
+  vhost: /
 
 simulation:
   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples

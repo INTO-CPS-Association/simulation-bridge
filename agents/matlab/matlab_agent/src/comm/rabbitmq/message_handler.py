@@ -9,10 +9,10 @@ from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from ..utils.logger import get_logger
-from ..utils.create_response import create_response
-from ..batch.batch import handle_batch_simulation
-from ..streaming.streaming import handle_streaming_simulation
+from ...utils.logger import get_logger
+from ...utils.create_response import create_response
+from ...core.batch import handle_batch_simulation
+from ...core.streaming import handle_streaming_simulation
 
 logger = get_logger()
 

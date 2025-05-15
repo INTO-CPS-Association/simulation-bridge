@@ -87,6 +87,7 @@ rabbitmq:
   username: guest # The username for authenticating with RabbitMQ.
   password: guest # The password for authenticating with RabbitMQ.
   heartbeat: 600 # The heartbeat interval (in seconds) to keep the connection alive.
+  vhost: / # The virtual host to use for RabbitMQ connections.
 
 simulation:
   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples # The file path to the folder containing MATLAB simulation files.
