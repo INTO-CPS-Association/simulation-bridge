@@ -167,6 +167,55 @@ Alternatively, you can use the shorthand `-c` option:
 poetry run matlab-agent -c <path_to_config.yaml>
 ```
 
+## Distributing the Package as a PIP Package with Poetry
+
+To create the package, run the following command in the project's root directory (where `pyproject.toml` is located):
+
+```bash
+poetry build
+```
+
+This will generate two files in the `dist/` folder:
+
+- A `.whl` file → (Wheel Package).
+- A `.tar.gz` file → (Source Archive).
+
+Example output:
+
+```
+dist/
+├── matlab_agent-0.1.0-py3-none-any.whl
+└── matlab_agent-0.1.0.tar.gz
+```
+
+### Verifying the Package (Optional but Recommended)
+
+You can verify that the package works by installing it locally:
+
+```bash
+pip install dist/matlab_agent-0.1.0-py3-none-any.whl
+```
+
+Then, run the command defined in the script:
+
+```bash
+matlab-agent
+```
+
+### Releasing a New Version
+
+When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
+
+```toml
+version = "0.2.0"
+```
+
+Then rebuild the package:
+
+```bash
+poetry build
+```
+
 ## Testing
 
 For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](matlab_agent/tests/README.md).
