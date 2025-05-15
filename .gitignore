@@ -10,7 +10,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+# dist/
 downloads/
 eggs/
 .eggs/
@@ -181,8 +181,11 @@ tests/simulations/matlab/matfile/
 #MATLAB agent
 /logs
 agents/matlab/logs
-
-
+agents/matlab/matlab_agent/src/interactive/
+agents/matlab/matlab_agent/docs/examples/
+agents/matlab/dist/
+#SIMULATION-BRIDGE logs
+src/logs
 
 #MATLABagent Evaluation & different approaches
 # agents/MATLABagent_tcp_v1
