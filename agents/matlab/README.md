@@ -62,7 +62,7 @@ poetry run python -m pip install .
 To ensure the installation was successful, run:
 
 ```bash
-poetry run python -c "import matlab.engine; print('MATLAB Engine is installed successfully!')"
+poetry run python -c "import matlab.engine; print('MATLAB Engine is installed successfully')"
 ```
 
 If everything is correct, you should see the message:
@@ -142,7 +142,7 @@ response_templates:
 To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-path` or `-c` option followed by the path to your configuration file:
 
 ```bash
-poetry run matlab-agent --config-path <path_to_your_config.yaml>
+poetry run matlab-agent --config-file <path_to_config.yaml>
 ```
 
 ## Usage
