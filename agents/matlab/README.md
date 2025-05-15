@@ -13,45 +13,63 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
 
 ## Requirements
 
-To integrate MATLAB with the Simulation Bridge, you need to install the MATLAB Engine API for Python. Follow the official MathWorks installation guide for detailed steps:
-
-[MATLAB Engine API for Python Installation Guide](https://www.mathworks.com/help/matlab/matlab-engine-for-python.html)
-
-### e.g. Installation on macOS
-
-For macOS users (e.g., MATLAB R2024b), follow these steps:
-
-1. Navigate to the MATLAB Engine API folder:
+#### 1. Clone the Repository and Navigate to the Working Directory
 
 ```bash
-cd /Applications/MATLAB_R2024b.app/extern/engines/python
+git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
+cd simulation-bridge
 ```
 
-2. Activate the Poetry virtual environment:
+#### 2. Activate the Virtual Environment with Poetry
+
+Ensure that Poetry is installed. If not, you can install it using:
+
+```bash
+pip install poetry
+```
+
+Activate the virtual environment:
 
 ```bash
 poetry env use $(pyenv which python)
 ```
 
-3. Install the MATLAB Engine within the Poetry environment:
+#### 3. Install Project Dependencies
+
+Run the following command to install all dependencies defined in `pyproject.toml`:
 
 ```bash
+poetry install
+```
+
+#### 4. Install the MATLAB Engine API for Python
+
+To connect MATLAB to the Simulation Bridge, you need to install the MATLAB Engine API within the Poetry environment.
+
+##### Example Installation on macOS
+
+Assuming you are using MATLAB R2024b, execute the following commands:
+
+```bash
+cd /Applications/MATLAB_R2024b.app/extern/engines/python
 poetry run python -m pip install .
 ```
 
-4. Verify the installation:
+> **Note:** Replace `MATLAB_R2024b.app` with the version of MATLAB installed on your system.
+
+#### 5. Verify the MATLAB Engine Installation
+
+To ensure the installation was successful, run:
 
 ```bash
-poetry run python -c "import matlab.engine; print('MATLAB Engine is installed!')"
+poetry run python -c "import matlab.engine; print('MATLAB Engine is installed successfully!')"
 ```
 
-If the installation is successful, you should see the message:
+If everything is correct, you should see the message:
 
 ```
-MATLAB Engine is installed!
+MATLAB Engine is installed successfully!
 ```
-
-> **Note:** Replace `MATLAB_R2024b.app` with the version of MATLAB installed on your system.
 
 Ensure that the MATLAB Engine is properly installed and accessible within your Python environment before proceeding.
 
