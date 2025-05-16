@@ -35,6 +35,7 @@ class Config(BaseModel):
     rabbitmq_username: str = Field(default="guest")
     rabbitmq_password: str = Field(default="guest")
     rabbitmq_heartbeat: int = Field(default=600)
+    rabbitmq_virtual_host: str = Field(default="/")
 
     # Exchanges configuration
     input_exchange: str = Field(default="ex.bridge.output")
@@ -95,7 +96,8 @@ class Config(BaseModel):
                 "port": self.rabbitmq_port,
                 "username": self.rabbitmq_username,
                 "password": self.rabbitmq_password,
-                "heartbeat": self.rabbitmq_heartbeat
+                "heartbeat": self.rabbitmq_heartbeat,
+                "vhost": self.rabbitmq_virtual_host
             },
             "exchanges": {
                 "input": self.input_exchange,
@@ -157,6 +159,8 @@ class Config(BaseModel):
             flat_config["rabbitmq_password"] = rabbitmq.get(
                 "password", "guest")
             flat_config["rabbitmq_heartbeat"] = rabbitmq.get("heartbeat", 600)
+            flat_config["rabbitmq_virtual_host"] = rabbitmq.get(
+                "vhost", "/")
 
         # Extract exchanges section if present
         if exchanges := config_dict.get("exchanges", {}):

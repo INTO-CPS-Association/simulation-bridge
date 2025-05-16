@@ -60,6 +60,7 @@ class RabbitMQManager(IRabbitMQManager):
                     rabbitmq_config.get('password', 'guest')
                 )
                 vhost = rabbitmq_config.get('vhost', '/')
+                logger.debug(f"Using vhost: {vhost}")
                 parameters = pika.ConnectionParameters(
                     host=rabbitmq_config.get('host', 'localhost'),
                     port=rabbitmq_config.get('port', 5672),
@@ -85,7 +86,15 @@ class RabbitMQManager(IRabbitMQManager):
                         "Connection opened but channel could not be created. Retrying...")
 
             except pika.exceptions.AMQPConnectionError as e:
-                logger.error("Connection failed (attempt %d): %s", attempt, e)
+                logger.error(
+                    "Connection failed (attempt %d) to %s:%s vhost=%s — %s: %r",
+                    attempt,
+                    rabbitmq_config.get("host"),
+                    rabbitmq_config.get("port"),
+                    rabbitmq_config.get("vhost", "/"),
+                    e.__class__.__name__,
+                    e
+                )
 
             time.sleep(retry_delay)
 

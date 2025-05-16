@@ -1,13 +1,21 @@
 agent:
   agent_id: matlab
 
+# rabbitmq:
+#   host: localhost
+#   port: 5672
+#   username: guest
+#   password: guest
+#   heartbeat: 600
+#   vhost: /
+
 rabbitmq:
-  host: localhost
+  host: duck-01.lmq.cloudamqp.com
   port: 5672
-  username: guest
-  password: guest
+  username: bcvaygsg
+  password: QvgUE-TqmQjYMZgVVbftaidnYsUL9PQM
   heartbeat: 600
-  vhost: /
+  vhost: bcvaygsg
 
 simulation:
   path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples
@@ -21,7 +29,7 @@ queue:
   prefetch_count: 1 # Number of messages to prefetch
 
 logging:
-  level: INFO # Log level (DEBUG, INFO, ERROR)
+  level: DEBUG # Log level (DEBUG, INFO, ERROR)
   file: logs/matlab_agent.log
 
 tcp:

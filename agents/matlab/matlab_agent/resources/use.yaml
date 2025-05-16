@@ -1,0 +1,7 @@
+rabbitmq:
+  host: duck-01.lmq.cloudamqp.com
+  port: 5672
+  username: bcvaygsg
+  password: QvgUE-TqmQjYMZgVVbftaidnYsUL9PQM
+  heartbeat: 600
+  vhost: bcvaygsg
