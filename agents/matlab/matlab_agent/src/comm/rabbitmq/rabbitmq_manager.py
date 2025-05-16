@@ -95,9 +95,9 @@ class RabbitMQManager(IRabbitMQManager):
         return False
 
     def setup_infrastructure(self) -> None:
-        """
-        Set up the RabbitMQ infrastructure (exchanges, queues, bindings).
-        """
+        if not self.channel or not self.channel.is_open:
+            logger.error("Channel is not available. Exiting.")
+            sys.exit(1)
         exchanges: Dict[str, str] = self.config.get('exchanges', {})
         queue_config: Dict[str, Any] = self.config.get('queue', {})
 
@@ -130,19 +130,16 @@ class RabbitMQManager(IRabbitMQManager):
             self.channel.queue_bind(
                 exchange=input_exchange,
                 queue=self.input_queue_name,
-                # Accept messages from any source to this agent
                 routing_key=f"*.{self.agent_id}"
             )
-            logger.debug(
-                "Declared and bound input queue: %s", self.input_queue_name)
+            logger.debug("Declared and bound input queue: %s", self.input_queue_name)
 
             # Set QoS (prefetch count)
             self.channel.basic_qos(
                 prefetch_count=queue_config.get('prefetch_count', 1)
             )
         except pika.exceptions.ChannelClosedByBroker as e:
-            logger.error(
-                "Channel closed by broker while setting up infrastructure: %s", e)
+            logger.error("Channel closed by broker while setting up infrastructure: %s", e)
             sys.exit(1)
 
     def register_message_handler(

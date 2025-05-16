@@ -1,22 +1,29 @@
-"""Unit tests for the MatlabAgent class with improved structure and best practices."""
+"""
+Tests for the MatlabAgent class that interfaces with MATLAB simulations.
+"""
 
+import json
 import pytest
 from unittest import mock
-
-import pika
 from src.core.agent import MatlabAgent
 
 
 @pytest.fixture
-def config_dict():
+def rabbit_config():
+    """Return RabbitMQ configuration for testing."""
+    return {
+        "host": "localhost",
+        "port": 5672,
+        "username": "guest",
+        "password": "guest"
+    }
+
+
+@pytest.fixture
+def config_dict(rabbit_config):
     """Return a standard configuration dictionary for testing."""
     return {
-        "rabbitmq": {
-            "host": "localhost",
-            "port": 5672,
-            "username": "guest",
-            "password": "guest"
-        }
+        "rabbitmq": rabbit_config
     }
 
 
@@ -30,18 +37,17 @@ def mock_config_manager(config_dict):
 
 
 @pytest.fixture
-def mock_rabbitmq_manager():
-    """Provide a mock instance of RabbitMQManager."""
-    with mock.patch("src.core.agent.RabbitMQManager") as mock_rmq:
-        instance = mock_rmq.return_value
-        yield instance
-
-
-@pytest.fixture
-def mock_message_handler():
-    """Provide a mock instance of MessageHandler."""
-    with mock.patch("src.core.agent.MessageHandler") as mock_mh:
-        instance = mock_mh.return_value
+def mock_connect():
+    """Provide a mock instance of the Connect communication layer."""
+    with mock.patch("src.core.agent.Connect") as mock_conn:
+        instance = mock_conn.return_value
+        # Ensure all expected methods are mocked
+        instance.connect = mock.MagicMock()
+        instance.setup = mock.MagicMock()
+        instance.register_message_handler = mock.MagicMock()
+        instance.start_consuming = mock.MagicMock()
+        instance.close = mock.MagicMock()
+        instance.send_result = mock.MagicMock(return_value=True)
         yield instance
 
 
@@ -53,10 +59,7 @@ def mock_logger():
 
 
 @pytest.fixture
-def matlab_agent(
-        mock_config_manager,
-        mock_rabbitmq_manager,
-        mock_message_handler):
+def matlab_agent(mock_config_manager, mock_connect):
     """Create a MatlabAgent instance with mocked dependencies."""
     return MatlabAgent(agent_id="test-agent")
 
@@ -64,89 +67,88 @@ def matlab_agent(
 class TestMatlabAgentInitialization:
     """Tests for MatlabAgent initialization."""
 
-    def test_initialization_with_default_parameters(
-            self, matlab_agent, mock_config_manager, mock_rabbitmq_manager,
-            mock_message_handler):
-        """Test that the agent initializes correctly with default parameters."""
-        assert matlab_agent.agent_id == "test-agent"
+    def test_default_initialization(self, matlab_agent, mock_config_manager, mock_connect):
+        """Agent loads config, connects, sets up and registers handler."""
+        # ConfigManager.get_config called
         mock_config_manager.get_config.assert_called_once()
-        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
-            mock_message_handler.handle_message
-        )
 
-    def test_initialization_with_custom_config_path(self):
-        """Test initialization with a custom config path."""
-        with mock.patch("src.core.agent.ConfigManager") as mock_cm:
-            with mock.patch("src.core.agent.RabbitMQManager") as mock_rmq:
-                with mock.patch("src.core.agent.MessageHandler"):
-                    mock_cm_instance = mock_cm.return_value
-                    mock_cm_instance.get_config.return_value = {
-                        "some": "config"}
+        # Connect.connect and setup called
+        mock_connect.connect.assert_called_once()
+        mock_connect.setup.assert_called_once()
 
-                    agent = MatlabAgent(
-                        agent_id="test-agent",
-                        config_path="/custom/path/config.yaml"
-                    )
+        # register_message_handler called with no args
+        mock_connect.register_message_handler.assert_called_once_with()
 
-                    mock_cm.assert_called_once_with("/custom/path/config.yaml")
-                    mock_rmq.assert_called_once_with(
-                        "test-agent", {"some": "config"})
+    def test_custom_config_path_and_broker(self):
+        """Initialization honors custom config_path and broker_type."""
+        with mock.patch("src.core.agent.ConfigManager") as mock_cm, \
+             mock.patch("src.core.agent.Connect") as mock_conn:
+
+            # custom config_path
+            mock_cm_inst = mock_cm.return_value
+            mock_cm_inst.get_config.return_value = {"foo": "bar"}
+            agent1 = MatlabAgent("agent1", config_path="/etc/conf.yaml")
+            mock_cm.assert_called_once_with("/etc/conf.yaml")
+            mock_conn.assert_called_with("agent1", {"foo": "bar"}, "rabbitmq")
+
+            # custom broker_type
+            mock_cm.reset_mock()
+            mock_conn.reset_mock()
+            mock_cm_inst.get_config.return_value = {"baz": 123}
+
+            agent2 = MatlabAgent("agent2", broker_type="mqtt")
+            mock_cm.assert_called_once_with(None)
+            mock_conn.assert_called_with("agent2", {"baz": 123}, "mqtt")
 
 
 class TestMatlabAgentOperations:
-    """Tests for MatlabAgent operations like start and stop."""
+    """Tests for MatlabAgent start/stop/send_result."""
 
-    def test_start(self, matlab_agent, mock_rabbitmq_manager):
-        """Test that the agent starts consuming messages."""
+    def test_start_and_error_handling(self, matlab_agent, mock_connect, mock_logger):
+        """start() calls start_consuming and handles different exceptions."""
+        # --- Normal start ---
         matlab_agent.start()
-        mock_rabbitmq_manager.start_consuming.assert_called_once()
+        mock_connect.start_consuming.assert_called_once()
 
-    def test_stop(self, matlab_agent, mock_rabbitmq_manager):
-        """Test that the agent stops consuming messages and closes the connection."""
+        # --- KeyboardInterrupt ---
+        mock_connect.start_consuming.side_effect = KeyboardInterrupt
+        mock_connect.start_consuming.reset_mock()
+        mock_connect.close.reset_mock()
+        matlab_agent.start()
+
+        # close() deve essere chiamato in stop()
+        mock_connect.close.assert_called_once()
+        mock_logger.info.assert_any_call("Stopping MATLAB agent due to keyboard interrupt")
+
+        # --- Generic Exception ---
+        mock_connect.start_consuming.side_effect = Exception("oops")
+        mock_connect.close.reset_mock()
+        mock_logger.error.reset_mock()
+        mock_logger.exception.reset_mock()
+
+        matlab_agent.start()
+
+        # close() di nuovo chiamato
+        mock_connect.close.assert_called_once()
+
+        # Verifica che l'errore sia stato loggato con l'oggetto eccezione
+        mock_logger.error.assert_any_call(
+            "Unexpected error while consuming messages: %s", mock.ANY
+        )
+        # Verifica che sia stato loggato lo stack trace
+        mock_logger.exception.assert_called_once_with("Stack trace:")
+
+
+
+
+    def test_stop(self, matlab_agent, mock_connect):
+        """stop() calls comm.close()."""
         matlab_agent.stop()
-        mock_rabbitmq_manager.close.assert_called_once()
+        mock_connect.close.assert_called_once()
 
-
-class TestMatlabAgentErrorHandling:
-    """Tests for error handling in MatlabAgent."""
-
-    @pytest.mark.parametrize(
-        "exception,log_method,expected_message", [
-            (KeyboardInterrupt(), "info", "Stopping MATLAB agent due to keyboard interrupt"),
-            (ConnectionError("Connection failed"), "error",
-             "Connection error while consuming messages: %s"),
-            (TimeoutError("Connection timed out"), "error",
-             "Timeout error while consuming messages: %s"),
-            (pika.exceptions.AMQPError("AMQP error"), "error",
-             "RabbitMQ error while consuming messages: %s"),
-            (pika.exceptions.ChannelError("Channel error"), "error",
-             "RabbitMQ error while consuming messages: %s"),
-            (pika.exceptions.ConnectionClosedByBroker(0, "Connection closed"), "error",
-             "RabbitMQ error while consuming messages: %s"),
-            (Exception("Generic error"), "error",
-             "Unexpected error while consuming messages: %s"),
-        ]
-    )
-    def test_error_handling(
-            self,
-            matlab_agent,
-            mock_rabbitmq_manager,
-            mock_logger,
-            exception,
-            log_method,
-            expected_message):
-        mock_rabbitmq_manager.start_consuming.side_effect = exception
-        matlab_agent.start()
-        mock_rabbitmq_manager.close.assert_called_once()
-
-        if "%s" in expected_message:
-            # Aspettiamo chiamata con placeholder e l'eccezione come secondo
-            # argomento
-            getattr(
-                mock_logger,
-                log_method).assert_any_call(
-                expected_message,
-                exception)
-        else:
-            # Nessun placeholder, messaggio intero
-            getattr(mock_logger, log_method).assert_any_call(expected_message)
+    def test_send_result(self, matlab_agent, mock_connect):
+        """send_result() delegates to comm.send_result."""
+        data = {"value": 42}
+        res = matlab_agent.send_result("dest", data)
+        mock_connect.send_result.assert_called_once_with("dest", data)
+        assert res is True

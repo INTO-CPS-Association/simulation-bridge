@@ -5,13 +5,12 @@ abstraction to manage communication and handle simulation processing.
 
 from typing import Any, Dict, Optional
 import json
+import yaml
 
 from ..interfaces.config_manager import IConfigManager
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..comm.connect import Connect
-from .batch import handle_batch_simulation
-from .streaming import handle_streaming_simulation
 
 # Configure logger
 logger = get_logger()
@@ -51,54 +50,11 @@ class MatlabAgent:
         self.comm.connect()
         self.comm.setup()
         
-        # Register the custom message handler
-        self.comm.register_message_handler(self._message_handler)
+        # Use the default message handler from MessageHandler class
+        # This will use the properly implemented handler from rabbitmq/message_handler.py
+        self.comm.register_message_handler()
         
         logger.debug("MATLAB agent initialized successfully")
-
-    def _message_handler(self, channel: Any, method: Any, 
-                       properties: Any, body: bytes) -> None:
-        """
-        Custom message handler that routes messages to the appropriate processor.
-        
-        Args:
-            channel: The channel object
-            method: The method frame
-            properties: Message properties
-            body: Message body
-        """
-        logger.debug("Received message: %s", body)
-        
-        try:
-            # Parse the message
-            message = json.loads(body.decode('utf-8'))
-            
-            # Extract source information (typically from routing key or header)
-            source = properties.reply_to if properties and hasattr(properties, 'reply_to') else "unknown"
-            
-            # Determine message type and route to appropriate handler
-            simulation_type = message.get('simulation', {}).get('type', 'batch')
-            
-            if simulation_type == 'streaming':
-                handle_streaming_simulation(message, source, self.comm)
-            else:  # Default to batch
-                handle_batch_simulation(message, source, self.comm)
-                
-            # Acknowledge message processing
-            if channel and method:
-                channel.basic_ack(delivery_tag=method.delivery_tag)
-                
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse message as JSON: %s", str(e))
-            if channel and method:
-                # Negative acknowledgment for malformed messages
-                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-        except Exception as e:
-            logger.error("Error processing message: %s", str(e))
-            logger.exception("Stack trace:")
-            if channel and method:
-                # Negative acknowledgment for processing errors
-                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
     def start(self) -> None:
         """

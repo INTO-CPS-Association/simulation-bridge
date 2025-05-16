@@ -39,6 +39,7 @@ def handle_batch_simulation(
     try:
         sim_path, function_name = _validate_simulation_data(data)
         inputs, outputs = _extract_io_specs(data)
+        logger.info("Starting simulation '%s'",sim_file)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
         _send_progress(message_broker, source, sim_file, 0)
 
@@ -125,7 +126,7 @@ def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
 def _send_response(broker: IMessageBroker, source: str,
                    response: Dict[str, Any]) -> None:
     """Send response through message broker."""
-    print(yaml.dump(response))
+    logger.debug(yaml.dump(response))
     broker.send_result(source, response)
 
 

@@ -6,7 +6,7 @@ import subprocess
 
 import pytest
 
-from agents.matlab.matlab_agent.src.core.streaming import (
+from src.core.streaming import (
     MatlabStreamingController,
     MatlabStreamingError,
     StreamingConnection,
@@ -46,9 +46,9 @@ def patch_streaming_config(monkeypatch, response_templates, tcp_settings):
         tcp_settings: TCP settings fixture
     """
     monkeypatch.setattr(
-        'src.streaming.streaming.response_templates',
+        'src.core.streaming.response_templates',
         response_templates)
-    monkeypatch.setattr('src.streaming.streaming.tcp_settings', tcp_settings)
+    monkeypatch.setattr('src.core.streaming.tcp_settings', tcp_settings)
 
 
 @pytest.fixture
@@ -171,7 +171,7 @@ def test_streaming_connection_lifecycle(streaming_connection):
     server.close()
 
 
-@patch('src.streaming.streaming.subprocess.Popen')
+@patch('src.core.streaming.subprocess.Popen')
 def test_controller_start_failure(mock_popen, matlab_controller):
     """
     Test that controller.start raises MatlabStreamingError when Popen fails.
@@ -184,8 +184,8 @@ def test_controller_start_failure(mock_popen, matlab_controller):
         matlab_controller.start()
 
 
-@patch('src.streaming.streaming.StreamingConnection.start_server')
-@patch('src.streaming.streaming.subprocess.Popen')
+@patch('src.core.streaming.StreamingConnection.start_server')
+@patch('src.core.streaming.subprocess.Popen')
 def test_controller_start_success(
         mock_popen,
         mock_start_server,
@@ -211,7 +211,7 @@ def test_controller_start_success(
     assert 'progress' in progress_data
 
 
-@patch('src.streaming.streaming.StreamingConnection.accept_connection')
+@patch('src.core.streaming.StreamingConnection.accept_connection')
 def test_controller_run_success(
         mock_accept,
         matlab_controller,
@@ -275,7 +275,7 @@ def test_get_metadata(matlab_controller, monkeypatch):
 
     # Patch psutil to use our fake process
     monkeypatch.setattr(
-        'src.streaming.streaming.psutil.Process',
+        'src.core.streaming.psutil.Process',
         lambda pid: FakeProc()
     )
 
@@ -326,7 +326,7 @@ def test_handle_streaming_simulation_missing_fields(
     """
     # Mock MatlabStreamingController
     monkeypatch.setattr(
-        'src.streaming.streaming.MatlabStreamingController',
+        'src.core.streaming.MatlabStreamingController',
         Mock()
     )
 
@@ -356,7 +356,7 @@ def test_handle_streaming_simulation_success(
 
     # Mock controller creation to return our fake
     monkeypatch.setattr(
-        'src.streaming.streaming.MatlabStreamingController',
+        'src.core.streaming.MatlabStreamingController',
         lambda path, f, s, r: fake_controller
     )
 

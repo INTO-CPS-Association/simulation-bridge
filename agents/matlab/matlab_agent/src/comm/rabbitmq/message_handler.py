@@ -96,7 +96,7 @@ class MessageHandler(IRabbitMQMessageHandler):
             body (bytes): Message body
         """
         message_id = properties.message_id if properties.message_id else "unknown"
-        logger.info("Received message %s", message_id)
+        logger.debug("Received message %s", message_id)
         logger.debug("Message routing key: %s", method.routing_key)
 
         # Extract the message source
@@ -162,7 +162,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
                 return
 
-            logger.info("Received simulation_type: %s", sim_type)
+            logger.info("Received simulation type: %s", sim_type)
 
             # Process based on simulation type
             if sim_type == 'batch':

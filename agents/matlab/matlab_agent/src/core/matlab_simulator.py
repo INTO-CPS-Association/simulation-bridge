@@ -140,6 +140,9 @@ class MatlabSimulator:
                 if isinstance(value[0],
                               (list, tuple))
                 else [list(value)])
+        if isinstance(value, bool):
+            # Special handling for boolean values
+            return value
         if isinstance(value, (int, float)):
             return float(value)
         return value

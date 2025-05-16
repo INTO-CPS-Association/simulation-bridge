@@ -1,12 +1,42 @@
 """Unit tests for the batch processing module with improved structure."""
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, call, MagicMock
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import ANY
 
-import matlab.engine
-from src.batch.batch import MatlabSimulationError, MatlabSimulator, handle_batch_simulation
+from src.core.matlab_simulator import MatlabSimulationError
+from src.core.batch import (
+    handle_batch_simulation,
+    _validate_simulation_data,
+    _extract_io_specs,
+    _start_matlab_with_retry,
+    _send_progress,
+    _get_metadata,
+    _send_response,
+    _handle_error,
+    _determine_error_type
+)
+
+
+@pytest.fixture
+def config_mock():
+    """Mock for the configuration."""
+    return {
+        'simulation': {'path': 'matlab_agent/docs/examples'},
+        'response_templates': {
+            'success': {'include_metadata': True},
+            'progress': {'include_percentage': True},
+            'error': {'include_stacktrace': False}
+        }
+    }
+
+
+@pytest.fixture
+def patched_config(monkeypatch, config_mock):
+    """Patch the configuration loader to return our mock config."""
+    with patch('src.core.batch.config', config_mock):
+        yield config_mock
 
 
 @pytest.fixture
@@ -22,35 +52,22 @@ def sim_file():
 
 
 @pytest.fixture
-def mock_matlab_engine():
-    """Provide a mock MATLAB engine."""
-    with patch('matlab.engine.start_matlab') as mock_start:
-        mock_engine = Mock()
-        mock_start.return_value = mock_engine
-        yield mock_engine
+def matlab_simulator_mock():
+    """Provide a mock for the MatlabSimulator class."""
+    with patch('src.core.batch.MatlabSimulator') as mock:
+        simulator_instance = Mock()
+        simulator_instance.run.return_value = {'x_f': 20.0, 'y_f': 20.0, 'z_f': 20.0}
+        simulator_instance.get_metadata.return_value = {'exec_time': 1.0}
+        mock.return_value = simulator_instance
+        yield mock, simulator_instance
 
 
 @pytest.fixture
-def patch_path_exists(monkeypatch):
-    """Patch Path.exists to return True."""
-    def mock_exists(*args, **kwargs):
-        return True
-
-    monkeypatch.setattr(Path, "exists", mock_exists)
-
-
-@pytest.fixture
-def simulator(sim_path, sim_file, patch_path_exists):
-    """Create a MatlabSimulator instance with mocked dependencies."""
-    return MatlabSimulator(sim_path, sim_file)
-
-
-@pytest.fixture
-def running_simulator(simulator, mock_matlab_engine):
-    """Create a simulator that is ready to run simulations."""
-    simulator.eng = mock_matlab_engine
-    simulator.start_time = 0
-    return simulator
+def message_broker_mock():
+    """Provide a mock for the message broker."""
+    broker = Mock()
+    broker.send_result = Mock()
+    return broker
 
 
 @pytest.fixture
@@ -59,173 +76,312 @@ def sample_simulation_data():
     return {
         'simulation': {
             'name': 'test_sim',
-            'path': 'matlab_agent/docs/examples',
             'file': 'simulation_batch.m',
-            'inputs': {'param1': 10, 'x_i': 10, 'y_i': 10, 'z_i': 10,
-                       'v_x': 1, 'v_y': 1, 'v_z': 1, 't': 10},
+            'function_name': 'simulation_batch',
+            'inputs': {
+                'param1': 10, 'x_i': 10, 'y_i': 10, 'z_i': 10,
+                'v_x': 1, 'v_y': 1, 'v_z': 1, 't': 10
+            },
             'outputs': ['result1', 'x_f', 'y_f', 'z_f']
         }
     }
 
 
 @pytest.fixture
-def mock_rabbitmq():
-    """Provide a mock RabbitMQ client."""
-    return Mock()
+def create_response_mock():
+    """Mock the create_response function."""
+    with patch('src.core.batch.create_response') as mock:
+        mock.return_value = {'status': 'mocked_response'}
+        yield mock
 
 
-class TestMatlabSimulatorInitialization:
-    """Tests for MatlabSimulator initialization."""
+class TestValidateSimulationData:
+    """Tests for _validate_simulation_data function."""
 
-    def test_init_with_valid_path(self, simulator, sim_path, sim_file):
-        """Test initialization with a valid path."""
-        assert simulator.sim_path == Path(sim_path).resolve()
-        assert simulator.function_name == "simulation_batch"
+    def test_valid_data(self, patched_config):
+        """Test validation with valid data."""
+        data = {'file': 'simulation.m', 'function_name': 'sim_func'}
+        path, func_name = _validate_simulation_data(data)
+        assert path == patched_config['simulation']['path']
+        assert func_name == 'sim_func'
 
-    def test_init_with_invalid_path(self, sim_file):
-        """Test initialization with an invalid path raises FileNotFoundError."""
-        with patch('pathlib.Path.exists') as mock_exists:
-            mock_exists.return_value = False
-            with pytest.raises(FileNotFoundError):
-                MatlabSimulator('/invalid/path', sim_file)
+    def test_missing_file(self, patched_config):
+        """Test validation with missing file."""
+        with pytest.raises(ValueError, match="Missing 'path' or 'file'"):
+            _validate_simulation_data({})
 
 
-class TestMatlabSimulatorOperations:
-    """Tests for MatlabSimulator operations."""
+class TestExtractIOSpecs:
+    """Tests for _extract_io_specs function."""
 
-    def test_start_success(self, simulator, mock_matlab_engine):
-        simulator.start()
-        mock_matlab_engine.addpath.assert_called_with(
-            str(Path(simulator.sim_path)), nargout=0)
+    def test_valid_io_specs(self):
+        """Test extraction with valid IO specs."""
+        data = {
+            'inputs': {'x': 1, 'y': 2},
+            'outputs': ['result', 'x_final']
+        }
+        inputs, outputs = _extract_io_specs(data)
+        assert inputs == {'x': 1, 'y': 2}
+        assert outputs == ['result', 'x_final']
 
-    def test_start_failure(self, simulator):
-        with patch('matlab.engine.start_matlab') as mock_start:
-            mock_start.side_effect = Exception("MATLAB failed")
-            with pytest.raises(MatlabSimulationError):
-                simulator.start()
+    def test_missing_outputs(self):
+        """Test extraction with missing outputs."""
+        with pytest.raises(ValueError, match="No outputs specified"):
+            _extract_io_specs({'inputs': {'x': 1}})
 
-    def test_run_success(self, running_simulator):
-        running_simulator.eng.feval.return_value = (20.0, 20.0, 20.0)
-        result = running_simulator.run(
-            {'x_i': 10, 'y_i': 10, 'z_i': 10, 'v_x': 1, 'v_y': 1, 'v_z': 1, 't': 10},
-            ['x_f', 'y_f', 'z_f']
+    def test_empty_inputs(self):
+        """Test extraction with empty inputs."""
+        data = {'outputs': ['result']}
+        inputs, outputs = _extract_io_specs(data)
+        assert inputs == {}
+        assert outputs == ['result']
+
+
+class TestStartMatlabWithRetry:
+    """Tests for _start_matlab_with_retry function."""
+
+    def test_start_success_first_try(self):
+        """Test successful MATLAB start on first try."""
+        sim = Mock()
+        _start_matlab_with_retry(sim)
+        sim.start.assert_called_once()
+
+    def test_start_success_after_retry(self):
+        """Test successful MATLAB start after retry."""
+        sim = Mock()
+        # Fail on first try, succeed on second
+        sim.start.side_effect = [MatlabSimulationError("Start failed"), None]
+        
+        with patch('src.core.batch.time.sleep') as mock_sleep:
+            _start_matlab_with_retry(sim)
+            
+        assert sim.start.call_count == 2
+        mock_sleep.assert_called_once_with(1)
+
+    def test_start_all_retries_fail(self):
+        """Test all retries fail to start MATLAB."""
+        sim = Mock()
+        sim.start.side_effect = MatlabSimulationError("Start failed")
+        
+        with patch('src.core.batch.time.sleep'), pytest.raises(MatlabSimulationError):
+            _start_matlab_with_retry(sim, max_retries=2)
+            
+        assert sim.start.call_count == 2
+
+
+class TestSendProgress:
+    """Tests for _send_progress function."""
+
+    def test_send_progress_enabled(self, message_broker_mock, create_response_mock, patched_config):
+        """Test sending progress when enabled."""
+        _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50)
+        
+        create_response_mock.assert_called_once_with(
+                'progress', 'sim.m', 'batch', ANY, percentage=50
+            )
+        message_broker_mock.send_result.assert_called_once()
+
+    def test_send_progress_disabled(self, message_broker_mock, create_response_mock):
+        """Test not sending progress when disabled."""
+        with patch('src.core.batch.response_templates', {'progress': {'include_percentage': False}}):
+            _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50)
+            
+        create_response_mock.assert_not_called()
+        message_broker_mock.send_result.assert_not_called()
+
+
+class TestGetMetadata:
+    """Tests for _get_metadata function."""
+
+    def test_get_metadata(self):
+        """Test retrieving metadata from simulator."""
+        sim = Mock()
+        sim.get_metadata.return_value = {'exec_time': 1.5, 'memory_usage': '256MB'}
+        
+        result = _get_metadata(sim)
+        
+        assert result == {'exec_time': 1.5, 'memory_usage': '256MB'}
+        sim.get_metadata.assert_called_once()
+
+
+class TestSendResponse:
+    """Tests for _send_response function."""
+    def test_send_response(self, message_broker_mock):
+        """Test sending response via broker."""
+        response = {'status': 'completed', 'data': {'result': 42}}
+
+        with patch('src.core.batch.yaml.dump') as mock_dump, \
+             patch('src.core.batch.logger.debug') as mock_logger_debug:
+            
+            _send_response(message_broker_mock, 'test_queue', response)
+
+        message_broker_mock.send_result.assert_called_once_with('test_queue', response)
+        mock_dump.assert_called_once_with(response)
+        mock_logger_debug.assert_called_once_with(mock_dump.return_value)
+
+
+class TestHandleError:
+    """Tests for _handle_error function."""
+
+    def test_handle_file_not_found_error(self, message_broker_mock, create_response_mock):
+        """Test handling FileNotFoundError."""
+        error = FileNotFoundError("File not found")
+        
+        with patch('src.core.batch._determine_error_type', return_value='missing_file') as mock_determine:
+            _handle_error(error, 'sim.m', message_broker_mock, 'test_queue')
+            
+        mock_determine.assert_called_once_with(error)
+        create_response_mock.assert_called_once()
+        message_broker_mock.send_result.assert_called_once()
+
+    def test_handle_value_error(self, message_broker_mock, create_response_mock):
+        """Test handling ValueError."""
+        error = ValueError("Invalid config")
+        
+        with patch('src.core.batch._determine_error_type', return_value='invalid_config') as mock_determine:
+            _handle_error(error, 'sim.m', message_broker_mock, 'test_queue')
+            
+        mock_determine.assert_called_once_with(error)
+        create_response_mock.assert_called_once()
+        message_broker_mock.send_result.assert_called_once()
+
+    def test_handle_unknown_error(self, message_broker_mock, create_response_mock):
+        """Test handling unknown error type."""
+        error = Exception("Unknown error")
+        
+        with patch('src.core.batch._determine_error_type', return_value='execution_error') as mock_determine:
+            _handle_error(error, None, message_broker_mock, 'test_queue')
+            
+        mock_determine.assert_called_once_with(error)
+        create_response_mock.assert_called_once_with(
+            'error', 'unknown', 'batch', ANY,
+            error={'message': str(error), 'type': 'execution_error', 'traceback': ANY}
         )
-        assert result == {'x_f': 20.0, 'y_f': 20.0, 'z_f': 20.0}
-        running_simulator.eng.feval.assert_called_with(
-            'simulation_batch', 10.0, 10.0, 10.0, 1.0, 1.0, 1.0, 10.0, nargout=3)
-
-    def test_run_without_start(self, simulator):
-        with pytest.raises(MatlabSimulationError) as exc:
-            simulator.run({}, ["out1"])
-        assert "MATLAB engine is not started" in str(exc.value)
-
-    def test_close(self, running_simulator):
-        mock_eng = MagicMock()
-        running_simulator.eng = mock_eng
-        running_simulator.close()
-        mock_eng.quit.assert_called_once()
+        message_broker_mock.send_result.assert_called_once()
 
 
-class TestMatlabDataConversion:
-    """Tests for data conversion between Python and MATLAB."""
+class TestDetermineErrorType:
+    """Tests for _determine_error_type function."""
 
-    def test_matlab_to_python_conversion(self, simulator):
-        """Test conversion from MATLAB to Python datatypes."""
-        # Test scalar conversion
-        assert simulator._from_matlab(matlab.double([[5.0]])) == 5.0
+    def test_file_not_found_error(self):
+        """Test determining FileNotFoundError type."""
+        assert _determine_error_type(FileNotFoundError()) == 'missing_file'
 
-        # Test vector conversion
-        py_row = [1.0, 2.0, 3.0]
-        matlab_row = matlab.double([py_row])
-        assert simulator._from_matlab(matlab_row) == py_row
+    def test_matlab_start_failure(self):
+        """Test determining MatlabSimulationError with MATLAB engine failure."""
+        assert _determine_error_type(MatlabSimulationError("MATLAB engine failed")) == 'matlab_start_failure'
 
-        # Test 2D array conversion
-        py_matrix = [[1.0, 2.0], [3.0, 4.0]]
-        matlab_matrix = matlab.double(py_matrix)
-        assert simulator._from_matlab(matlab_matrix) == py_matrix
+    def test_matlab_execution_error(self):
+        """Test determining MatlabSimulationError with execution failure."""
+        assert _determine_error_type(MatlabSimulationError("Execution failed")) == 'execution_error'
 
-    def test_python_to_matlab_conversion(self, simulator):
-        """Test conversion from Python to MATLAB datatypes."""
-        # Test numeric conversion
-        assert simulator._to_matlab(5) == 5.0
-        assert simulator._to_matlab(3.14) == 3.14
+    def test_timeout_error(self):
+        """Test determining TimeoutError type."""
+        assert _determine_error_type(TimeoutError()) == 'timeout'
 
-        # Test list conversion
-        py_list = [1, 2, 3]
-        matlab_list = simulator._to_matlab(py_list)
-        assert isinstance(matlab_list, matlab.double)
+    def test_value_error(self):
+        """Test determining ValueError type."""
+        assert _determine_error_type(ValueError()) == 'invalid_config'
 
-        # Test string handling
-        assert simulator._to_matlab("hello") == "hello"
+    def test_unknown_error(self):
+        """Test determining unknown error type."""
+        assert _determine_error_type(Exception()) == 'execution_error'
 
 
-@patch('src.batch.batch.MatlabSimulator')
-class TestBatchHandling:
-    """Tests for the batch simulation handling functionality."""
+class TestHandleBatchSimulation:
+    """Tests for handle_batch_simulation function."""
 
-    def test_batch_success(
-            self,
-            MockSimulator,
-            mock_rabbitmq,
-            sample_simulation_data):
-        mock_instance = Mock()
-        mock_instance.run.return_value = {
-            'result1': 42, 'x_f': 20.0, 'y_f': 20.0, 'z_f': 20.0}
-        mock_instance.get_metadata.return_value = {'exec_time': 1.0}
-        MockSimulator.return_value = mock_instance
+    def test_successful_simulation(
+            self, 
+            sample_simulation_data, 
+            message_broker_mock, 
+            matlab_simulator_mock,
+            create_response_mock,
+            patched_config):
+        """Test successful batch simulation processing."""
+        mock_class, mock_instance = matlab_simulator_mock
+        
+        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
+             patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+             patch('src.core.batch._start_matlab_with_retry') as mock_start, \
+             patch('src.core.batch._send_progress') as mock_progress, \
+             patch('src.core.batch._get_metadata', return_value={'exec_time': 1.0}) as mock_metadata, \
+             patch('src.core.batch._send_response') as mock_send:
+            
+            handle_batch_simulation(sample_simulation_data, 'test_queue', message_broker_mock)
+            
+            # Verify all function calls
+            mock_class.assert_called_once()
+            mock_start.assert_called_once_with(mock_instance)
+            mock_instance.run.assert_called_once()
+            mock_progress.assert_has_calls([
+                call(message_broker_mock, 'test_queue', 'simulation_batch.m', 0),
+                call(message_broker_mock, 'test_queue', 'simulation_batch.m', 50)
+            ])
+            mock_metadata.assert_called_once_with(mock_instance)
+            mock_instance.close.assert_called_once()
+            create_response_mock.assert_called_once()
+            mock_send.assert_called_once()
 
-        handle_batch_simulation(
-            sample_simulation_data,
-            'test_queue',
-            mock_rabbitmq
-        )
+    def test_validation_error(
+            self, 
+            sample_simulation_data, 
+            message_broker_mock, 
+            matlab_simulator_mock):
+        """Test handling validation error in batch simulation."""
+        with patch('src.core.batch._validate_simulation_data') as mock_validate, \
+             patch('src.core.batch._handle_error') as mock_handle_error:
+            
+            # Simulate validation error
+            mock_validate.side_effect = ValueError("Invalid config")
+            
+            handle_batch_simulation(sample_simulation_data, 'test_queue', message_broker_mock)
+            
+            # Verify error is handled
+            mock_handle_error.assert_called_once()
+            matlab_simulator_mock[1].close.assert_not_called()  # Simulator should not be created
 
-        # Since the handler sends progress twice + final result, expect 3 calls
-        assert mock_rabbitmq.send_result.call_count == 3
+    def test_matlab_error(
+            self, 
+            sample_simulation_data, 
+            message_broker_mock, 
+            matlab_simulator_mock):
+        """Test handling MATLAB error in batch simulation."""
+        mock_class, mock_instance = matlab_simulator_mock
+        
+        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
+             patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+             patch('src.core.batch._start_matlab_with_retry') as mock_start, \
+             patch('src.core.batch._handle_error') as mock_handle_error:
+            
+            # Simulate MATLAB start error
+            mock_start.side_effect = MatlabSimulationError("MATLAB failed")
+            
+            handle_batch_simulation(sample_simulation_data, 'test_queue', message_broker_mock)
+            
+            # Verify error is handled and simulator is closed
+            mock_handle_error.assert_called_once()
+            mock_instance.close.assert_called_once()
 
-        # The last call must have status 'completed' with outputs
-        last_call_args = mock_rabbitmq.send_result.call_args_list[-1][0]
-        assert last_call_args[0] == 'test_queue'  # queue name
-        response = last_call_args[1]
-        assert response['status'] == 'completed'
-        assert response['simulation']['outputs']['result1'] == 42
-
-    def test_batch_matlab_error(
-            self,
-            MockSimulator,
-            mock_rabbitmq,
-            sample_simulation_data):
-        mock_instance = Mock()
-        mock_instance.start.side_effect = MatlabSimulationError("Start failed")
-        MockSimulator.return_value = mock_instance
-
-        handle_batch_simulation(
-            sample_simulation_data,
-            'test_queue',
-            mock_rabbitmq
-        )
-
-        # The last sent response must be an error
-        last_call_args = mock_rabbitmq.send_result.call_args_list[-1][0]
-        response = last_call_args[1]
-        assert response['status'] == 'error'
-        assert 'error' in response
-        # Adjust this according to your create_response error fields if needed
-        # For example, if you include a code field:
-        # assert response['error']['code'] == 500
-
-    def test_batch_missing_fields(self, MockSimulator, mock_rabbitmq):
-        invalid_data = {'simulation': {'name': 'test'}}
-
-        handle_batch_simulation(
-            invalid_data,
-            'test_queue',
-            mock_rabbitmq
-        )
-
-        last_call_args = mock_rabbitmq.send_result.call_args_list[-1][0]
-        response = last_call_args[1]
-        assert response['status'] == 'error'
-        # Usually a ValueError triggers invalid_config type error
-        # You may add checks on error type/message if create_response provides
-        # it
+    def test_run_error(
+            self, 
+            sample_simulation_data, 
+            message_broker_mock, 
+            matlab_simulator_mock):
+        """Test handling run error in batch simulation."""
+        mock_class, mock_instance = matlab_simulator_mock
+        
+        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
+             patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+             patch('src.core.batch._start_matlab_with_retry'), \
+             patch('src.core.batch._send_progress'), \
+             patch('src.core.batch._handle_error') as mock_handle_error:
+            
+            # Simulate run error
+            mock_instance.run.side_effect = Exception("Run failed")
+            
+            handle_batch_simulation(sample_simulation_data, 'test_queue', message_broker_mock)
+            
+            # Verify error is handled and simulator is closed
+            mock_handle_error.assert_called_once()
+            mock_instance.close.assert_called_once()

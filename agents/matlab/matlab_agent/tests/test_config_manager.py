@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from unittest import mock
 from pydantic import ValidationError
-from agents.matlab.matlab_agent.src.utils.config_manager import ConfigManager
+from src.utils.config_manager import ConfigManager
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def mock_load_config(mock_config_data):
     Returns:
         The mocked load_config function
     """
-    with mock.patch("src.core.config_manager.load_config") as mocked_load:
+    with mock.patch("src.utils.config_manager.load_config") as mocked_load:
         mocked_load.return_value = mock_config_data
         yield mocked_load
 

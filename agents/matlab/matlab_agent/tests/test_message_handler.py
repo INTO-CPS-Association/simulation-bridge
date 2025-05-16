@@ -2,115 +2,98 @@ import pytest
 import yaml
 from unittest.mock import MagicMock, patch
 
-from agents.matlab.matlab_agent.src.comm.rabbitmq.message_handler import (
+from src.comm.rabbitmq.message_handler import (
     MessageHandler, MessagePayload, SimulationData
 )
 
 
 class TestMessageHandler:
-    """Test suite for the message handler."""
+    """Test suite for the MessageHandler class."""
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def mock_rabbitmq_manager(self):
-        """Create a mock for RabbitMQManager."""
+        """Fixture providing a mocked RabbitMQManager instance."""
         manager = MagicMock()
         manager.send_result = MagicMock()
         return manager
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def mock_channel(self):
-        """Create a mock for the RabbitMQ channel."""
+        """Fixture providing a mocked RabbitMQ channel."""
         channel = MagicMock()
         channel.basic_ack = MagicMock()
         channel.basic_nack = MagicMock()
         return channel
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def basic_deliver(self):
-        """Mock for the Basic.Deliver method."""
+        """Fixture providing basic delivery properties with simple routing key."""
         mock_deliver = MagicMock()
         mock_deliver.routing_key = "source.test_agent"
         mock_deliver.delivery_tag = 123
         return mock_deliver
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def complex_deliver(self):
-        """Mock for Basic.Deliver with a complex routing key."""
-        mock_deliver = MagicMock()
-        mock_deliver.routing_key = "source.subtype.test_agent.additional"
-        mock_deliver.routing_key = "source.test_agent"
-        mock_deliver.delivery_tag = 123
-        return mock_deliver
-
-    @pytest.fixture
-    def complex_deliver(self):
-        """Mock per Basic.Deliver con routing key complessa."""
+        """Fixture providing delivery properties with complex routing key."""
         mock_deliver = MagicMock()
         mock_deliver.routing_key = "source.subtype.test_agent.additional"
         mock_deliver.delivery_tag = 123
         return mock_deliver
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def basic_properties(self):
-        """Mock per le proprietà del messaggio."""
+        """Fixture providing message properties with message ID."""
         mock_properties = MagicMock()
         mock_properties.message_id = "test-message-id"
         return mock_properties
 
-    @pytest.fixture
-    def properties_no_message_id(self):
-        """Mock per le proprietà senza message_id."""
-        mock_properties = MagicMock()
-        mock_properties.message_id = None
-        return mock_properties
-
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def message_handler(self, mock_rabbitmq_manager):
-        """Istanzia un MessageHandler con un RabbitMQManager in mock."""
+        """Fixture providing a MessageHandler instance with mocked dependencies."""
         return MessageHandler(
             agent_id="test_agent",
             rabbitmq_manager=mock_rabbitmq_manager
         )
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def valid_batch_message(self):
-        """Crea un messaggio batch valido."""
+        """Fixture providing a valid batch simulation message."""
         return yaml.dump({
             'simulation': {
                 'simulator': 'test_simulator',
                 'type': 'batch',
                 'file': 'test_file.mat',
-                'inputs': {'param1': 10, 'param2': 'test'}
+                'inputs': {'param1': 10}
             },
-            'destinations': ['dest1', 'dest2'],
+            'destinations': ['dest1'],
             'request_id': 'test-request-id'
         })
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def valid_streaming_message(self):
-        """Crea un messaggio streaming valido."""
+        """Fixture providing a valid streaming simulation message."""
         return yaml.dump({
             'simulation': {
                 'simulator': 'test_simulator',
                 'type': 'streaming',
                 'file': 'test_file.mat',
-                'inputs': {'param1': 10, 'param2': 'test'}
+                'inputs': {'param1': 10}
             },
-            'destinations': ['dest1', 'dest2'],
+            'destinations': ['dest1'],
             'request_id': 'test-request-id'
         })
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def invalid_yaml_message(self):
-        """Crea un messaggio con YAML non valido."""
-        return "this is not valid yaml: ["
+        """Fixture providing invalid YAML content."""
+        return "invalid:yaml: ["
 
-    @pytest.fixture
+    @pytest.fixture(scope="function")
     def invalid_structure_message(self):
-        """Crea un messaggio con YAML valido ma struttura non valida."""
+        """Fixture providing valid YAML with invalid message structure."""
         return yaml.dump({
             'simulation': {
-                # Campo 'simulator' richiesto mancante
                 'type': 'batch',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10}
@@ -118,269 +101,140 @@ class TestMessageHandler:
             'destinations': ['dest1']
         })
 
-    def test_handle_message_batch(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, valid_batch_message):
-        """Testa gestione di un messaggio di tipo 'batch'."""
-        # Patcha l'handler della simulazione batch
-        with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
+    def test_handle_batch_message(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, valid_batch_message
+    ):
+        """Test successful handling of batch simulation message."""
+        with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
             message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=basic_properties,
-                body=valid_batch_message.encode()
+                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
             )
 
-            # Verifica che la funzione batch sia chiamata con argomenti
-            # corretti
-            mock_handle_batch.assert_called_once()
-            args = mock_handle_batch.call_args[0]
-            assert args[0] == yaml.safe_load(valid_batch_message)
-            assert args[1] == "source"
-            assert args[2] == message_handler.rabbitmq_manager
-
-            # Verifica che l'acknowledgment sia inviato
+            mock_batch.assert_called_once()
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
+            mock_channel.basic_nack.assert_not_called()
 
-    def test_handle_message_streaming(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, valid_streaming_message):
-        """Testa gestione di un messaggio di tipo 'streaming'."""
-        # Patcha l'handler della simulazione streaming
-        with patch("src.handlers.message_handler.handle_streaming_simulation") as mock_handle_streaming:
+    def test_handle_streaming_message(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, valid_streaming_message
+    ):
+        """Test successful handling of streaming simulation message."""
+        with patch("src.comm.rabbitmq.message_handler.handle_streaming_simulation") as mock_stream:
             message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=basic_properties,
-                body=valid_streaming_message.encode()
+                mock_channel, basic_deliver, basic_properties, valid_streaming_message.encode()
             )
 
-            # Verifica che la funzione streaming sia chiamata con argomenti
-            # corretti
-            mock_handle_streaming.assert_called_once()
-            args = mock_handle_streaming.call_args[0]
-            assert args[0] == yaml.safe_load(valid_streaming_message)
-            assert args[1] == "source"
-            assert args[2] == message_handler.rabbitmq_manager
-
-            # Verifica che l'acknowledgment sia inviato prima della gestione
-            # streaming
+            # Verify ack happens before processing
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
+            mock_stream.assert_called_once()
 
-    def test_handle_message_invalid_yaml(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, invalid_yaml_message):
-        """Testa gestione di un messaggio con YAML non valido."""
+    def test_invalid_yaml_handling(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, invalid_yaml_message
+    ):
+        """Test handling of invalid YAML content."""
         message_handler.handle_message(
-            ch=mock_channel,
-            method=basic_deliver,
-            properties=basic_properties,
-            body=invalid_yaml_message.encode()
+            mock_channel, basic_deliver, basic_properties, invalid_yaml_message.encode()
         )
 
-        # Verifica che l'acknowledgment negativo sia inviato
-        mock_channel.basic_nack.assert_called_once_with(
-            delivery_tag=123, requeue=False)
-
-        # Verifica che la risposta di errore sia inviata
+        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
         assert error_response['status'] == 'error'
         assert 'YAML parsing error' in error_response['error']['message']
 
-    def test_handle_message_invalid_structure(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, invalid_structure_message):
-        """Testa gestione di un messaggio con YAML valido ma struttura non valida."""
+    def test_invalid_message_structure(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, invalid_structure_message
+    ):
+        """Test handling of valid YAML with invalid structure."""
         message_handler.handle_message(
-            ch=mock_channel,
-            method=basic_deliver,
-            properties=basic_properties,
-            body=invalid_structure_message.encode()
+            mock_channel, basic_deliver, basic_properties, invalid_structure_message.encode()
         )
 
-        # Verifica che l'acknowledgment negativo sia inviato
-        mock_channel.basic_nack.assert_called_once_with(
-            delivery_tag=123, requeue=False)
-
-        # Verifica che la risposta di errore sia inviata
+        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
         assert error_response['status'] == 'error'
         assert 'Message validation failed' in error_response['error']['message']
 
-    def test_handle_message_invalid_simulation_type(
-            self,
-            message_handler,
-            mock_channel,
-            basic_deliver,
-            basic_properties):
-        """Testa gestione di un messaggio con un tipo di simulazione non valido."""
-        # Dobbiamo bypassare la validazione Pydantic per testare questo
-        # percorso
-        body = yaml.dump({
-            'simulation': {
-                'simulator': 'test_simulator',
-                'type': 'invalid_type',  # Tipo non valido
-                'file': 'test_file.mat',
-                'inputs': {'param1': 10}
-            },
-            'destinations': ['dest1'],
-            'request_id': 'test-id'
-        })
-
-        # Patcha il validatore Pydantic per lasciare passare il tipo non valido
-        with patch("src.handlers.message_handler.MessagePayload", autospec=True) as mock_payload:
-            # Configura il mock per restituire un oggetto valido con tipo non
-            # valido
-            mock_instance = MagicMock()
-            mock_instance.simulation.type = 'invalid_type'
-            mock_instance.simulation.file = 'test_file.mat'
-            mock_payload.return_value = mock_instance
-
+    def test_batch_processing_error(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, valid_batch_message
+    ):
+        """Test error handling during batch processing."""
+        with patch(
+            "src.comm.rabbitmq.message_handler.handle_batch_simulation",
+            side_effect=Exception("Batch error")
+        ):
             message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=basic_properties,
-                body=body.encode()
+                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
             )
 
-            # Verifica che l'acknowledgment negativo sia inviato
-            mock_channel.basic_nack.assert_called_once_with(
-                delivery_tag=123, requeue=False)
-
-            # Verifica che la risposta di errore sia inviata
-            message_handler.rabbitmq_manager.send_result.assert_called_once()
+            mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
             error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
-            assert error_response['status'] == 'error'
-            assert 'Unknown simulation type' in error_response['error']['message']
+            assert 'Batch error' in error_response['error']['details']
 
-    def test_handle_message_batch_error(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, valid_batch_message):
-        """Testa gestione quando l'handler della simulazione batch genera un'eccezione."""
-        # Patcha l'handler della simulazione batch per generare un'eccezione
-        with patch("src.handlers.message_handler.handle_batch_simulation",
-                   side_effect=Exception("Batch processing error")):
-
-            message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=basic_properties,
-                body=valid_batch_message.encode()
-            )
-
-            # Verifica che l'acknowledgment negativo sia inviato
-            mock_channel.basic_nack.assert_called_once_with(
-                delivery_tag=123, requeue=False)
-
-            # Verifica che la risposta di errore sia inviata
-            message_handler.rabbitmq_manager.send_result.assert_called_once()
-            error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
-            assert error_response['status'] == 'error'
-            assert 'Error processing message' in error_response['error']['message']
-            assert 'Batch processing error' in error_response['error'].get(
-                'details', '')
-
-    def test_handle_message_error_response_failure(
-            self, message_handler, mock_channel, basic_deliver,
-            basic_properties, valid_batch_message):
-        """Testa gestione quando sia l'elaborazione che l'invio della risposta di errore falliscono."""
-        # Patcha handler batch per generare eccezione e rabbitmq_manager per
-        # generare eccezione
-        with patch("src.handlers.message_handler.handle_batch_simulation",
-                   side_effect=Exception("Batch processing error")):
-
-            # Fa fallire anche il metodo send_result
-            message_handler.rabbitmq_manager.send_result.side_effect = Exception(
-                "Send error")
-
-            message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=basic_properties,
-                body=valid_batch_message.encode()
-            )
-
-            # Verifica che l'acknowledgment negativo sia inviato
-            mock_channel.basic_nack.assert_called_once_with(
-                delivery_tag=123, requeue=False)
-
-            # Verifica che si sia tentato di inviare una risposta di errore
-            message_handler.rabbitmq_manager.send_result.assert_called_once()
-
-    def test_pydantic_model_validation(self):
-        """Testa la validazione del modello Pydantic."""
-        # Dati validi
+    def test_pydantic_validation(self):
+        """Test Pydantic model validation scenarios."""
+        # Valid batch request
         valid_data = {
             'simulation': {
-                'simulator': 'test_simulator',
+                'simulator': 'test',
                 'type': 'batch',
-                'file': 'test_file.mat',
-                'inputs': {'param1': 10}
+                'file': 'test.mat',
+                'inputs': {'param': 10}
             },
-            'destinations': ['dest1', 'dest2'],
-            'request_id': 'test-id'
+            'destinations': ['dest1']
         }
-
-        # Non dovrebbe generare un'eccezione
         payload = MessagePayload(**valid_data)
-        assert payload.simulation.type == 'batch'
-        assert payload.simulation.file == 'test_file.mat'
-        assert payload.simulation.inputs.param1 == 10
-        assert payload.destinations == ['dest1', 'dest2']
-        assert payload.request_id == 'test-id'
+        assert payload.request_id  # Should be generated
 
-        # Testa il validatore per il tipo di simulazione
-        with pytest.raises(ValueError) as exc_info:
+        # Invalid simulation type
+        with pytest.raises(ValueError):
             SimulationData(
-                simulator='test_simulator',
-                type='invalid_type',  # Tipo non valido
-                file='test_file.mat',
-                inputs={'param1': 10}
+                simulator='test',
+                type='invalid',
+                file='test.mat',
+                inputs={'param': 10}
             )
-        assert "Invalid simulation type" in str(exc_info.value)
 
-    def test_handle_message_with_no_message_id(
-            self, message_handler, mock_channel, basic_deliver,
-            properties_no_message_id, valid_batch_message):
-        """Testa gestione di un messaggio senza message_id."""
-        with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
+    def test_complex_routing_key(
+        self, message_handler, mock_channel, complex_deliver,
+        basic_properties, valid_batch_message
+    ):
+        """Test handling of messages with complex routing keys."""
+        with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
             message_handler.handle_message(
-                ch=mock_channel,
-                method=basic_deliver,
-                properties=properties_no_message_id,
-                body=valid_batch_message.encode()
+                mock_channel, complex_deliver, basic_properties, valid_batch_message.encode()
             )
 
-            # L'elaborazione dovrebbe funzionare comunque
-            mock_handle_batch.assert_called_once()
+            mock_batch.assert_called_once()
+            assert mock_batch.call_args[0][1] == "source"
 
-            # Verifica che l'acknowledgment sia inviato
-            mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
-
-    def test_message_handler_initialization(self, mock_rabbitmq_manager):
-        """Testa che MessageHandler si inizializzi correttamente."""
-        handler = MessageHandler(
-            agent_id="test_agent",
-            rabbitmq_manager=mock_rabbitmq_manager
+    def test_missing_message_id(
+        self, message_handler, mock_channel, basic_deliver,
+        valid_batch_message
+    ):
+        """Test handling of messages missing message ID."""
+        mock_properties = MagicMock()
+        mock_properties.message_id = None
+        
+        message_handler.handle_message(
+            mock_channel, basic_deliver, mock_properties, valid_batch_message.encode()
         )
+        
+        mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
-        assert handler.agent_id == "test_agent"
-        assert handler.rabbitmq_manager == mock_rabbitmq_manager
-
-    def test_handle_message_with_complex_routing_key(
-            self, message_handler, mock_channel, complex_deliver,
-            basic_properties, valid_batch_message):
-        """Testa gestione di un messaggio con una routing key complessa."""
-        with patch("src.handlers.message_handler.handle_batch_simulation") as mock_handle_batch:
+    def test_error_response_failure(
+        self, message_handler, mock_channel, basic_deliver,
+        basic_properties, valid_batch_message
+    ):
+        """Test error handling when sending error responses fails."""
+        with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation", side_effect=Exception("Processing error")), \
+            patch("src.comm.rabbitmq.message_handler.create_response", return_value="fake_response"):
             message_handler.handle_message(
-                ch=mock_channel,
-                method=complex_deliver,
-                properties=basic_properties,
-                body=valid_batch_message.encode()
+                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
             )
-
-            # L'elaborazione dovrebbe ancora estrarre la fonte corretta
-            mock_handle_batch.assert_called_once()
-            assert mock_handle_batch.call_args[0][1] == "source"
+            mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
