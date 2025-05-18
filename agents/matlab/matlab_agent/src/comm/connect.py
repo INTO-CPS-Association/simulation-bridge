@@ -134,9 +134,8 @@ class Connect:
                     "exchange", self.config.get(
                         "exchanges", {}).get(
                         "output", "ex.sim.result"))
-                routing_key = kwargs.get("routing_key", "%s.%s" %
-                                         (self.agent_id, destination))
-
+                routing_key = kwargs.get(
+                    "routing_key", f"{self.agent_id}.{destination}")
                 properties = kwargs.get("properties", None)
                 return self.broker.send_message(
                     exchange, routing_key, message, properties)

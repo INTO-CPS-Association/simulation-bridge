@@ -1,10 +1,6 @@
 import pytest
 from typing import Any, Dict, Callable
-from unittest import mock
 from unittest.mock import MagicMock
-
-import pika
-from pika.exceptions import AMQPConnectionError
 
 from src.comm.connect import Connect
 from src.comm.interfaces import IMessageBroker, IMessageHandler
@@ -15,7 +11,10 @@ def config_dict() -> Dict[str, Any]:
     """
     Provides a basic configuration dictionary for Connect.
     """
-    return {"exchanges": {"output": "test.exchange"}}
+    return {
+        "exchanges": {"output": "test.exchange"},
+        "simulation": {"path": None}  # Added path_simulation
+    }
 
 
 @pytest.fixture(scope="function")
@@ -47,11 +46,16 @@ def mock_message_handler(monkeypatch, mock_rabbitmq_manager):
     Patch MessageHandler and return its mock.
     """
     mock_handler = MagicMock(spec=IMessageHandler)
-    # handler must have handle_message and set_simulation_handler
+    # Handler must have handle_message and set_simulation_handler
     mock_handler.handle_message = MagicMock()
     mock_handler.set_simulation_handler = MagicMock()
-    monkeypatch.setattr("src.comm.connect.MessageHandler",
-                        lambda agent_id, broker: mock_handler)
+
+    # Fix: Explicitly match the MessageHandler constructor signature with
+    # three parameters
+    monkeypatch.setattr(
+        "src.comm.connect.MessageHandler",
+        lambda agent_id, broker, path_simulation=None: mock_handler
+    )
     return mock_handler
 
 
@@ -91,6 +95,9 @@ class TestConnectMethods:
                       config_dict,
                       mock_rabbitmq_manager,
                       mock_message_handler):
+        """
+        Set up a Connect instance for each test.
+        """
         self.conn = Connect(agent_id, config_dict)
         yield
 
@@ -114,18 +121,17 @@ class TestConnectMethods:
         register_message_handler() without args uses default handler.
         """
         self.conn.register_message_handler()
-        mock_rabbitmq_manager.\
-            register_message_handler.assert_called_once_with(
-                mock_message_handler.handle_message)
+        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
+            mock_message_handler.handle_message)
 
     def test_register_custom_handler(self, mock_rabbitmq_manager):
         """
         register_message_handler() with custom callable.
         """
-        custom = lambda *args: None  # type: Callable
-        self.conn.register_message_handler(custom)
+        custom_handler = lambda *args: None  # pylint: disable=unnecessary-lambda-assignment
+        self.conn.register_message_handler(custom_handler)
         mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
-            custom)
+            custom_handler)
 
     def test_start_consuming_channel_active(self, mock_rabbitmq_manager):
         """
@@ -135,7 +141,6 @@ class TestConnectMethods:
         mock_rabbitmq_manager.start_consuming.assert_called_once()
 
     def test_start_consuming_reconnect_on_closed_channel(self,
-                                                         monkeypatch,
                                                          mock_rabbitmq_manager):
         """
         If channel closed, start_consuming tries reconnect then abort on failure.
@@ -199,6 +204,7 @@ class TestConnectMethods:
         assert handler is mock_message_handler
 
         # set
-        cb = lambda *args: None
-        self.conn.set_simulation_handler(cb)
-        mock_message_handler.set_simulation_handler.assert_called_once_with(cb)
+        callback = lambda *args: None  # pylint: disable=unnecessary-lambda-assignment
+        self.conn.set_simulation_handler(callback)
+        mock_message_handler.set_simulation_handler.assert_called_once_with(
+            callback)

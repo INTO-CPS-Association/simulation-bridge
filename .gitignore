@@ -175,17 +175,14 @@ cython_debug/
 
 .DS_Store
 
-#MATLAB file
-tests/simulations/matlab/matfile/
-
 #MATLAB agent
-/logs
 agents/matlab/logs
-agents/matlab/matlab_agent/src/interactive/
-agents/matlab/matlab_agent/docs/examples/
+# Interactive simulation in progress
+agents/matlab/matlab_agent/src/interactive/ 
+agents/matlab/matlab_agent/docs/examples/InteractiveSimulation.m
+agents/matlab/matlab_agent/docs/examples/InteractiveSimulationWrapper.m
+# Distribution files
 agents/matlab/dist/
-#SIMULATION-BRIDGE logs
-src/logs
 
 #MATLABagent Evaluation & different approaches
 # agents/MATLABagent_tcp_v1
@@ -196,3 +193,8 @@ src/logs
 
 **/config/*.yaml
 **/config/*.yml
+
+#SIMULATION BRIDGE 
+/logs
+
+

@@ -49,11 +49,17 @@ class TestMessageHandler:
         return mock_properties
 
     @pytest.fixture(scope="function")
-    def message_handler(self, mock_rabbitmq_manager):
+    def sim_path(self):
+        """Fixture providing a simulation path for testing."""
+        return "/test/simulation/path"
+
+    @pytest.fixture(scope="function")
+    def message_handler(self, mock_rabbitmq_manager, sim_path):
         """Fixture providing a MessageHandler instance with mocked dependencies."""
         return MessageHandler(
             agent_id="test_agent",
-            rabbitmq_manager=mock_rabbitmq_manager
+            rabbitmq_manager=mock_rabbitmq_manager,
+            path_simulation=sim_path
         )
 
     @pytest.fixture(scope="function")
@@ -103,7 +109,7 @@ class TestMessageHandler:
 
     def test_handle_batch_message(
         self, message_handler, mock_channel, basic_deliver,
-        basic_properties, valid_batch_message
+        basic_properties, valid_batch_message, sim_path
     ):
         """Test successful handling of batch simulation message."""
         with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
@@ -114,12 +120,14 @@ class TestMessageHandler:
                 valid_batch_message.encode())
 
             mock_batch.assert_called_once()
+            # Verify the simulation path is properly passed to the handler
+            assert mock_batch.call_args[0][3] == sim_path
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
             mock_channel.basic_nack.assert_not_called()
 
     def test_handle_streaming_message(
         self, message_handler, mock_channel, basic_deliver,
-        basic_properties, valid_streaming_message
+        basic_properties, valid_streaming_message, sim_path
     ):
         """Test successful handling of streaming simulation message."""
         with patch("src.comm.rabbitmq.message_handler.handle_streaming_simulation") as mock_stream:
@@ -132,6 +140,8 @@ class TestMessageHandler:
             # Verify ack happens before processing
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
             mock_stream.assert_called_once()
+            # Verify the simulation path is properly passed to the handler
+            assert mock_stream.call_args[0][3] == sim_path
 
     def test_invalid_yaml_handling(
         self, message_handler, mock_channel, basic_deliver,
@@ -249,12 +259,18 @@ class TestMessageHandler:
         basic_properties, valid_batch_message
     ):
         """Test error handling when sending error responses fails."""
-        with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation", side_effect=Exception("Processing error")), \
-                patch("src.comm.rabbitmq.message_handler.create_response", return_value="fake_response"):
+        with patch(
+            "src.comm.rabbitmq.message_handler.handle_batch_simulation",
+            side_effect=Exception("Processing error")
+        ), patch(
+            "src.comm.rabbitmq.message_handler.create_response",
+            return_value="fake_response"
+        ):
             message_handler.handle_message(
                 mock_channel,
                 basic_deliver,
                 basic_properties,
                 valid_batch_message.encode())
+
             mock_channel.basic_nack.assert_called_once_with(
                 delivery_tag=123, requeue=False)

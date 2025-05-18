@@ -71,7 +71,7 @@ def _validate_simulation_data(
     """Validate and extract simulation parameters."""
     sim_file = data.get('file')
     if not sim_file:
-        raise ValueError("Missing' file' in simulation config")
+        raise ValueError("Missing 'file' in simulation config")
     return data.get('function_name')
 
 

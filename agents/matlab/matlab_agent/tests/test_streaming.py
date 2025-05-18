@@ -320,34 +320,38 @@ def test_handle_streaming_error_bad_request(
 
 
 def test_handle_streaming_simulation_missing_fields(
-        monkeypatch, mock_rabbit_client, patch_streaming_config):
+        monkeypatch, mock_rabbit_client):
     """
     Test handle_streaming_simulation reports error when required fields are missing.
     """
+
     # Mock MatlabStreamingController
     monkeypatch.setattr(
         'src.core.streaming.MatlabStreamingController',
         Mock()
     )
 
-    # Call with incomplete data
+    # Esegui la chiamata con dati incompleti, incluso il path_simulation
+    # mancante
     handle_streaming_simulation(
-        {'simulation': {'foo': 'bar'}},  # Missing required fields
+        {'simulation': {'foo': 'bar'}},  # Dati mancanti
         'test_queue',
-        mock_rabbit_client
+        mock_rabbit_client,
+        None  # path_simulation non specificato
     )
 
-    # Get the sent error response
+    # Ottieni i dati inviati con l'errore
     sent_data = mock_rabbit_client.send_result.call_args[0][1]
 
-    # Verify bad request error
-    assert sent_data['error']['code'] == 400
+    # Controlla che l'errore sia (500) e che il tipo sia 'bad_request'
+    assert sent_data['error']['code'] == 500
+    assert sent_data['error']['type'] == 'bad_request'
+    assert 'Missing path/file configuration' in sent_data['error']['message']
 
 
 def test_handle_streaming_simulation_success(
         monkeypatch,
-        mock_rabbit_client,
-        patch_streaming_config):
+        mock_rabbit_client):
     """
     Test handle_streaming_simulation successful end-to-end path.
     """
@@ -372,7 +376,8 @@ def test_handle_streaming_simulation_success(
     handle_streaming_simulation(
         simulation_data,
         'test_queue',
-        mock_rabbit_client
+        mock_rabbit_client,
+        "test_path"
     )
 
     # Verify controller methods were called

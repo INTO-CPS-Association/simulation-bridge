@@ -99,16 +99,15 @@ def create_response_mock():
 class TestValidateSimulationData:
     """Tests for _validate_simulation_data function."""
 
-    def test_valid_data(self, patched_config):
+    def test_valid_data(self):
         """Test validation with valid data."""
         data = {'file': 'simulation.m', 'function_name': 'sim_func'}
-        path, func_name = _validate_simulation_data(data)
-        assert path == patched_config['simulation']['path']
+        func_name = _validate_simulation_data(data)
         assert func_name == 'sim_func'
 
-    def test_missing_file(self, patched_config):
+    def test_missing_file(self):
         """Test validation with missing file."""
-        with pytest.raises(ValueError, match="Missing 'path' or 'file'"):
+        with pytest.raises(ValueError, match="Missing 'file'"):
             _validate_simulation_data({})
 
 
@@ -310,8 +309,7 @@ class TestHandleBatchSimulation:
             sample_simulation_data,
             message_broker_mock,
             matlab_simulator_mock,
-            create_response_mock,
-            patched_config):
+            create_response_mock):
         """Test successful batch simulation processing."""
         mock_class, mock_instance = matlab_simulator_mock
 
@@ -325,7 +323,8 @@ class TestHandleBatchSimulation:
             handle_batch_simulation(
                 sample_simulation_data,
                 'test_queue',
-                message_broker_mock)
+                message_broker_mock,
+                'matlab_agent/docs/examples')
 
             # Verify all function calls
             mock_class.assert_called_once()
@@ -363,7 +362,8 @@ class TestHandleBatchSimulation:
             handle_batch_simulation(
                 sample_simulation_data,
                 'test_queue',
-                message_broker_mock)
+                message_broker_mock,
+                'path_simulation')
 
             # Verify error is handled
             mock_handle_error.assert_called_once()
@@ -389,7 +389,8 @@ class TestHandleBatchSimulation:
             handle_batch_simulation(
                 sample_simulation_data,
                 'test_queue',
-                message_broker_mock)
+                message_broker_mock,
+                'simulation_path')
 
             # Verify error is handled and simulator is closed
             mock_handle_error.assert_called_once()
@@ -415,7 +416,8 @@ class TestHandleBatchSimulation:
             handle_batch_simulation(
                 sample_simulation_data,
                 'test_queue',
-                message_broker_mock)
+                message_broker_mock,
+                'simulation_path')
 
             # Verify error is handled and simulator is closed
             mock_handle_error.assert_called_once()
