@@ -96,6 +96,32 @@ class MatlabStreamingController:
         host = tcp_settings.get('host', 'localhost')
         port = tcp_settings.get('port', 5678)
         self.connection = StreamingConnection(host, port)
+        logger.debug("Path to simulation: %s", self.sim_path)
+        logger.debug("Simulation file: %s", self.sim_file)
+        # Check if the path is a directory and if the file exists
+        # If not, try to find the file in the docs/examples directory
+        if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
+            logger.error(
+                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
+                self.sim_path,
+                self.sim_file)
+            # Define fallback path inside package 'docs/examples'
+            fallback_path = (
+                Path(__file__).parent.parent.parent /
+                "docs" /
+                "examples" /
+                self.sim_file)
+            if fallback_path.exists():
+                logger.debug(
+                    "Found simulation file in fallback path: '%s'.",
+                    fallback_path)
+                self.sim_path = fallback_path.parent
+            else:
+                error_msg = (
+                    f"Simulation file '{self.sim_file}' not found in either "
+                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
+                logger.error(error_msg)
+                raise FileNotFoundError(error_msg)
         self._validate()
 
     def _validate(self) -> None:
@@ -270,11 +296,12 @@ def _handle_streaming_error(
 def handle_streaming_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    message_broker: IMessageBroker
+    message_broker: IMessageBroker,
+    path_simulation: str
 ) -> None:
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})
-    sim_path = config['simulation']['path']
+    sim_path = path_simulation if path_simulation else data.get('path')
     sim_file = data.get('file')
 
     if not sim_path or not sim_file:

@@ -37,6 +37,9 @@ class Config(BaseModel):
     rabbitmq_heartbeat: int = Field(default=600)
     rabbitmq_virtual_host: str = Field(default="/")
 
+    # Simulation folder path
+    simulation_path: str = Field(default=".")
+
     # Exchanges configuration
     input_exchange: str = Field(default="ex.bridge.output")
     output_exchange: str = Field(default="ex.sim.result")
@@ -53,12 +56,10 @@ class Config(BaseModel):
     tcp_host: str = Field(default="localhost")
     tcp_port: int = Field(default=5678)
 
-    # Simulation configuration
-    simulation_type: str = Field(default="batch")
-
     # Response templates
     # Success template
     success_status: Literal["success"] = Field(default="success")
+    simulation_type: Literal["batch", "streaming"] = Field(default="batch")
     success_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
     success_include_metadata: bool = Field(default=True)
     success_metadata_fields: list[str] = Field(
@@ -98,6 +99,9 @@ class Config(BaseModel):
                 "password": self.rabbitmq_password,
                 "heartbeat": self.rabbitmq_heartbeat,
                 "vhost": self.rabbitmq_virtual_host
+            },
+            "simulation": {
+                "path": self.simulation_path
             },
             "exchanges": {
                 "input": self.input_exchange,
@@ -161,6 +165,10 @@ class Config(BaseModel):
             flat_config["rabbitmq_heartbeat"] = rabbitmq.get("heartbeat", 600)
             flat_config["rabbitmq_virtual_host"] = rabbitmq.get(
                 "vhost", "/")
+
+        if simulation := config_dict.get("simulation", {}):
+            flat_config["simulation_path"] = simulation.get(
+                "path", ".")
 
         # Extract exchanges section if present
         if exchanges := config_dict.get("exchanges", {}):
@@ -247,7 +255,7 @@ class ConfigManager:
                                          If None, uses the default location.
         """
         self.config_path: Path = Path(config_path) if config_path else Path(
-            __file__).parent.parent.parent / "config" / "config.yaml"
+            __file__).parent.parent.parent / "config" / "config.yaml.template"
         try:
             raw_config = load_config(self.config_path)
             self.config = self._validate_config(raw_config)

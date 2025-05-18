@@ -16,6 +16,7 @@ from typing import Dict, Union, List, Optional, Any, Tuple
 
 import psutil
 import matlab.engine
+from importlib import resources
 
 from ..utils.logger import get_logger
 
@@ -51,6 +52,33 @@ class MatlabSimulator:
         self.function_name: str = function_name or os.path.splitext(file)[0]
         self.eng: Optional[matlab.engine.MatlabEngine] = None
         self.start_time: Optional[float] = None
+
+        # Check if the path is a directory and if the file exists
+        # If not, try to find the file in the docs/examples directory
+        if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
+            logger.error(
+                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
+                self.sim_path,
+                self.sim_file)
+            # Define fallback path inside package 'docs/examples'
+            fallback_path = (
+                Path(__file__).parent.parent.parent /
+                "docs" /
+                "examples" /
+                self.sim_file)
+            if fallback_path.exists():
+                logger.debug(
+                    "Found simulation file in fallback path: '%s'.",
+                    fallback_path)
+                self.sim_path = fallback_path.parent
+            else:
+                error_msg = (
+                    f"Simulation file '{self.sim_file}' not found in either "
+                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
+                logger.error(error_msg)
+                raise FileNotFoundError(error_msg)
+        logger.debug("Path to simulation: %s", self.sim_path)
+        logger.debug("Simulation file: %s", self.sim_file)
         self._validate()
 
     def _validate(self) -> None:

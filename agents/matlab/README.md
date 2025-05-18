@@ -15,20 +15,18 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
 
 #### 1. Clone the Repository and Navigate to the Working Directory
 
-```bash
+````bash
 git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
-```
+### 2. Install Poetry and Create Virtual Environment
 
-### 2. Install Poetry and Create Virtul Environment
-
-Ensure that Poetry is installed on your system. If it is not already installed, execute the following command:
+Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
 
 ```bash
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 pipx install poetry
-```
+````
 
 Verify the installation by checking the Poetry version:
 
@@ -39,7 +37,21 @@ poetry --version
 Activate the virtual environment:
 
 ```bash
-poetry env use $(pyenv which python)
+poetry env activate
+```
+
+> **Important:**  
+> The command `poetry env activate` does not automatically activate the virtual environment; instead, it prints the command you need to run to activate it.  
+> You must copy and paste the displayed command, for example:
+
+```bash
+source /path/to/virtualenv/bin/activate
+```
+
+Verify that the environment is active by checking the Python path:
+
+```bash
+which python
 ```
 
 #### 3. Install Project Dependencies
@@ -54,7 +66,7 @@ poetry install
 
 To connect MATLAB to the Simulation Bridge, you need to install the MATLAB Engine API within the Poetry environment. There are two possible methods to integrate Matlab engine into python virtual environment.
 
-##### 4.1 Installation using in-built Python package 
+##### 4.1 Installation using in-built Python package
 
 The Matlab installation comes with python pip package which can be used. Assuming you are using MATLAB R2024b and MacOS, execute the following commands:
 
@@ -155,8 +167,6 @@ response_templates:
     update_interval: 5 # Specifies the interval (in seconds) for sending progress updates.
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
-
-
 
 ```bash
 poetry run matlab-agent --config-file <path_to_config.yaml>

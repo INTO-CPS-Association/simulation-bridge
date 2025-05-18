@@ -59,7 +59,8 @@ class MessageHandler(IRabbitMQMessageHandler):
     Implements the IRabbitMQMessageHandler interface.
     """
 
-    def __init__(self, agent_id: str, rabbitmq_manager: Any) -> None:
+    def __init__(self, agent_id: str, rabbitmq_manager: Any,
+                 path_simulation: Optional[str]) -> None:
         """
         Initialize the message handler.
 
@@ -69,6 +70,7 @@ class MessageHandler(IRabbitMQMessageHandler):
         """
         self.agent_id = agent_id
         self.rabbitmq_manager = rabbitmq_manager
+        self.path_simulation = path_simulation
 
     def get_agent_id(self) -> str:
         """
@@ -167,12 +169,15 @@ class MessageHandler(IRabbitMQMessageHandler):
             # Process based on simulation type
             if sim_type == 'batch':
                 handle_batch_simulation(
-                    msg_dict, source, self.rabbitmq_manager)
+                    msg_dict,
+                    source,
+                    self.rabbitmq_manager,
+                    self.path_simulation)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             elif sim_type == 'streaming':
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 handle_streaming_simulation(
-                    msg_dict, source, self.rabbitmq_manager)
+                    msg_dict, source, self.rabbitmq_manager, self.path_simulation)
             else:
                 # This shouldn't happen due to Pydantic validation, but just in
                 # case

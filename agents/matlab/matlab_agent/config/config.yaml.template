@@ -1,24 +1,16 @@
 agent:
   agent_id: matlab
 
-# rabbitmq:
-#   host: localhost
-#   port: 5672
-#   username: guest
-#   password: guest
-#   heartbeat: 600
-#   vhost: /
-
 rabbitmq:
-  host: duck-01.lmq.cloudamqp.com
+  host: localhost
   port: 5672
-  username: bcvaygsg
-  password: QvgUE-TqmQjYMZgVVbftaidnYsUL9PQM
+  username: guest
+  password: guest
   heartbeat: 600
-  vhost: bcvaygsg
+  vhost: /
 
 simulation:
-  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples
+  path: /Users/marcomelloni/Desktop/Aarhus, Denmark 🇩🇰/simulation-bridge/agents/matlab/matlab_agent/docs/examples
 
 exchanges:
   input: ex.bridge.output # Exchange to receive commands from
@@ -29,7 +21,7 @@ queue:
   prefetch_count: 1 # Number of messages to prefetch
 
 logging:
-  level: DEBUG # Log level (DEBUG, INFO, ERROR)
+  level: INFO # Log level (DEBUG, INFO, ERROR)
   file: logs/matlab_agent.log
 
 tcp:

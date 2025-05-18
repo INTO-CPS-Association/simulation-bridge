@@ -30,14 +30,16 @@ response_templates: Dict[str, Any] = config.get('response_templates', {})
 def handle_batch_simulation(
     parsed_data: Dict[str, Any],
     source: str,
-    message_broker: IMessageBroker
+    message_broker: IMessageBroker,
+    path_simulation: str,
 ) -> None:
     """Process a batch simulation request and send results via message broker."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
     sim_file = data.get('file')
 
     try:
-        sim_path, function_name = _validate_simulation_data(data)
+        function_name = _validate_simulation_data(data)
+        sim_path = path_simulation
         inputs, outputs = _extract_io_specs(data)
         logger.info("Starting simulation '%s'", sim_file)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
@@ -67,11 +69,10 @@ def handle_batch_simulation(
 def _validate_simulation_data(
         data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
     """Validate and extract simulation parameters."""
-    sim_path = config['simulation'].get('path')
     sim_file = data.get('file')
-    if not sim_path or not sim_file:
-        raise ValueError("Missing 'path' or 'file' in simulation config")
-    return sim_path, data.get('function_name')
+    if not sim_file:
+        raise ValueError("Missing' file' in simulation config")
+    return data.get('function_name')
 
 
 def _extract_io_specs(data: Dict[str, Any]

@@ -31,7 +31,10 @@ def run_single_agent(config_file):
         log_file=logging_file
     )
     agent_id = config['agent']['agent_id']
-    agent: IMatlabAgent = MatlabAgent(agent_id, broker_type=broker_type)
+    agent: IMatlabAgent = MatlabAgent(
+        agent_id,
+        broker_type=broker_type,
+        config_path=config_file)
     try:
         logger.debug("Starting MATLAB agent with config: %s", config)
         agent.start()

@@ -73,7 +73,7 @@ class TestMainFunction:
         MockAgent, mock_setup_logger, mock_load_config = mock_dependencies
         mock_load_config.return_value = custom_config
 
-        config_path = 'matlab_agent/config/config.yaml'
+        config_path = 'matlab_agent/config/config.yaml.template'
         result = cli_runner.invoke(main, ['-c', config_path])
 
         mock_load_config.assert_called_once_with(config_path)

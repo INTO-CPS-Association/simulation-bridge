@@ -108,8 +108,10 @@ class TestMessageHandler:
         """Test successful handling of batch simulation message."""
         with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
             message_handler.handle_message(
-                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
-            )
+                mock_channel,
+                basic_deliver,
+                basic_properties,
+                valid_batch_message.encode())
 
             mock_batch.assert_called_once()
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
@@ -122,8 +124,10 @@ class TestMessageHandler:
         """Test successful handling of streaming simulation message."""
         with patch("src.comm.rabbitmq.message_handler.handle_streaming_simulation") as mock_stream:
             message_handler.handle_message(
-                mock_channel, basic_deliver, basic_properties, valid_streaming_message.encode()
-            )
+                mock_channel,
+                basic_deliver,
+                basic_properties,
+                valid_streaming_message.encode())
 
             # Verify ack happens before processing
             mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
@@ -135,8 +139,10 @@ class TestMessageHandler:
     ):
         """Test handling of invalid YAML content."""
         message_handler.handle_message(
-            mock_channel, basic_deliver, basic_properties, invalid_yaml_message.encode()
-        )
+            mock_channel,
+            basic_deliver,
+            basic_properties,
+            invalid_yaml_message.encode())
 
         mock_channel.basic_nack.assert_called_once_with(
             delivery_tag=123, requeue=False)
@@ -151,8 +157,10 @@ class TestMessageHandler:
     ):
         """Test handling of valid YAML with invalid structure."""
         message_handler.handle_message(
-            mock_channel, basic_deliver, basic_properties, invalid_structure_message.encode()
-        )
+            mock_channel,
+            basic_deliver,
+            basic_properties,
+            invalid_structure_message.encode())
 
         mock_channel.basic_nack.assert_called_once_with(
             delivery_tag=123, requeue=False)
@@ -171,8 +179,10 @@ class TestMessageHandler:
             side_effect=Exception("Batch error")
         ):
             message_handler.handle_message(
-                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
-            )
+                mock_channel,
+                basic_deliver,
+                basic_properties,
+                valid_batch_message.encode())
 
             mock_channel.basic_nack.assert_called_once_with(
                 delivery_tag=123, requeue=False)
@@ -210,8 +220,10 @@ class TestMessageHandler:
         """Test handling of messages with complex routing keys."""
         with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
             message_handler.handle_message(
-                mock_channel, complex_deliver, basic_properties, valid_batch_message.encode()
-            )
+                mock_channel,
+                complex_deliver,
+                basic_properties,
+                valid_batch_message.encode())
 
             mock_batch.assert_called_once()
             assert mock_batch.call_args[0][1] == "source"
@@ -225,8 +237,10 @@ class TestMessageHandler:
         mock_properties.message_id = None
 
         message_handler.handle_message(
-            mock_channel, basic_deliver, mock_properties, valid_batch_message.encode()
-        )
+            mock_channel,
+            basic_deliver,
+            mock_properties,
+            valid_batch_message.encode())
 
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
@@ -238,7 +252,9 @@ class TestMessageHandler:
         with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation", side_effect=Exception("Processing error")), \
                 patch("src.comm.rabbitmq.message_handler.create_response", return_value="fake_response"):
             message_handler.handle_message(
-                mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
-            )
+                mock_channel,
+                basic_deliver,
+                basic_properties,
+                valid_batch_message.encode())
             mock_channel.basic_nack.assert_called_once_with(
                 delivery_tag=123, requeue=False)

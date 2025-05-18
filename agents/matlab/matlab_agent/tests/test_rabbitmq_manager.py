@@ -193,8 +193,7 @@ class TestRabbitMQManager:
         connection_mock.side_effect = None  # Reset side effect
         manager.connect()  # Questa dovrebbe ora funzionare
         channel_mock.exchange_declare.side_effect = pika_exceptions.ChannelClosedByBroker(
-            406, "PRECONDITION_FAILED"
-        )
+            406, "PRECONDITION_FAILED")
 
         with pytest.raises(SystemExit):
             manager.setup_infrastructure()

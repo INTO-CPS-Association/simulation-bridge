@@ -48,7 +48,11 @@ class Connect:
         if self.broker_type.lower() == "rabbitmq":
             logger.info("Initializing RabbitMQ broker")
             self.broker = RabbitMQManager(self.agent_id, self.config)
-            self.message_handler = MessageHandler(self.agent_id, self.broker)
+            path_simulation = self.config.get(
+                'simulation', {}).get(
+                'path', None)
+            self.message_handler = MessageHandler(
+                self.agent_id, self.broker, path_simulation)
         else:
             raise ValueError(f"Unsupported broker type: {self.broker_type}")
 

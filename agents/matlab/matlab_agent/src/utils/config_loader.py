@@ -10,8 +10,13 @@ from typing import Dict, Any, Optional, Union
 from pathlib import Path
 from importlib import resources
 import yaml
+from ..utils.logger import get_logger
 
-DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
+# Configure logger
+logger = get_logger()
+
+DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / \
+    "config" / "config.yaml.template"
 
 
 def get_base_dir() -> Path:
@@ -38,15 +43,11 @@ def get_base_dir() -> Path:
     test_dir: Path = Path(__file__).resolve().parent
     while test_dir.parent != test_dir:
         if (test_dir / "config").is_dir() and (test_dir /
-                                               "config" / "config.yaml").exists():
+                                               "config" / "config.yaml.template").exists():
             return test_dir
         test_dir = test_dir.parent
 
     return cwd
-
-
-# Base directory
-BASE_DIR: Path = get_base_dir()
 
 
 def load_config(
@@ -64,15 +65,17 @@ def load_config(
         FileNotFoundError: If the configuration file does not exist
         yaml.YAMLError: If the YAML file is invalid
     """
-    if not config_path:
+    if config_path is None:
         try:
-            with resources.open_text("matlab_agent.config", "config.yaml") as f:
+            logger.debug("Loading default configuration file")
+            with resources.open_text("matlab_agent.config", "config.yaml.template") as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError as exc:
             raise FileNotFoundError(
                 "Default configuration file not found inside the package."
             ) from exc
     else:
+        logger.debug("Loading configuration file from path: %s", config_path)
         config_file: Path = Path(config_path)
         if not config_file.exists():
             raise FileNotFoundError(
