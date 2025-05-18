@@ -37,22 +37,23 @@ class MatlabAgent:
         """
         self.agent_id: str = agent_id
         logger.info("Initializing MATLAB agent with ID: %s", self.agent_id)
-        
+
         # Load configuration
         self.config_manager: IConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
-        
+
         # Initialize the communication layer
         self.comm = Connect(self.agent_id, self.config, broker_type)
-        
+
         # Set up the communication infrastructure
         self.comm.connect()
         self.comm.setup()
-        
+
         # Use the default message handler from MessageHandler class
-        # This will use the properly implemented handler from rabbitmq/message_handler.py
+        # This will use the properly implemented handler from
+        # rabbitmq/message_handler.py
         self.comm.register_message_handler()
-        
+
         logger.debug("MATLAB agent initialized successfully")
 
     def start(self) -> None:

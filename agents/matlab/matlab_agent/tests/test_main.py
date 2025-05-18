@@ -77,7 +77,8 @@ class TestMainFunction:
         result = cli_runner.invoke(main, ['-c', config_path])
 
         mock_load_config.assert_called_once_with(config_path)
-        MockAgent.assert_called_once_with('custom_agent', broker_type='rabbitmq')
+        MockAgent.assert_called_once_with(
+            'custom_agent', broker_type='rabbitmq')
         mock_agent = MockAgent.return_value
         mock_agent.start.assert_called_once()
         assert result.exit_code == 0
@@ -94,7 +95,8 @@ class TestMainFunction:
         result = cli_runner.invoke(main, [])
 
         mock_load_config.assert_called_once_with(None)
-        MockAgent.assert_called_once_with('default_agent', broker_type='rabbitmq')
+        MockAgent.assert_called_once_with(
+            'default_agent', broker_type='rabbitmq')
         mock_agent = MockAgent.return_value
         mock_agent.start.assert_called_once()
         assert result.exit_code == 0
@@ -174,6 +176,7 @@ class TestMainFunction:
         run_single_agent('test_config.yml')
 
         mock_load_config.assert_called_once_with('test_config.yml')
-        MockAgent.assert_called_once_with('custom_agent', broker_type='rabbitmq')
+        MockAgent.assert_called_once_with(
+            'custom_agent', broker_type='rabbitmq')
         mock_agent = MockAgent.return_value
         mock_agent.start.assert_called_once()

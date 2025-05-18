@@ -61,10 +61,10 @@ class TestConnectInitialization:
     """
 
     def test_default_broker_initialization(self,
-                                         agent_id,
-                                         config_dict,
-                                         mock_rabbitmq_manager,
-                                         mock_message_handler):
+                                           agent_id,
+                                           config_dict,
+                                           mock_rabbitmq_manager,
+                                           mock_message_handler):
         """
         Ensure Connect initializes RabbitMQManager and MessageHandler by default.
         """
@@ -108,7 +108,8 @@ class TestConnectMethods:
         self.conn.setup()
         mock_rabbitmq_manager.setup_infrastructure.assert_called_once()
 
-    def test_register_default_handler(self, mock_rabbitmq_manager, mock_message_handler):
+    def test_register_default_handler(
+            self, mock_rabbitmq_manager, mock_message_handler):
         """
         register_message_handler() without args uses default handler.
         """
@@ -123,7 +124,8 @@ class TestConnectMethods:
         """
         custom = lambda *args: None  # type: Callable
         self.conn.register_message_handler(custom)
-        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(custom)
+        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
+            custom)
 
     def test_start_consuming_channel_active(self, mock_rabbitmq_manager):
         """

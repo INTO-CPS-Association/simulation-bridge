@@ -268,6 +268,7 @@ The developer-specific commands are
 ```bash
 pytest
 pylint matlab_agent
+autopep8 --in-place --aggressive --recursive 'matlab_agent'
 ```
 
 ## Author

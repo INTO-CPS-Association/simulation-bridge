@@ -31,14 +31,14 @@ def get_base_dir() -> Path:
         current_dir = current_dir.parent
 
     cwd: Path = Path.cwd()
-    if (cwd / "main.py").exists() or (cwd / \
-        "app.py").exists() or (cwd / "run.py").exists():
+    if (cwd / "main.py").exists() or (cwd /
+                                      "app.py").exists() or (cwd / "run.py").exists():
         return cwd
 
     test_dir: Path = Path(__file__).resolve().parent
     while test_dir.parent != test_dir:
-        if (test_dir / "config").is_dir() and (test_dir / \
-            "config" / "config.yaml").exists():
+        if (test_dir / "config").is_dir() and (test_dir /
+                                               "config" / "config.yaml").exists():
             return test_dir
         test_dir = test_dir.parent
 

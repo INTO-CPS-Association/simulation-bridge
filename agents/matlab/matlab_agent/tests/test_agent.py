@@ -67,7 +67,8 @@ def matlab_agent(mock_config_manager, mock_connect):
 class TestMatlabAgentInitialization:
     """Tests for MatlabAgent initialization."""
 
-    def test_default_initialization(self, matlab_agent, mock_config_manager, mock_connect):
+    def test_default_initialization(
+            self, matlab_agent, mock_config_manager, mock_connect):
         """Agent loads config, connects, sets up and registers handler."""
         # ConfigManager.get_config called
         mock_config_manager.get_config.assert_called_once()
@@ -82,7 +83,7 @@ class TestMatlabAgentInitialization:
     def test_custom_config_path_and_broker(self):
         """Initialization honors custom config_path and broker_type."""
         with mock.patch("src.core.agent.ConfigManager") as mock_cm, \
-             mock.patch("src.core.agent.Connect") as mock_conn:
+                mock.patch("src.core.agent.Connect") as mock_conn:
 
             # custom config_path
             mock_cm_inst = mock_cm.return_value
@@ -104,7 +105,8 @@ class TestMatlabAgentInitialization:
 class TestMatlabAgentOperations:
     """Tests for MatlabAgent start/stop/send_result."""
 
-    def test_start_and_error_handling(self, matlab_agent, mock_connect, mock_logger):
+    def test_start_and_error_handling(
+            self, matlab_agent, mock_connect, mock_logger):
         """start() calls start_consuming and handles different exceptions."""
         # --- Normal start ---
         matlab_agent.start()
@@ -118,7 +120,8 @@ class TestMatlabAgentOperations:
 
         # close() deve essere chiamato in stop()
         mock_connect.close.assert_called_once()
-        mock_logger.info.assert_any_call("Stopping MATLAB agent due to keyboard interrupt")
+        mock_logger.info.assert_any_call(
+            "Stopping MATLAB agent due to keyboard interrupt")
 
         # --- Generic Exception ---
         mock_connect.start_consuming.side_effect = Exception("oops")
@@ -137,9 +140,6 @@ class TestMatlabAgentOperations:
         )
         # Verifica che sia stato loggato lo stack trace
         mock_logger.exception.assert_called_once_with("Stack trace:")
-
-
-
 
     def test_stop(self, matlab_agent, mock_connect):
         """stop() calls comm.close()."""

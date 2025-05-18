@@ -138,7 +138,8 @@ class TestMessageHandler:
             mock_channel, basic_deliver, basic_properties, invalid_yaml_message.encode()
         )
 
-        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
+        mock_channel.basic_nack.assert_called_once_with(
+            delivery_tag=123, requeue=False)
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
         assert error_response['status'] == 'error'
@@ -153,7 +154,8 @@ class TestMessageHandler:
             mock_channel, basic_deliver, basic_properties, invalid_structure_message.encode()
         )
 
-        mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
+        mock_channel.basic_nack.assert_called_once_with(
+            delivery_tag=123, requeue=False)
         message_handler.rabbitmq_manager.send_result.assert_called_once()
         error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
         assert error_response['status'] == 'error'
@@ -172,7 +174,8 @@ class TestMessageHandler:
                 mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
             )
 
-            mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
+            mock_channel.basic_nack.assert_called_once_with(
+                delivery_tag=123, requeue=False)
             error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
             assert 'Batch error' in error_response['error']['details']
 
@@ -220,11 +223,11 @@ class TestMessageHandler:
         """Test handling of messages missing message ID."""
         mock_properties = MagicMock()
         mock_properties.message_id = None
-        
+
         message_handler.handle_message(
             mock_channel, basic_deliver, mock_properties, valid_batch_message.encode()
         )
-        
+
         mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
     def test_error_response_failure(
@@ -233,8 +236,9 @@ class TestMessageHandler:
     ):
         """Test error handling when sending error responses fails."""
         with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation", side_effect=Exception("Processing error")), \
-            patch("src.comm.rabbitmq.message_handler.create_response", return_value="fake_response"):
+                patch("src.comm.rabbitmq.message_handler.create_response", return_value="fake_response"):
             message_handler.handle_message(
                 mock_channel, basic_deliver, basic_properties, valid_batch_message.encode()
             )
-            mock_channel.basic_nack.assert_called_once_with(delivery_tag=123, requeue=False)
+            mock_channel.basic_nack.assert_called_once_with(
+                delivery_tag=123, requeue=False)

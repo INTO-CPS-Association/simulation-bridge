@@ -76,7 +76,7 @@ class Connect:
         Register a function to handle incoming messages.
 
         Args:
-            custom_handler (Optional[Callable]): A custom handler function 
+            custom_handler (Optional[Callable]): A custom handler function
             to use instead of the default. If None, the default handler will
             be used
         """
@@ -130,7 +130,7 @@ class Connect:
                     "exchange", self.config.get(
                         "exchanges", {}).get(
                         "output", "ex.sim.result"))
-                routing_key = kwargs.get("routing_key", "%s.%s" % 
+                routing_key = kwargs.get("routing_key", "%s.%s" %
                                          (self.agent_id, destination))
 
                 properties = kwargs.get("properties", None)

@@ -93,8 +93,10 @@ class TestRabbitMQManager:
         rabbitmq_manager.register_message_handler(handler)
         assert rabbitmq_manager.message_handler is handler
 
-    @pytest.mark.parametrize("with_handler, expect_consume", [(True, True), (False, False)])
-    def test_start_consuming(self, rabbitmq_manager, mock_connection, with_handler, expect_consume):
+    @pytest.mark.parametrize("with_handler, expect_consume",
+                             [(True, True), (False, False)])
+    def test_start_consuming(self, rabbitmq_manager,
+                             mock_connection, with_handler, expect_consume):
         _, channel_mock = mock_connection
         if with_handler:
             rabbitmq_manager.register_message_handler(lambda *args: None)
@@ -141,7 +143,8 @@ class TestRabbitMQManager:
         )
         assert result_exc is False
 
-    def test_send_result_and_propagation_failure(self, rabbitmq_manager, mock_connection, monkeypatch):
+    def test_send_result_and_propagation_failure(
+            self, rabbitmq_manager, mock_connection, monkeypatch):
         _, channel_mock = mock_connection
 
         payload = {"key": "value"}
@@ -153,7 +156,11 @@ class TestRabbitMQManager:
         assert "key: value" in kwargs["body"]
 
         # Force send_message failure
-        monkeypatch.setattr(rabbitmq_manager, "send_message", lambda *args, **kwargs: False)
+        monkeypatch.setattr(
+            rabbitmq_manager,
+            "send_message",
+            lambda *args,
+            **kwargs: False)
         failed = rabbitmq_manager.send_result("dest", payload)
         assert failed is False
 
@@ -171,10 +178,12 @@ class TestRabbitMQManager:
         rabbitmq_manager.close()
         channel_mock.stop_consuming.assert_called_once()
 
-    def test_connect_and_setup_failures(self, mock_connection, mock_config, agent_id):
+    def test_connect_and_setup_failures(
+            self, mock_connection, mock_config, agent_id):
         connection_mock, channel_mock = mock_connection
 
-        # Simula fallimento connessione, connect() deve fallire e non sys.exit direttamente
+        # Simula fallimento connessione, connect() deve fallire e non sys.exit
+        # direttamente
         connection_mock.side_effect = pika_exceptions.AMQPConnectionError()
         manager = RabbitMQManager(agent_id, mock_config)
         # connect() ritorna False, quindi fai l'assert
@@ -190,7 +199,8 @@ class TestRabbitMQManager:
         with pytest.raises(SystemExit):
             manager.setup_infrastructure()
 
-    def test_start_consuming_interrupts_and_errors(self, rabbitmq_manager, mock_connection):
+    def test_start_consuming_interrupts_and_errors(
+            self, rabbitmq_manager, mock_connection):
         _, channel_mock = mock_connection
         rabbitmq_manager.register_message_handler(lambda *_: None)
 

@@ -141,14 +141,17 @@ class RabbitMQManager(IRabbitMQManager):
                 queue=self.input_queue_name,
                 routing_key=f"*.{self.agent_id}"
             )
-            logger.debug("Declared and bound input queue: %s", self.input_queue_name)
+            logger.debug(
+                "Declared and bound input queue: %s",
+                self.input_queue_name)
 
             # Set QoS (prefetch count)
             self.channel.basic_qos(
                 prefetch_count=queue_config.get('prefetch_count', 1)
             )
         except pika.exceptions.ChannelClosedByBroker as e:
-            logger.error("Channel closed by broker while setting up infrastructure: %s", e)
+            logger.error(
+                "Channel closed by broker while setting up infrastructure: %s", e)
             sys.exit(1)
 
     def register_message_handler(

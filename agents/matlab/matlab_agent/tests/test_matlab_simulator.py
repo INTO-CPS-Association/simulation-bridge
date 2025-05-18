@@ -34,7 +34,7 @@ def mock_matlab_engine():
 def patch_path_exists():
     """Patch Path.exists and is_dir to return True."""
     with patch('pathlib.Path.exists', return_value=True), \
-         patch('pathlib.Path.is_dir', return_value=True):
+            patch('pathlib.Path.is_dir', return_value=True):
         yield
 
 
@@ -61,7 +61,8 @@ class TestMatlabSimulatorInitialization:
         assert simulator.function_name == "simulation_batch"
         assert simulator.eng is None
 
-    def test_init_with_custom_function_name(self, sim_path, sim_file, patch_path_exists):
+    def test_init_with_custom_function_name(
+            self, sim_path, sim_file, patch_path_exists):
         """Test initialization with a custom function name."""
         simulator = MatlabSimulator(sim_path, sim_file, "custom_function")
         assert simulator.function_name == "custom_function"
@@ -126,7 +127,8 @@ class TestMatlabSimulatorOperations:
 
     def test_run_with_matlab_error(self, running_simulator):
         """Test handling MATLAB error during run."""
-        running_simulator.eng.feval.side_effect = Exception("MATLAB execution error")
+        running_simulator.eng.feval.side_effect = Exception(
+            "MATLAB execution error")
         with pytest.raises(MatlabSimulationError, match="Simulation error:"):
             running_simulator.run({'x': 10}, ["out1"])
 
@@ -182,16 +184,16 @@ class TestMatlabSimulatorMetadata:
     def test_get_metadata_with_start_time(self, running_simulator):
         """Test getting metadata with start time."""
         running_simulator.start_time = 1000  # Set a specific start time
-        
+
         with patch('time.time', return_value=1005), \
-             patch('psutil.Process') as mock_process:
+                patch('psutil.Process') as mock_process:
             # Set up memory_info mock
             mock_memory_info = Mock()
             mock_memory_info.rss = 150 * 1024 * 1024  # 150 MB
             mock_process.return_value.memory_info.return_value = mock_memory_info
-            
+
             metadata = running_simulator.get_metadata()
-            
+
         assert 'execution_time' in metadata
         assert metadata['execution_time'] == 5.0
 
@@ -202,28 +204,28 @@ class TestMatlabSimulatorMetadata:
             mock_memory_info = Mock()
             mock_memory_info.rss = 150 * 1024 * 1024  # 150 MB
             mock_process.return_value.memory_info.return_value = mock_memory_info
-            
+
             metadata = simulator.get_metadata()
-            
+
         assert 'memory_usage' in metadata
         assert 'execution_time' not in metadata
 
     def test_get_metadata_with_additional_info(self, running_simulator):
         """Test getting metadata with additional information."""
         running_simulator.start_time = 1000
-        
+
         with patch('time.time', return_value=1010), \
-             patch('psutil.Process') as mock_process:
+                patch('psutil.Process') as mock_process:
             # Set up memory_info mock
             mock_memory_info = Mock()
             mock_memory_info.rss = 150 * 1024 * 1024  # 150 MB
             mock_process.return_value.memory_info.return_value = mock_memory_info
-            
+
             # Mock engine eval for matlab_version
             running_simulator.eng.eval.return_value = "R2021b"
-            
+
             metadata = running_simulator.get_metadata()
-                
+
         assert 'execution_time' in metadata
         assert metadata['execution_time'] == 10.0
         assert 'memory_usage' in metadata
