@@ -20,12 +20,20 @@ git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
 ```
 
-#### 2. Activate the Virtual Environment with Poetry
+### 2. Install Poetry and Create Virtul Environment
 
-Ensure that Poetry is installed. If not, you can install it using:
+Ensure that Poetry is installed on your system. If it is not already installed, execute the following command:
 
 ```bash
-pip install poetry
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+pipx install poetry
+```
+
+Verify the installation by checking the Poetry version:
+
+```bash
+poetry --version
 ```
 
 Activate the virtual environment:
@@ -44,11 +52,11 @@ poetry install
 
 #### 4. Install the MATLAB Engine API for Python
 
-To connect MATLAB to the Simulation Bridge, you need to install the MATLAB Engine API within the Poetry environment.
+To connect MATLAB to the Simulation Bridge, you need to install the MATLAB Engine API within the Poetry environment. There are two possible methods to integrate Matlab engine into python virtual environment.
 
-##### Example Installation on macOS
+##### 4.1 Installation using in-built Python package 
 
-Assuming you are using MATLAB R2024b, execute the following commands:
+The Matlab installation comes with python pip package which can be used. Assuming you are using MATLAB R2024b and MacOS, execute the following commands:
 
 ```bash
 cd /Applications/MATLAB_R2024b.app/extern/engines/python
@@ -56,6 +64,15 @@ poetry run python -m pip install .
 ```
 
 > **Note:** Replace `MATLAB_R2024b.app` with the version of MATLAB installed on your system.
+
+##### 5.2 Install pip package
+
+There is a pip package named [matlabengine](https://pypi.org/project/matlabengine) for Matlab.
+Each version of this package is meant for a specific version of Matlab. You can see the [matlabengine package history](https://pypi.org/project/matlabengine/#history) and select the compatible pip package. Install the package for `Matlab_R2024b` release.
+
+```bash
+pip install matlabengine==24.2.2
+```
 
 #### 5. Verify the MATLAB Engine Installation
 
@@ -139,7 +156,7 @@ response_templates:
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
 
-To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-path` or `-c` option followed by the path to your configuration file:
+
 
 ```bash
 poetry run matlab-agent --config-file <path_to_config.yaml>
@@ -147,7 +164,8 @@ poetry run matlab-agent --config-file <path_to_config.yaml>
 
 ## Usage
 
-To start the MATLAB Agent with the default configuration:
+The agent requires a configuration file. You can copy the `matlab_agent/config/config.yaml.template` into `matlab_agent/config/config.yaml` and customize it.
+To start the MATLAB Agent with the default configuration (`matlab_agent/config/config.yaml`):
 
 1. Open a terminal and navigate to the project's root directory.
 2. Run the following command:
@@ -156,10 +174,10 @@ To start the MATLAB Agent with the default configuration:
 poetry run matlab-agent
 ```
 
-To use a custom configuration file, provide its path using the `--config-path` option:
+To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-file` or `-c` option followed by the path to your configuration file:
 
 ```bash
-poetry run matlab-agent --config-path <path_to_config.yaml>
+poetry run matlab-agent --config-file <path_to_config.yaml>
 ```
 
 Alternatively, you can use the shorthand `-c` option:
@@ -217,7 +235,7 @@ Then rebuild the package:
 poetry build
 ```
 
-## Testing
+## Demonstration
 
 For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](matlab_agent/tests/README.md).
 
@@ -242,6 +260,15 @@ This script demonstrates how to interact with the MATLAB Agent, providing a clea
 - Sends the results to the output exchange.
 
 For detailed information regarding simulations and constraints, please refer to the [Simulations and Constraints Documentation](matlab_agent/docs/README.md).
+
+## Package Development
+
+The developer-specific commands are
+
+```bash
+pytest
+pylint matlab_agent
+```
 
 ## Author
 

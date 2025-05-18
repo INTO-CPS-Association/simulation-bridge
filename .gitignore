@@ -193,3 +193,6 @@ src/logs
 # agents/MATLABagent_mat
 # agents/MATLABagent_icp
 # agents/MATLABagent_api_engine
+
+**/config/*.yaml
+**/config/*.yml

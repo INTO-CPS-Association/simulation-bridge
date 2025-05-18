@@ -20,10 +20,10 @@ psutil = "^7.0.0"
 colorlog = "^6.9.0"
 
 [tool.poetry.group.dev.dependencies]
+autopep8 = "^2.3.2"
 pylint = "^3.3.7"
 pytest = "^8.3.5"
-coverage = "^7.8.0"
-autopep8 = "^2.3.2"
+pytest-cov = "^6.1.1"
 
 [tool.poetry.scripts]
 matlab-agent = "matlab_agent.src.run_default_agent:run"  
