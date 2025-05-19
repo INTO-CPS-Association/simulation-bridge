@@ -24,14 +24,64 @@ from ..utils.logger import get_logger
 # Configure logger
 logger = get_logger()
 
-# Load configuration
-config: Dict[str, Any] = load_config()
 
-# Response templates
-response_templates: Dict[str, Any] = config.get('response_templates', {})
+def handle_streaming_simulation(
+    parsed_data: Dict[str, Any],
+    source: str,
+    message_broker: IMessageBroker,
+    path_simulation: str,
+    response_templates: Dict,
+    tcp_settings: Dict
+) -> None:
+    """Process streaming simulation request."""
+    data = parsed_data.get('simulation', {})
+    sim_path = path_simulation if path_simulation else data.get('path')
+    sim_file = data.get('file')
 
-# TCP settings
-tcp_settings: Dict[str, Union[str, int]] = config.get('tcp', {})
+    if not sim_path or not sim_file:
+        _handle_streaming_error(
+            '',
+            ValueError("Missing path/file configuration"),
+            source,
+            message_broker,
+            response_templates
+        )
+        return
+
+    logger.info("Processing streaming simulation: %s", sim_file)
+    controller = None
+
+    try:
+        controller = MatlabStreamingController(
+            sim_path,
+            sim_file,
+            source,
+            message_broker,
+            response_templates,
+            tcp_settings
+        )
+        controller.start()
+        logger.debug("Simulation inputs: %s", data.get('inputs', {}))
+        controller.run(data.get('inputs', {}))
+        message_broker.send_result(
+            source,
+            create_response(
+                'success',
+                sim_file,
+                'streaming',
+                response_templates,
+                outputs={'status': 'completed'},
+                metadata=controller.get_metadata()
+            )
+        )
+        logger.info("Completed: %s", sim_file)
+
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error("Simulation failed: %s", str(e))
+        _handle_streaming_error(sim_file, e, source, message_broker)
+    finally:
+        if controller:
+            controller.close()
 
 
 class MatlabStreamingError(Exception):
@@ -87,12 +137,15 @@ class MatlabStreamingController:
         file: str,
         source: str,
         message_broker: IMessageBroker,
+        response_templates: Dict,
+        tcp_settings: Dict
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.source: str = source
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
+        self.response_templates: Dict = response_templates
         host = tcp_settings.get('host', 'localhost')
         port = tcp_settings.get('port', 5678)
         self.connection = StreamingConnection(host, port)
@@ -171,7 +224,7 @@ class MatlabStreamingController:
                     'progress',
                     self.sim_file,
                     'streaming',
-                    response_templates,
+                    self.response_templates,
                     percentage=0,
                     message="MATLAB simulation started"
                 )
@@ -190,7 +243,7 @@ class MatlabStreamingController:
             template_type,
             self.sim_file,
             'streaming',
-            response_templates,
+            self.response_templates,
             percentage=output.get('progress', {}).get('percentage', sequence),
             data=data_payload,
             metadata=output.get('metadata', {}),
@@ -259,7 +312,8 @@ def _handle_streaming_error(
     sim_file: str,
     error: Exception,
     source: str,
-    message_broker: IMessageBroker
+    message_broker: IMessageBroker,
+    response_templates: Dict
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -291,57 +345,3 @@ def _handle_streaming_error(
                 'traceback': sys.exc_info() if response_templates.get(
                     'error',
                     {}).get('include_stacktrace') else None}))
-
-
-def handle_streaming_simulation(
-    parsed_data: Dict[str, Any],
-    source: str,
-    message_broker: IMessageBroker,
-    path_simulation: str
-) -> None:
-    """Process streaming simulation request."""
-    data = parsed_data.get('simulation', {})
-    sim_path = path_simulation if path_simulation else data.get('path')
-    sim_file = data.get('file')
-
-    if not sim_path or not sim_file:
-        _handle_streaming_error(
-            '',
-            ValueError("Missing path/file configuration"),
-            source,
-            message_broker
-        )
-        return
-
-    logger.info("Processing streaming simulation: %s", sim_file)
-    controller = None
-
-    try:
-        controller = MatlabStreamingController(
-            sim_path,
-            sim_file,
-            source,
-            message_broker
-        )
-        controller.start()
-        logger.debug("Simulation inputs: %s", data.get('inputs', {}))
-        controller.run(data.get('inputs', {}))
-        message_broker.send_result(
-            source,
-            create_response(
-                'success',
-                sim_file,
-                'streaming',
-                response_templates,
-                outputs={'status': 'completed'},
-                metadata=controller.get_metadata()
-            )
-        )
-        logger.info("Completed: %s", sim_file)
-
-    except Exception as e:  # pylint: disable=broad-except
-        logger.error("Simulation failed: %s", str(e))
-        _handle_streaming_error(sim_file, e, source, message_broker)
-    finally:
-        if controller:
-            controller.close()

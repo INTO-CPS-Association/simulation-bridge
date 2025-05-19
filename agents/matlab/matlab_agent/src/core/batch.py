@@ -20,18 +20,13 @@ from .matlab_simulator import MatlabSimulator, MatlabSimulationError
 # Configure logger
 logger = get_logger()
 
-# Load configuration
-config: Dict[str, Any] = load_config()
-
-# Response templates
-response_templates: Dict[str, Any] = config.get('response_templates', {})
-
 
 def handle_batch_simulation(
     parsed_data: Dict[str, Any],
     source: str,
     message_broker: IMessageBroker,
     path_simulation: str,
+    response_templates: Dict[str, Any]
 ) -> None:
     """Process a batch simulation request and send results via message broker."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
@@ -43,11 +38,17 @@ def handle_batch_simulation(
         inputs, outputs = _extract_io_specs(data)
         logger.info("Starting simulation '%s'", sim_file)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
-        _send_progress(message_broker, source, sim_file, 0)
-
+        _send_progress(message_broker,
+                       source,
+                       sim_file,
+                       0,
+                       response_templates)
         _start_matlab_with_retry(sim)
-        _send_progress(message_broker, source, sim_file, 50)
-
+        _send_progress(message_broker,
+                       source,
+                       sim_file,
+                       50,
+                       response_templates)
         results = sim.run(inputs, outputs)
         metadata = _get_metadata(sim) if response_templates.get(
             'success', {}).get('include_metadata', False) else None
@@ -56,11 +57,13 @@ def handle_batch_simulation(
             'success', sim_file, 'batch', response_templates,
             outputs=results, metadata=metadata
         )
-        _send_response(message_broker, source, success_response)
+        _send_response(message_broker,
+                       source,
+                       success_response)
         logger.info("Simulation '%s' completed successfully", sim_file)
 
     except Exception as e:  # pylint: disable=broad-except
-        _handle_error(e, sim_file, message_broker, source)
+        _handle_error(e, sim_file, message_broker, source, response_templates)
     finally:
         if 'sim' in locals():
             sim.close()
@@ -107,7 +110,9 @@ def _send_progress(
         broker: IMessageBroker,
         source: str,
         sim_file: str,
-        percentage: int) -> None:
+        percentage: int,
+        response_templates: Dict
+) -> None:
     """Send progress update if configured."""
     if response_templates.get('progress', {}).get('include_percentage', False):
         progress_response = create_response(
@@ -134,7 +139,9 @@ def _send_response(broker: IMessageBroker, source: str,
 def _handle_error(error: Exception,
                   sim_file: Optional[str],
                   broker: IMessageBroker,
-                  source: str) -> None:
+                  source: str,
+                  response_templates: Dict
+                  ) -> None:
     """Handle errors and send error response."""
     logger.error("Simulation '%s' failed: %s",
                  sim_file, str(error), exc_info=True)

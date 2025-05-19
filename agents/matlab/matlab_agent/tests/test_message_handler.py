@@ -54,12 +54,22 @@ class TestMessageHandler:
         return "/test/simulation/path"
 
     @pytest.fixture(scope="function")
-    def message_handler(self, mock_rabbitmq_manager, sim_path):
+    def mock_config(self, sim_path):
+        """Fixture providing a mocked configuration with simulation path."""
+        return {
+            'simulation': {
+                'path': sim_path
+            },
+            'response_templates': {}
+        }
+
+    @pytest.fixture(scope="function")
+    def message_handler(self, mock_rabbitmq_manager, mock_config):
         """Fixture providing a MessageHandler instance with mocked dependencies."""
         return MessageHandler(
             agent_id="test_agent",
             rabbitmq_manager=mock_rabbitmq_manager,
-            path_simulation=sim_path
+            config=mock_config
         )
 
     @pytest.fixture(scope="function")
@@ -127,7 +137,7 @@ class TestMessageHandler:
 
     def test_handle_streaming_message(
         self, message_handler, mock_channel, basic_deliver,
-        basic_properties, valid_streaming_message, sim_path
+        basic_properties, valid_streaming_message, sim_path, mock_config
     ):
         """Test successful handling of streaming simulation message."""
         with patch("src.comm.rabbitmq.message_handler.handle_streaming_simulation") as mock_stream:
@@ -142,6 +152,8 @@ class TestMessageHandler:
             mock_stream.assert_called_once()
             # Verify the simulation path is properly passed to the handler
             assert mock_stream.call_args[0][3] == sim_path
+            # Verify the TCP settings are passed correctly
+            assert mock_stream.call_args[0][5] == mock_config.get('tcp', {})
 
     def test_invalid_yaml_handling(
         self, message_handler, mock_channel, basic_deliver,
@@ -165,7 +177,7 @@ class TestMessageHandler:
         self, message_handler, mock_channel, basic_deliver,
         basic_properties, invalid_structure_message
     ):
-        """Test handling of valid YAML with invalid structure."""
+        """Test handling of valid YAML with invalid message structure."""
         message_handler.handle_message(
             mock_channel,
             basic_deliver,

@@ -2,7 +2,7 @@
 Message handler for processing incoming RabbitMQ messages.
 """
 import uuid
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Dict
 
 import yaml
 from pika.adapters.blocking_connection import BlockingChannel
@@ -60,7 +60,7 @@ class MessageHandler(IRabbitMQMessageHandler):
     """
 
     def __init__(self, agent_id: str, rabbitmq_manager: Any,
-                 path_simulation: Optional[str]) -> None:
+                 config: Optional[Dict]) -> None:
         """
         Initialize the message handler.
 
@@ -70,7 +70,12 @@ class MessageHandler(IRabbitMQMessageHandler):
         """
         self.agent_id = agent_id
         self.rabbitmq_manager = rabbitmq_manager
-        self.path_simulation = path_simulation
+        self.config = config
+        self.path_simulation = self.config.get(
+            'simulation', {}).get(
+            'path', None)
+        self.response_templates = self.config.get(
+            'response_templates', {})
 
     def get_agent_id(self) -> str:
         """
@@ -172,12 +177,20 @@ class MessageHandler(IRabbitMQMessageHandler):
                     msg_dict,
                     source,
                     self.rabbitmq_manager,
-                    self.path_simulation)
+                    self.path_simulation,
+                    self.response_templates)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             elif sim_type == 'streaming':
                 ch.basic_ack(delivery_tag=method.delivery_tag)
+                tcp_settings = self.config.get(
+                    'tcp', {})
                 handle_streaming_simulation(
-                    msg_dict, source, self.rabbitmq_manager, self.path_simulation)
+                    msg_dict, source,
+                    self.rabbitmq_manager,
+                    self.path_simulation,
+                    self.response_templates,
+                    tcp_settings
+                )
             else:
                 # This shouldn't happen due to Pydantic validation, but just in
                 # case

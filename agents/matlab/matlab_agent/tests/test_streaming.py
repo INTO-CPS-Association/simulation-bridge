@@ -26,6 +26,15 @@ def response_templates():
             },
             'include_stacktrace': False,
         },
+        'progress': {
+            'include_percentage': True
+        },
+        'success': {
+            'include_metadata': True
+        },
+        'streaming': {
+            'include_sequence': True
+        }
     }
 
 
@@ -33,22 +42,6 @@ def response_templates():
 def tcp_settings():
     """Fixture providing standardized TCP settings for tests."""
     return {'host': 'localhost', 'port': 1234}
-
-
-@pytest.fixture
-def patch_streaming_config(monkeypatch, response_templates, tcp_settings):
-    """
-    Fixture that patches the streaming configuration for test isolation.
-
-    Args:
-        monkeypatch: pytest's monkeypatch fixture
-        response_templates: Response templates fixture
-        tcp_settings: TCP settings fixture
-    """
-    monkeypatch.setattr(
-        'src.core.streaming.response_templates',
-        response_templates)
-    monkeypatch.setattr('src.core.streaming.tcp_settings', tcp_settings)
 
 
 @pytest.fixture
@@ -100,13 +93,19 @@ def streaming_connection():
 
 
 @pytest.fixture
-def matlab_controller(monkeypatch, mock_rabbit_client):
+def matlab_controller(
+        monkeypatch,
+        mock_rabbit_client,
+        response_templates,
+        tcp_settings):
     """
     Fixture providing a properly configured MatlabStreamingController.
 
     Args:
         monkeypatch: pytest's monkeypatch fixture
         mock_rabbit_client: Mock RabbitMQ client fixture
+        response_templates: Response templates fixture
+        tcp_settings: TCP settings fixture
 
     Returns:
         MatlabStreamingController: A controller instance with mocked filesystem
@@ -116,7 +115,12 @@ def matlab_controller(monkeypatch, mock_rabbit_client):
     monkeypatch.setattr('pathlib.Path.exists', lambda self: True)
 
     controller = MatlabStreamingController(
-        str(Path.cwd()), 'test_file.m', 'test_src', mock_rabbit_client
+        str(Path.cwd()),
+        'test_file.m',
+        'test_src',
+        mock_rabbit_client,
+        response_templates,
+        tcp_settings
     )
 
     yield controller
@@ -299,7 +303,7 @@ def test_get_metadata(matlab_controller, monkeypatch):
 
 
 def test_handle_streaming_error_bad_request(
-        mock_rabbit_client, patch_streaming_config):
+        mock_rabbit_client, response_templates):
     """
     Test _handle_streaming_error sets HTTP 400 for bad requests.
     """
@@ -308,7 +312,8 @@ def test_handle_streaming_error_bad_request(
         '',  # Empty data
         ValueError('Missing path/file configuration'),  # Value error
         'test_queue',  # Queue name
-        mock_rabbit_client  # RabbitMQ client
+        mock_rabbit_client,  # RabbitMQ client
+        response_templates  # Response templates
     )
 
     # Get the sent error response
@@ -320,38 +325,40 @@ def test_handle_streaming_error_bad_request(
 
 
 def test_handle_streaming_simulation_missing_fields(
-        monkeypatch, mock_rabbit_client):
+        monkeypatch, mock_rabbit_client, response_templates, tcp_settings):
     """
     Test handle_streaming_simulation reports error when required fields are missing.
     """
-
     # Mock MatlabStreamingController
     monkeypatch.setattr(
         'src.core.streaming.MatlabStreamingController',
         Mock()
     )
 
-    # Esegui la chiamata con dati incompleti, incluso il path_simulation
-    # mancante
+    # Execute the call with missing data, including missing path_simulation
     handle_streaming_simulation(
-        {'simulation': {'foo': 'bar'}},  # Dati mancanti
+        {'simulation': {'foo': 'bar'}},  # Missing data
         'test_queue',
         mock_rabbit_client,
-        None  # path_simulation non specificato
+        None,  # path_simulation not specified
+        response_templates,
+        tcp_settings
     )
 
-    # Ottieni i dati inviati con l'errore
+    # Get the sent error data
     sent_data = mock_rabbit_client.send_result.call_args[0][1]
 
-    # Controlla che l'errore sia (500) e che il tipo sia 'bad_request'
-    assert sent_data['error']['code'] == 500
+    # Check the error code and type
+    assert sent_data['error']['code'] == 400
     assert sent_data['error']['type'] == 'bad_request'
     assert 'Missing path/file configuration' in sent_data['error']['message']
 
 
 def test_handle_streaming_simulation_success(
         monkeypatch,
-        mock_rabbit_client):
+        mock_rabbit_client,
+        response_templates,
+        tcp_settings):
     """
     Test handle_streaming_simulation successful end-to-end path.
     """
@@ -361,7 +368,7 @@ def test_handle_streaming_simulation_success(
     # Mock controller creation to return our fake
     monkeypatch.setattr(
         'src.core.streaming.MatlabStreamingController',
-        lambda path, f, s, r: fake_controller
+        lambda path, f, s, r, rt, ts: fake_controller
     )
 
     # Complete simulation data with all required fields
@@ -377,7 +384,9 @@ def test_handle_streaming_simulation_success(
         simulation_data,
         'test_queue',
         mock_rabbit_client,
-        "test_path"
+        "test_path",
+        response_templates,
+        tcp_settings
     )
 
     # Verify controller methods were called

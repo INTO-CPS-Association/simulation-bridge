@@ -96,6 +96,16 @@ def create_response_mock():
         yield mock
 
 
+@pytest.fixture
+def response_templates():
+    """Fixture providing standardized response templates for tests."""
+    return {
+        'success': {'include_metadata': True},
+        'progress': {'include_percentage': True},
+        'error': {'include_stacktrace': False}
+    }
+
+
 class TestValidateSimulationData:
     """Tests for _validate_simulation_data function."""
 
@@ -173,20 +183,33 @@ class TestSendProgress:
     """Tests for _send_progress function."""
 
     def test_send_progress_enabled(
-            self, message_broker_mock, create_response_mock, patched_config):
+            self,
+            message_broker_mock,
+            create_response_mock,
+            response_templates):
         """Test sending progress when enabled."""
-        _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50)
+        _send_progress(message_broker_mock, 'test_queue', 'sim.m',
+                       50,
+                       response_templates)
 
         create_response_mock.assert_called_once_with(
-            'progress', 'sim.m', 'batch', ANY, percentage=50
+            'progress', 'sim.m', 'batch', response_templates, percentage=50
         )
         message_broker_mock.send_result.assert_called_once()
 
     def test_send_progress_disabled(
-            self, message_broker_mock, create_response_mock):
+            self,
+            message_broker_mock,
+            create_response_mock,
+            response_templates):
         """Test not sending progress when disabled."""
-        with patch('src.core.batch.response_templates', {'progress': {'include_percentage': False}}):
-            _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50)
+        # Modifica response_templates per disabilitare il reporting del
+        # progresso
+        disabled_templates = response_templates.copy()
+        disabled_templates['progress'] = {'include_percentage': False}
+
+        _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50,
+                       disabled_templates)
 
         create_response_mock.assert_not_called()
         message_broker_mock.send_result.assert_not_called()
@@ -229,40 +252,53 @@ class TestHandleError:
     """Tests for _handle_error function."""
 
     def test_handle_file_not_found_error(
-            self, message_broker_mock, create_response_mock):
+            self,
+            message_broker_mock,
+            create_response_mock,
+            response_templates):
         """Test handling FileNotFoundError."""
         error = FileNotFoundError("File not found")
 
-        with patch('src.core.batch._determine_error_type', return_value='missing_file') as mock_determine:
-            _handle_error(error, 'sim.m', message_broker_mock, 'test_queue')
+        with patch('src.core.batch._determine_error_type',
+                   return_value='missing_file') as mock_determine:
+            _handle_error(error, 'sim.m', message_broker_mock,
+                          'test_queue', response_templates)
 
         mock_determine.assert_called_once_with(error)
         create_response_mock.assert_called_once()
         message_broker_mock.send_result.assert_called_once()
 
     def test_handle_value_error(
-            self, message_broker_mock, create_response_mock):
+            self, message_broker_mock, create_response_mock,
+            response_templates):
         """Test handling ValueError."""
         error = ValueError("Invalid config")
 
-        with patch('src.core.batch._determine_error_type', return_value='invalid_config') as mock_determine:
-            _handle_error(error, 'sim.m', message_broker_mock, 'test_queue')
+        with patch('src.core.batch._determine_error_type',
+                   return_value='invalid_config') as mock_determine:
+            _handle_error(error, 'sim.m', message_broker_mock,
+                          'test_queue', response_templates)
 
         mock_determine.assert_called_once_with(error)
         create_response_mock.assert_called_once()
         message_broker_mock.send_result.assert_called_once()
 
     def test_handle_unknown_error(
-            self, message_broker_mock, create_response_mock):
+            self,
+            message_broker_mock,
+            create_response_mock,
+            response_templates):
         """Test handling unknown error type."""
         error = Exception("Unknown error")
 
-        with patch('src.core.batch._determine_error_type', return_value='execution_error') as mock_determine:
-            _handle_error(error, None, message_broker_mock, 'test_queue')
+        with patch('src.core.batch._determine_error_type',
+                   return_value='execution_error') as mock_determine:
+            _handle_error(error, None, message_broker_mock,
+                          'test_queue', response_templates)
 
         mock_determine.assert_called_once_with(error)
         create_response_mock.assert_called_once_with(
-            'error', 'unknown', 'batch', ANY,
+            'error', 'unknown', 'batch', response_templates,
             error={
                 'message': str(error),
                 'type': 'execution_error',
@@ -309,22 +345,27 @@ class TestHandleBatchSimulation:
             sample_simulation_data,
             message_broker_mock,
             matlab_simulator_mock,
-            create_response_mock):
+            create_response_mock,
+            response_templates):
         """Test successful batch simulation processing."""
         mock_class, mock_instance = matlab_simulator_mock
 
-        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
-                patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+        with patch('src.core.batch._validate_simulation_data',
+                   return_value='func'), \
+                patch('src.core.batch._extract_io_specs',
+                      return_value=({}, ['output'])), \
                 patch('src.core.batch._start_matlab_with_retry') as mock_start, \
                 patch('src.core.batch._send_progress') as mock_progress, \
-                patch('src.core.batch._get_metadata', return_value={'exec_time': 1.0}) as mock_metadata, \
+                patch('src.core.batch._get_metadata',
+                      return_value={'exec_time': 1.0}) as mock_metadata, \
                 patch('src.core.batch._send_response') as mock_send:
 
             handle_batch_simulation(
                 sample_simulation_data,
                 'test_queue',
                 message_broker_mock,
-                'matlab_agent/docs/examples')
+                'matlab_agent/docs/examples',
+                response_templates)
 
             # Verify all function calls
             mock_class.assert_called_once()
@@ -335,12 +376,14 @@ class TestHandleBatchSimulation:
                     message_broker_mock,
                     'test_queue',
                     'simulation_batch.m',
-                    0),
+                    0,
+                    response_templates),
                 call(
                     message_broker_mock,
                     'test_queue',
                     'simulation_batch.m',
-                    50)
+                    50,
+                    response_templates)
             ])
             mock_metadata.assert_called_once_with(mock_instance)
             mock_instance.close.assert_called_once()
@@ -351,7 +394,8 @@ class TestHandleBatchSimulation:
             self,
             sample_simulation_data,
             message_broker_mock,
-            matlab_simulator_mock):
+            matlab_simulator_mock,
+            response_templates):
         """Test handling validation error in batch simulation."""
         with patch('src.core.batch._validate_simulation_data') as mock_validate, \
                 patch('src.core.batch._handle_error') as mock_handle_error:
@@ -363,7 +407,8 @@ class TestHandleBatchSimulation:
                 sample_simulation_data,
                 'test_queue',
                 message_broker_mock,
-                'path_simulation')
+                'path_simulation',
+                response_templates)
 
             # Verify error is handled
             mock_handle_error.assert_called_once()
@@ -374,12 +419,14 @@ class TestHandleBatchSimulation:
             self,
             sample_simulation_data,
             message_broker_mock,
-            matlab_simulator_mock):
+            matlab_simulator_mock,
+            response_templates):
         """Test handling MATLAB error in batch simulation."""
         mock_class, mock_instance = matlab_simulator_mock
 
-        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
-                patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+        with patch('src.core.batch._validate_simulation_data', return_value='func'), \
+                patch('src.core.batch._extract_io_specs',
+                      return_value=({}, ['output'])), \
                 patch('src.core.batch._start_matlab_with_retry') as mock_start, \
                 patch('src.core.batch._handle_error') as mock_handle_error:
 
@@ -390,7 +437,8 @@ class TestHandleBatchSimulation:
                 sample_simulation_data,
                 'test_queue',
                 message_broker_mock,
-                'simulation_path')
+                'simulation_path',
+                response_templates)
 
             # Verify error is handled and simulator is closed
             mock_handle_error.assert_called_once()
@@ -400,12 +448,14 @@ class TestHandleBatchSimulation:
             self,
             sample_simulation_data,
             message_broker_mock,
-            matlab_simulator_mock):
+            matlab_simulator_mock,
+            response_templates):
         """Test handling run error in batch simulation."""
         mock_class, mock_instance = matlab_simulator_mock
 
-        with patch('src.core.batch._validate_simulation_data', return_value=('path', 'func')), \
-                patch('src.core.batch._extract_io_specs', return_value=({}, ['output'])), \
+        with patch('src.core.batch._validate_simulation_data', return_value='func'), \
+                patch('src.core.batch._extract_io_specs',
+                      return_value=({}, ['output'])), \
                 patch('src.core.batch._start_matlab_with_retry'), \
                 patch('src.core.batch._send_progress'), \
                 patch('src.core.batch._handle_error') as mock_handle_error:
@@ -417,7 +467,8 @@ class TestHandleBatchSimulation:
                 sample_simulation_data,
                 'test_queue',
                 message_broker_mock,
-                'simulation_path')
+                'simulation_path',
+                response_templates)
 
             # Verify error is handled and simulator is closed
             mock_handle_error.assert_called_once()
