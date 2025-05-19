@@ -1,7 +1,8 @@
 """
-Unit tests for run_default_agent.py module which provides the default entry point 
+Unit tests for run_default_agent.py module which provides the default entry point
 for the MATLAB Agent.
 """
+from src.run_default_agent import run
 import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
@@ -11,7 +12,6 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import the module to be tested
-from src.run_default_agent import run
 
 
 class TestRunDefaultAgent:
@@ -25,6 +25,6 @@ class TestRunDefaultAgent:
         """
         # Call the function under test
         run()
-        
+
         # Verify that main was called exactly once with no arguments
         mock_main.assert_called_once_with()

@@ -15,9 +15,11 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
 
 #### 1. Clone the Repository and Navigate to the Working Directory
 
-````bash
+```bash
 git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
+```
+
 ### 2. Install Poetry and Create Virtual Environment
 
 Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
@@ -26,7 +28,7 @@ Ensure that Poetry is installed on your system. If it is not already installed, 
 python3 -m pip install --user pipx
 python3 -m pipx ensurepath
 pipx install poetry
-````
+```
 
 Verify the installation by checking the Poetry version:
 
