@@ -104,7 +104,9 @@ Ensure that the MATLAB Engine is properly installed and accessible within your P
 
 ### Configuration
 
-Create a `config.yaml` file with the following structure:
+The configuration is specified in yaml format. A template file (`matlab_agent/config/config.yaml.template`) has been provided. It can be customized further.
+
+Explanation on different fields of the yaml template is given below.
 
 ```yaml
 agent:
@@ -119,7 +121,7 @@ rabbitmq:
   vhost: / # The virtual host to use for RabbitMQ connections.
 
 simulation:
-  path: /Users/marcomelloni/Desktop/AU_University/simulation-bridge/agents/matlab/matlab_agent/docs/examples # The file path to the folder containing MATLAB simulation files.
+  path: /Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples # The file path to the folder containing MATLAB simulation files.
 
 exchanges:
   input: ex.bridge.output # The RabbitMQ exchange from which the agent receives commands.
@@ -211,7 +213,7 @@ This will generate two files in the `dist/` folder:
 
 Example output:
 
-```
+```bash
 dist/
 ├── matlab_agent-0.1.0-py3-none-any.whl
 └── matlab_agent-0.1.0.tar.gz
@@ -251,10 +253,13 @@ For instructions on running tests created with `pytest` and `unittest.mock`, ple
 
 ## Quick Start: Interacting with the Matlab agent
 
-To quickly begin using the MATLAB Agent, refer to the example script in the `resources` folder:
+To quickly begin using the MATLAB Agent, a demonstration script (`resources/use_matlab_agent.py`) has been provided.
 
-```plaintext
-resources/use_matlab_agent.py
+The script requires a configuration file. You can copy the `matlab_agent/resources/use.yaml.template` into `matlab_agent/resources/use.yaml` and customize it.
+
+```bash
+cd matlab_agent/resources
+python use_matlab_agent.py
 ```
 
 This script demonstrates how to interact with the MATLAB Agent, providing a clear example of its functionality and integration process.

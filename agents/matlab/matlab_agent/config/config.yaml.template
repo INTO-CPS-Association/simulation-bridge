@@ -10,7 +10,7 @@ rabbitmq:
   vhost: /
 
 simulation:
-  path: /Users/marcomelloni/Desktop/Aarhus, Denmark 🇩🇰/simulation-bridge/agents/matlab/matlab_agent/docs/examples
+  path: /Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples
 
 exchanges:
   input: ex.bridge.output # Exchange to receive commands from

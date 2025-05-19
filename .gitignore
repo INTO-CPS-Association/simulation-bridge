@@ -193,6 +193,8 @@ agents/matlab/dist/
 
 **/config/*.yaml
 **/config/*.yml
+**/resources/*.yaml
+**/resources/*.yml
 
 #SIMULATION BRIDGE 
 /logs
