@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "matlab-agent"                          
+version = "0.1.0"
+description = "Agent for MATLAB integration"
+authors = ["Marco Melloni <291358@studenti.unimore.it>"]
+readme = "README.md"
+packages = [{ include = "matlab_agent"}]  
+license = "ICAPL"
+include = ["matlab_agent/config/config.yaml.template"]
+
+[tool.poetry.dependencies]
+python = "^3.10"                               
+paho-mqtt = ">=2.1.0,<3.0.0"
+pyyaml = ">=6.0.2,<7.0.0"
+click = "^8.1.8"
+types-pyyaml = "^6.0.12.20250402"
+pydantic = "^2.11.4"
+pika = "^1.3.2"
+psutil = "^7.0.0"
+colorlog = "^6.9.0"
+
+[tool.poetry.group.dev.dependencies]
+autopep8 = "^2.3.2"
+pylint = "^3.3.7"
+pytest = "^8.3.5"
+pytest-cov = "^6.1.1"
+
+[tool.poetry.scripts]
+matlab-agent = "matlab_agent.src.run_default_agent:run"  
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]             
+build-backend = "poetry.core.masonry.api"

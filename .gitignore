@@ -10,7 +10,7 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
+# dist/
 downloads/
 eggs/
 .eggs/
@@ -174,3 +174,29 @@ cython_debug/
 .pypirc
 
 .DS_Store
+
+#MATLAB agent
+agents/matlab/logs
+# Interactive simulation in progress
+agents/matlab/matlab_agent/src/interactive/ 
+agents/matlab/matlab_agent/docs/examples/InteractiveSimulation.m
+agents/matlab/matlab_agent/docs/examples/InteractiveSimulationWrapper.m
+# Distribution files
+agents/matlab/dist/
+
+#MATLABagent Evaluation & different approaches
+# agents/MATLABagent_tcp_v1
+# agents/MATLABagent_tcp
+# agents/MATLABagent_mat
+# agents/MATLABagent_icp
+# agents/MATLABagent_api_engine
+
+**/config/*.yaml
+**/config/*.yml
+**/resources/*.yaml
+**/resources/*.yml
+
+#SIMULATION BRIDGE 
+/logs
+
+
