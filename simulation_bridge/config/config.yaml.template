@@ -1,0 +1,92 @@
+# Configuration for Simulation Bridge
+simulation_bridge:
+  simulation_bridge_id: simulation_bridge
+
+# RabbitMQ Connection Settings
+rabbitmq:
+  host: localhost
+  port: 5672
+  virtual_host: /
+  username: null # Optional: Set to null if not needed
+  password: null # Optional: Set to null if not needed
+  prefetch_count: 1
+  heartbeat: 600 # Heartbeat interval in seconds
+  connection_attempts: 3
+  retry_delay: 5 # Delay between connection attempts in seconds
+  # SSL/TLS Configuration (optional)
+  ssl:
+    enabled: false
+    verify_hostname: true
+    ca_certs: null # Path to CA certificate file
+    cert_file: null # Path to client certificate file
+    key_file: null # Path to client key file
+
+# Logging Configuration
+logging:
+  level: DEBUG # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  file: logs/sim_bridge.log
+
+# RabbitMQ Infrastructure Configuration
+infrastructure:
+  exchanges:
+    - name: ex.input.bridge
+      type: topic
+      durable: true
+      auto_delete: false
+      internal: false
+
+    - name: ex.bridge.output
+      type: topic
+      durable: true
+      auto_delete: false
+      internal: false
+
+    - name: ex.sim.result
+      type: topic
+      durable: true
+      auto_delete: false
+      internal: false
+
+    - name: ex.bridge.result
+      type: topic
+      durable: true
+      auto_delete: false
+      internal: false
+
+  queues:
+    - name: Q.bridge.input
+      durable: true
+      exclusive: false
+      auto_delete: false
+
+    - name: Q.bridge.result
+      durable: true
+      exclusive: false
+      auto_delete: false
+
+    - name: Q.dt.result
+      durable: true
+      exclusive: false
+      auto_delete: false
+
+    - name: Q.pt.result
+      durable: true
+      exclusive: false
+      auto_delete: false
+
+  bindings:
+    - queue: Q.bridge.input
+      exchange: ex.input.bridge
+      routing_key: "#"
+
+    - queue: Q.bridge.result
+      exchange: ex.sim.result
+      routing_key: "#"
+
+    - queue: Q.dt.result
+      exchange: ex.bridge.result
+      routing_key: "*.result"
+
+    - queue: Q.pt.result
+      exchange: ex.bridge.result
+      routing_key: "*.result"

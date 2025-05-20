@@ -1,0 +1,13 @@
+[run]
+omit =
+    */tests/*
+    */venv/*
+    */.venv/*
+    */__init__.py
+    */simulation_bridge/docs/*
+    */simulation_bridge/resources/*
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
+    pragma: no cover

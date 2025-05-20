@@ -1,8 +1,10 @@
-# Bidirectional RabbitMQ Messaging Architecture
-
-### System Overview
+# Architecture
 
 The system facilitates seamless bidirectional communication between Digital Twin (DT), Mock Physical Twin (MockPT), Physical Twin (PT), and simulators using a RabbitMQ-based messaging bridge.
+
+<div align="center">
+  <img src="../images/rabbitmq_simbridge.png" alt="RabbitMQ Simulation Bridge Diagram" width="80%">
+</div>
 
 ### Key Components
 
@@ -58,30 +60,10 @@ The system facilitates seamless bidirectional communication between Digital Twin
 4. DT receives the message from its queue `Q.dt.result`.
 5.
 
-## Flow Diagram
-
-<div align="center">
-  <img src="../../images/rabbitmq_simbridge.png" alt="RabbitMQ Simulation Bridge Diagram" width="80%">
-</div>
-
-### Instructions for Use
-
-1. Start RabbitMQ.
-2. Launch the bridge: `python bridge.py`.
-3. Start the simulations:
-   ```bash
-   python simulation.py simA
-   python simulation.py simB
-   ```
-4. Send messages:
-   ```bash
-   python dt.py
-   ```
-
 ## Author
 
 <div align="left" style="display: flex; align-items: center; gap: 15px;">
-  <img src="../../images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
+  <img src="../images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
   <div>
     <h3 style="margin: 0;">Marco Melloni</h3>
     <div style="margin-top: 5px;">
