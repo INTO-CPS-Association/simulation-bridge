@@ -10,8 +10,8 @@ from .config_manager import ConfigManager
 from ..interfaces.config_manager import IConfigManager
 from ..interfaces.infrastructure import IInfrastructureManager, IRabbitMQConnection
 from ..utils.logger import get_logger
-from ..handlers.simulation_input_handler import SimulationInputMessageHandler
-from ..handlers.simulation_result_handler import SimulationResultMessageHandler
+from ..handlers.rabbitmq.rabbitmq_simulation_input_handler import SimulationInputMessageHandler
+from ..handlers.rabbitmq.rabbitmq_simulation_result_handler import SimulationResultMessageHandler
 
 logger = get_logger()
 

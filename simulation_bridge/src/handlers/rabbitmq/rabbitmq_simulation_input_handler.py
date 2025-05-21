@@ -6,7 +6,7 @@ import yaml
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 from .base_handler import BaseMessageHandler
-from ..utils.logger import get_logger
+from ...utils.logger import get_logger
 
 logger = get_logger()
 

@@ -1,11 +1,8 @@
 """
 Base message handler for RabbitMQ messages.
 """
-from typing import Any
-import pika
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
-
 
 class BaseMessageHandler:
     def __init__(self, channel: BlockingChannel) -> None:
