@@ -185,7 +185,7 @@ To create a copy of the default configuration file `config.yaml.template`, run t
 poetry run simulation-bridge --generate-config
 ```
 
-To start the MATLAB Agent with the default configuration (`matlab_agent/config/config.yaml.template`):
+To start the MATLAB Agent with the default configuration:
 
 1. Open a terminal and navigate to the project's root directory.
 2. Run the following command:
@@ -193,6 +193,8 @@ To start the MATLAB Agent with the default configuration (`matlab_agent/config/c
 ```bash
 poetry run matlab-agent
 ```
+
+This command will automatically look for a `config.yaml` file in the current directory.
 
 To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-file` or `-c` option followed by the path to your configuration file:
 

@@ -23,10 +23,16 @@ def main(config_file=None, generate_config=False) -> None:
     if generate_config:
         generate_default_config()
         return
-
-    run_single_agent(config_file)
-
-
+    if config_file:
+        run_single_agent(config_file)
+    else:
+        if not os.path.exists('config.yaml'):
+            print("Error: Configuration file not found. Please provide a valid configuration file.")
+            generate_default_config()
+            return
+        else:
+            run_single_agent('config.yaml')
+        
 def generate_default_config():
     """Copy the template configuration file to the current directory."""
     try:
