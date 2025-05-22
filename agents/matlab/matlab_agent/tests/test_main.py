@@ -6,6 +6,7 @@ from click.testing import CliRunner
 
 from src.main import main, run_single_agent
 
+
 class TestMainFunction:
     """Test suite for the main function and related functionalities."""
 
@@ -51,8 +52,8 @@ class TestMainFunction:
     @pytest.fixture
     def mock_dependencies(self, mock_agent):
         with patch('src.main.MatlabAgent') as MockAgent, \
-             patch('src.main.setup_logger') as mock_setup_logger, \
-             patch('src.main.load_config') as mock_load_config:
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config:
 
             # Setup mock logger with debug/info/error methods
             mock_logger = MagicMock()
@@ -84,16 +85,21 @@ class TestMainFunction:
             'logging': {'level': 'INFO', 'file': 'agent.log'}
         }
 
-        config_path = os.path.abspath('matlab_agent/config/config.yaml.template')
+        config_path = os.path.abspath(
+            'matlab_agent/config/config.yaml.template')
         result = cli_runner.invoke(main, ['-c', config_path])
 
         mock_load_config.assert_called_once_with(config_path)
-        MockAgent.assert_called_once_with('custom_agent', broker_type='rabbitmq', config_path=config_path)
+        MockAgent.assert_called_once_with(
+            'custom_agent',
+            broker_type='rabbitmq',
+            config_path=config_path)
         mock_agent = MockAgent.return_value
         mock_agent.start.assert_called_once()
         assert result.exit_code == 0
 
-    def test_main_without_config_file(self, cli_runner, mock_dependencies, default_config):
+    def test_main_without_config_file(
+            self, cli_runner, mock_dependencies, default_config):
         MockAgent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
 
         with patch('os.path.exists', return_value=True):
@@ -101,7 +107,10 @@ class TestMainFunction:
             result = cli_runner.invoke(main, [])
 
             mock_load_config.assert_called_once_with('config.yaml')
-            MockAgent.assert_called_once_with('default_agent', broker_type='rabbitmq', config_path='config.yaml')
+            MockAgent.assert_called_once_with(
+                'default_agent',
+                broker_type='rabbitmq',
+                config_path='config.yaml')
             mock_agent = MockAgent.return_value
             mock_agent.start.assert_called_once()
             assert result.exit_code == 0
@@ -114,9 +123,9 @@ class TestMainFunction:
 
     def test_main_keyboard_interrupt(self, cli_runner, default_config):
         with patch('src.main.MatlabAgent') as MockAgent, \
-             patch('src.main.setup_logger') as mock_setup_logger, \
-             patch('src.main.load_config') as mock_load_config, \
-             patch('os.path.exists', return_value=True):
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config, \
+                patch('os.path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -133,9 +142,9 @@ class TestMainFunction:
 
     def test_main_general_error(self, cli_runner, default_config):
         with patch('src.main.MatlabAgent') as MockAgent, \
-             patch('src.main.setup_logger') as mock_setup_logger, \
-             patch('src.main.load_config') as mock_load_config, \
-             patch('os.path.exists', return_value=True):
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config, \
+                patch('os.path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -152,9 +161,9 @@ class TestMainFunction:
 
     def test_invalid_log_level(self, cli_runner, invalid_log_config):
         with patch('src.main.MatlabAgent') as MockAgent, \
-             patch('src.main.setup_logger') as mock_setup_logger, \
-             patch('src.main.load_config') as mock_load_config, \
-             patch('os.path.exists', return_value=True):
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config, \
+                patch('os.path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -172,8 +181,8 @@ class TestMainFunction:
             mock_agent.start.assert_called_once()
             assert result.exit_code == 0
 
-
-    def test_missing_agent_id(self, cli_runner, mock_dependencies, missing_agent_config):
+    def test_missing_agent_id(
+            self, cli_runner, mock_dependencies, missing_agent_config):
         MockAgent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
         mock_load_config.return_value = missing_agent_config
 
@@ -195,6 +204,9 @@ class TestMainFunction:
         run_single_agent('test_config.yml')
 
         mock_load_config.assert_called_once_with('test_config.yml')
-        MockAgent.assert_called_once_with('custom_agent', broker_type='rabbitmq', config_path='test_config.yml')
+        MockAgent.assert_called_once_with(
+            'custom_agent',
+            broker_type='rabbitmq',
+            config_path='test_config.yml')
         mock_agent = MockAgent.return_value
         mock_agent.start.assert_called_once()

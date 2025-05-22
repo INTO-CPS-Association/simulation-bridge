@@ -17,7 +17,8 @@ from .utils.config_loader import load_config
               help='Generate a default configuration file in the current directory')
 @click.option('--generate-project', is_flag=True,
               help='Generate default project files in the current directory')
-def main(config_file=None, generate_config=False, generate_project=False) -> None:
+def main(config_file=None, generate_config=False,
+         generate_project=False) -> None:
     """
     Main function to initialize and start the MATLAB agent.
     Supports single or multiple agents with different configurations.
@@ -37,17 +38,18 @@ Error: Configuration file 'config.yaml' not found.
 
 To generate a default configuration file, run:
 matlab-agent --generate-config
-       
+
 You may customize the generated file as needed and re-run the program.
 
-Alternatively, if you already have a custom configuration file, use the 
+Alternatively, if you already have a custom configuration file, use the
 --config-file option to specify its path:
 matlab-agent --config-file /path/to/your/config.yaml
         """)
             return
         else:
             run_single_agent('config.yaml')
-        
+
+
 def generate_default_config():
     """Copy the template configuration file to the current directory."""
     try:
@@ -69,6 +71,7 @@ def generate_default_config():
         print("Error: Template configuration file not found.")
     except Exception as e:
         print(f"Error generating configuration file: {e}")
+
 
 def generate_default_project():
     """Copy the template configuration file to the current directory."""
@@ -98,17 +101,16 @@ def generate_default_project():
             with open('config.yaml', 'wb') as dst:
                 dst.write(template_content)
         print(
-    "Project files generated successfully in the current directory:\n"
-    " - config.yaml\n"
-    " - SimulationWrapper.m\n"
-    " - SimulationBatch.m\n"
-    " - SimulationStreaming.m\n\n"
-    "You can now customize these files as needed and run the MATLAB agent.")
+            "Project files generated successfully in the current directory:\n"
+            " - config.yaml\n"
+            " - SimulationWrapper.m\n"
+            " - SimulationBatch.m\n"
+            " - SimulationStreaming.m\n\n"
+            "You can now customize these files as needed and run the MATLAB agent.")
     except FileNotFoundError:
         print("Error: Template configuration file not found.")
     except Exception as e:
         print(f"Error generating configuration file: {e}")
-
 
 
 def run_single_agent(config_file):
