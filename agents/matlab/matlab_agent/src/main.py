@@ -27,8 +27,18 @@ def main(config_file=None, generate_config=False) -> None:
         run_single_agent(config_file)
     else:
         if not os.path.exists('config.yaml'):
-            print("Error: Configuration file not found. Please provide a valid configuration file.")
-            generate_default_config()
+            print("""
+Error: Configuration file 'config.yaml' not found.
+
+To generate a default configuration file, run:
+matlab-agent --generate-config
+       
+You may customize the generated file as needed and re-run the program.
+
+Alternatively, if you already have a custom configuration file, use the 
+--config-file option to specify its path:
+matlab-agent --config-file /path/to/your/config.yaml
+        """)
             return
         else:
             run_single_agent('config.yaml')
