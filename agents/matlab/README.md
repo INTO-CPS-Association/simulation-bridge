@@ -208,6 +208,23 @@ Alternatively, you can use the shorthand `-c` option:
 poetry run matlab-agent -c <path_to_config.yaml>
 ```
 
+To generate all the necessary files for using the MATLAB agent, you can use the command:
+
+```bash
+poetry run matlab-agent --generate-config
+```
+
+This will create:
+
+```
+ - config.yaml
+ - SimulationWrapper.m
+ - SimulationBatch.m
+ - SimulationStreaming.m
+```
+
+You can now customize these files as needed and run the MATLAB agent.
+
 ## Distributing the Package as a PIP Package with Poetry
 
 To create the package, run the following command in the project's root directory (where `pyproject.toml` is located):
