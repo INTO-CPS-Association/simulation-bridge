@@ -46,3 +46,20 @@ simulation:
     positions: "[[float, float]]" # positions of the agents
     velocities: "[[float, float]]" # velocities of the agents
     running: bool # running flag
+# simulation:
+#   simulator: matlab
+#   type: interactive
+#   file: InteractiveSimulation.m
+#   inputs:
+#     duration: 100 # Durata massima della simulazione
+#     time_step: 0.1 # Intervallo di tempo tra ogni passo
+#     amplitude: 1.0 # Ampiezza dell'onda sinusoidale
+#     frequency: 1.0 # Frequenza dell'onda sinusoidale
+#   outputs:
+#     step: int # Passo corrente della simulazione
+#     status: str # Stato corrente della simulazione (e.g. "Running", "Simulation completed")
+#     data: # Dati di output
+#       time: float # Tempo corrente della simulazione
+#       value: float # Valore dell'onda sinusoidale
+#       amplitude: float # Ampiezza corrente
+#       frequency: float # Frequenza corrente

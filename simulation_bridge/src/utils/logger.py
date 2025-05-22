@@ -1,39 +1,53 @@
-# utils/logger.py - Centralized logging system
+"""
+Logger configuration module for the Simulation Bridge.
+
+This module provides utilities for setting up and configuring logging functionality
+with the following features:
+- File logging with rotation capability
+- Console logging with color-coded output
+- Configurable log levels and formats
+
+The module includes two main functions:
+- setup_logger: Creates and configures a new logger instance
+- get_logger: Retrieves an existing logger instance
+"""
 import logging
 import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Optional
+import colorlog
 
 DEFAULT_LOG_FORMAT: str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 DEFAULT_LOG_LEVEL: int = logging.INFO
 MAX_LOG_SIZE: int = 5 * 1024 * 1024  # 5 MB
 BACKUP_COUNT: int = 3
 
+
 def setup_logger(
-    name: str = 'SIM-BRIDGE',
+    name: str = 'SIMULATION-BRIDGE',
     level: int = DEFAULT_LOG_LEVEL,
     log_format: str = DEFAULT_LOG_FORMAT,
-    log_file: str = 'logs/sim-bridge.log',
+    log_file: str = 'logs/sim_bridge.log',
     enable_console: bool = True
 ) -> logging.Logger:
     """
-    Configures a logger with handlers for file and console.
-    
+    Configures a logger with handlers for file and console, with
+    optional colorization for console logs.
+
     Args:
         name: Name of the logger
         level: Logging level
         log_format: Format of the log messages
         log_file: Path to the log file
-        enable_console: Enables logging to the console
-        
+        enable_console: Enables logging to the console with optional color
+
     Returns:
         Configured logger instance
     """
     logger: logging.Logger = logging.getLogger(name)
     logger.setLevel(level)
 
-    # If the logger already has handlers, return it
+    # If the logger already has handlers, return it as is
     if logger.handlers:
         return logger
 
@@ -53,25 +67,41 @@ def setup_logger(
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
-    # Configure console handler if enabled
+    # Configure console handler with color if enabled
     if enable_console:
-        console_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
+        # Create a ColorFormatter for console logs
+        console_handler: logging.StreamHandler = logging.StreamHandler(
+            sys.stdout)
         console_handler.setLevel(level)
-        console_formatter: logging.Formatter = logging.Formatter(log_format)
-        console_handler.setFormatter(console_formatter)
+
+        # Define a colorized log format for console output
+        console_format = '%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        color_formatter = colorlog.ColoredFormatter(
+            console_format,
+            datefmt='%Y-%m-%d %H:%M:%S',
+            log_colors={
+                'DEBUG': 'cyan',
+                'INFO': 'green',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red',
+            }
+        )
+
+        console_handler.setFormatter(color_formatter)
         logger.addHandler(console_handler)
 
     return logger
 
-def get_logger(name: str = 'SIM-BRIDGE') -> logging.Logger:
+
+def get_logger(name: str = 'SIMULATION-BRIDGE') -> logging.Logger:
     """
     Returns an instance of the already configured logger.
-    
+
     Args:
         name: Name of the logger
-        
+
     Returns:
         Logger instance
     """
     return logging.getLogger(name)
-    

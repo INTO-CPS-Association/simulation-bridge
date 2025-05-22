@@ -20,10 +20,11 @@ class Connect:
     """
 
     def __init__(
-            self,
-            agent_id: str,
-            config: Dict[str, Any],
-            broker_type: str = "rabbitmq") -> None:
+        self,
+        agent_id: str,
+        config: Dict[str, Any],
+        broker_type: str = "rabbitmq"
+    ) -> None:
         """
         Initialize the communication wrapper.
 
@@ -72,7 +73,8 @@ class Connect:
             raise RuntimeError("Broker not initialized")
 
     def register_message_handler(
-            self, custom_handler: Optional[Callable] = None) -> None:
+        self, custom_handler: Optional[Callable] = None
+    ) -> None:
         """
         Register a function to handle incoming messages.
 
@@ -109,10 +111,11 @@ class Connect:
         self.broker.start_consuming()
 
     def send_message(
-            self,
-            destination: str,
-            message: Any,
-            **kwargs) -> bool:
+        self,
+        destination: str,
+        message: Any,
+        **kwargs
+    ) -> bool:
         """
         Send a message to a specified destination.
 
@@ -138,8 +141,7 @@ class Connect:
                     exchange, routing_key, message, properties)
             # Handle other broker types here in the future
             return False
-        else:
-            raise RuntimeError("Broker not initialized")
+        raise RuntimeError("Broker not initialized")
 
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
@@ -154,8 +156,7 @@ class Connect:
         """
         if self.broker:
             return self.broker.send_result(destination, result)
-        else:
-            raise RuntimeError("Broker not initialized")
+        raise RuntimeError("Broker not initialized")
 
     def close(self) -> None:
         """

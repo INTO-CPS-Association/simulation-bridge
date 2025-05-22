@@ -12,12 +12,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import psutil
 
 from ..comm.interfaces import IMessageBroker
-from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 

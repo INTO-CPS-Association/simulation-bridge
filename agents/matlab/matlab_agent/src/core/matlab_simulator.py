@@ -16,7 +16,6 @@ from typing import Dict, Union, List, Optional, Any, Tuple
 
 import psutil
 import matlab.engine
-from importlib import resources
 
 from ..utils.logger import get_logger
 
@@ -101,7 +100,7 @@ class MatlabSimulator:
             self.eng.eval("clear; clc;", nargout=0)
             self.eng.addpath(str(self.sim_path), nargout=0)
             logger.debug("MATLAB engine started successfully")
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # Catch generic exceptions for compatibility
             logger.error("Failed to start MATLAB engine: %s", str(e))
             raise MatlabSimulationError(
                 f"Failed to start MATLAB engine: {str(e)}") from e
@@ -123,7 +122,7 @@ class MatlabSimulator:
 
             return self._process_results(result, outputs)
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # Catch generic exceptions for compatibility
             msg = f"Simulation error: {str(e)}"
             logger.error(msg, exc_info=True)
             raise MatlabSimulationError(msg) from e
@@ -148,7 +147,6 @@ class MatlabSimulator:
         process = psutil.Process(os.getpid())
         metadata['memory_usage'] = process.memory_info().rss / \
             (1024 * 1024)  # MB
-
         if self.eng:
             try:
                 metadata['matlab_version'] = self.eng.eval(
@@ -195,7 +193,7 @@ class MatlabSimulator:
             try:
                 self.eng.quit()
                 logger.debug("MATLAB engine closed successfully")
-            except Exception as e:
+            except matlab.engine.EngineError as e:
                 logger.warning("Error closing MATLAB engine: %s", str(e))
             finally:
                 self.eng = None

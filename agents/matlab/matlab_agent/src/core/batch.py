@@ -12,7 +12,6 @@ from typing import Dict, List, Any, Tuple, Optional
 import yaml
 
 from ..utils.logger import get_logger
-from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..comm.interfaces import IMessageBroker
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
