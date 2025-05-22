@@ -5,7 +5,7 @@ The MATLAB Agent is a Python-based connector designed to interface with MATLAB s
 - **Batch Simulation**: Executes predefined MATLAB routines with specified input parameters, collecting the final results upon completion.
 - **Streaming Simulation (Agent-Based)**: Allows sending input once, with the output being received in real-time during the simulation.
 
-The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings are defined in the configuration file located at `matlab_agent/config/config.yaml`.
+The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
 
 <div align="center">
   <img src="matlab_agent/images/structure.png" alt="MATLAB Agent Structure" width="600" style="border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
