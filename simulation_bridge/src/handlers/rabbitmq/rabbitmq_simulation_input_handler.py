@@ -12,26 +12,29 @@ logger = get_logger()
 
 
 class SimulationInputMessageHandler(BaseMessageHandler):
-    """Handler for incoming messages from DTs to simulators"""
-
-    def handle(
-        self,
-        ch: BlockingChannel,
-        method: Basic.Deliver,
-        properties: BasicProperties,
-        body: bytes
-    ) -> None:
+    def handle(self, ch, method, properties, body: bytes) -> None:
         try:
-            source: str = method.routing_key
+            source = method.routing_key
+            # YAML decoding
+            msg = yaml.safe_load(body)
+            logger.debug(
+                "Raw message body (str): %s",
+                body.decode('utf-8', errors='replace'),
+                extra={'message_id': properties.message_id}
+            )
+            # VALIDATION: must be a dict
+            if not isinstance(msg, dict):
+                logger.error(
+                    "Invalid message format, expected dict but got %s",
+                    type(msg).__name__,
+                    extra={'body': body, 'delivery_tag': method.delivery_tag}
+                )
+                self.ack_message(ch, method.delivery_tag)
+                return
 
-            # Load the message body as YAML
-            msg: Dict[str, Any] = yaml.safe_load(body)
+            destinations = msg.get('destinations', [])
+            formatted_destinations = ", ".join(destinations) or "None"
 
-            destinations: List[str] = msg.get('destinations', [])
-            formatted_destinations = ", ".join(
-                destinations) if destinations else "None"
-
-            # Log the received message
             logger.debug(
                 "Received input message from %s: %s",
                 source,
@@ -45,13 +48,12 @@ class SimulationInputMessageHandler(BaseMessageHandler):
                 extra={'message_id': properties.message_id}
             )
 
-            # Forward the message to all destinations
-            for dest in msg.get('destinations', []):
-                routing_key: str = f"{source}.{dest}"
+            for dest in destinations:
+                routing_key = f"{source}.{dest}"
                 self.channel.basic_publish(
                     exchange='ex.bridge.output',
                     routing_key=routing_key,
-                    body=body,  # Message body remains unchanged (in YAML)
+                    body=body,
                     properties=properties
                 )
                 logger.debug(
@@ -60,18 +62,17 @@ class SimulationInputMessageHandler(BaseMessageHandler):
                     extra={'message_id': properties.message_id}
                 )
 
-            # Acknowledge the message
             self.ack_message(ch, method.delivery_tag)
+
         except yaml.YAMLError as e:
-            # Handle YAML errors
             logger.error(
                 "YAML decoding error: %s",
                 str(e),
                 extra={'body': body, 'delivery_tag': method.delivery_tag}
             )
             self.nack_message(ch, method.delivery_tag)
+
         except Exception as e:
-            # Handle generic errors
             logger.exception(
                 "Error processing message: %s",
                 str(e),

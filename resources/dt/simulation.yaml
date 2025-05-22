@@ -1,19 +1,19 @@
-simulation:
-  simulator: matlab
-  type: batch # Type of simulation (batch,streaming)
-  file: simulation_batch.m # Name of the simulation file
-  inputs:
-    x_i: 10
-    y_i: 5
-    z_i: 0
-    v_x: 1
-    v_y: 2
-    v_z: 3
-    t: 10
-  outputs:
-    x_f: Final x position
-    y_f: Final y position
-    z_f: Final z position
+# simulation:
+#   simulator: matlab
+#   type: batch # Type of simulation (batch,streaming)
+#   file: simulation_batch.m # Name of the simulation file
+#   inputs:
+#     x_i: 10
+#     y_i: 5
+#     z_i: 0
+#     v_x: 1
+#     v_y: 2
+#     v_z: 3
+#     t: 10
+#   outputs:
+#     x_f: Final x position
+#     y_f: Final y position
+#     z_f: Final z position
 # simulation:
 #   simulator: matlab
 #   type: batch # Type of simulation (batch,streaming)
@@ -30,22 +30,22 @@ simulation:
 #     y_final: "Final y position (m)"
 #     speed_final: "Final speed (m/s)"
 #     time_elapsed: "Actual simulation time (s)"
-# simulation:
-#   simulator: matlab
-#   type: streaming
-#   file: simulation_streaming.m
-#   inputs:
-#     num_agents: 8 # Number of agents
-#     max_steps: 200 # Max steps for the simulation
-#     avoidance_threshold: 1 # Minimum distance to avoid collision
-#     show_agent_index: 1 # Index of the agent to show
-#     use_gui: false # GUI flag
-#   outputs:
-#     time: float # execution time
-#     current_step: int # current step of the simulation
-#     positions: "[[float, float]]" # positions of the agents
-#     velocities: "[[float, float]]" # velocities of the agents
-#     running: bool # running flag
+simulation:
+  simulator: matlab
+  type: streaming
+  file: simulation_streaming.m
+  inputs:
+    num_agents: 8 # Number of agents
+    max_steps: 200 # Max steps for the simulation
+    avoidance_threshold: 1 # Minimum distance to avoid collision
+    show_agent_index: 1 # Index of the agent to show
+    use_gui: false # GUI flag
+  outputs:
+    time: float # execution time
+    current_step: int # current step of the simulation
+    positions: "[[float, float]]" # positions of the agents
+    velocities: "[[float, float]]" # velocities of the agents
+    running: bool # running flag
 # simulation:
 #   simulator: matlab
 #   type: interactive

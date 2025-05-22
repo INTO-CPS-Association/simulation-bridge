@@ -23,7 +23,7 @@ rabbitmq:
 
 # Logging Configuration
 logging:
-  level: DEBUG # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: INFO # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   file: logs/sim_bridge.log
 
 # RabbitMQ Infrastructure Configuration
