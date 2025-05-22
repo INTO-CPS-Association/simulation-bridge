@@ -59,20 +59,3 @@ The system facilitates seamless bidirectional communication between Digital Twin
 3. The bridge forwards the message to `ex.bridge.result` with routing key `simX.result`.
 4. DT receives the message from its queue `Q.dt.result`.
 5.
-
-## Author
-
-<div align="left" style="display: flex; align-items: center; gap: 15px;">
-  <img src="../images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
-  <div>
-    <h3 style="margin: 0;">Marco Melloni</h3>
-    <div style="margin-top: 5px;">
-      <a href="https://www.linkedin.com/in/marco-melloni/">
-        <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/>
-      </a>
-      <a href="https://github.com/marcomelloni" style="margin-left: 8px;">
-        <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/>
-      </a>
-    </div>
-  </div>
-</div>
