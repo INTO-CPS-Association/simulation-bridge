@@ -179,28 +179,47 @@ poetry run matlab-agent --config-file <path_to_config.yaml>
 ## Usage
 
 The agent requires a configuration file to run. You can start by copying the provided template and customizing it as needed.
-To create a copy of the default configuration file `config.yaml.template`, run the following command from the project root:
+
+### Getting Started
+
+1. Generate a configuration file template:
 
 ```bash
-poetry run simulation-bridge --generate-config
+poetry run matlab-agent --generate-config
 ```
 
-To start the MATLAB Agent with the default configuration (`matlab_agent/config/config.yaml.template`):
+This creates a `config.yaml` file in your current directory that you can customize.
 
-1. Open a terminal and navigate to the project's root directory.
-2. Run the following command:
+2. Generate all necessary project files:
+
+```bash
+poetry run matlab-agent --generate-project
+```
+
+This creates the following files:
+
+- `config.yaml` - Configuration settings
+- `SimulationWrapper.m` - Main interface for MATLAB simulations
+- `SimulationBatch.m` - Template for batch simulations
+- `SimulationStreaming.m` - Template for streaming simulations
+
+3. Customize these files according to your simulation needs.
+
+### Running the Agent
+
+To start the MATLAB Agent with the default configuration:
 
 ```bash
 poetry run matlab-agent
 ```
 
-To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-file` or `-c` option followed by the path to your configuration file:
+To use a custom configuration file:
 
 ```bash
 poetry run matlab-agent --config-file <path_to_config.yaml>
 ```
 
-Alternatively, you can use the shorthand `-c` option:
+Or use the shorthand:
 
 ```bash
 poetry run matlab-agent -c <path_to_config.yaml>

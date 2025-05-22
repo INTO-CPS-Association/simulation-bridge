@@ -12,12 +12,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import psutil
 
 from ..comm.interfaces import IMessageBroker
-from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 
@@ -154,7 +153,7 @@ class MatlabStreamingController:
         # Check if the path is a directory and if the file exists
         # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.error(
+            logger.warning(
                 "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
                 self.sim_path,
                 self.sim_file)
