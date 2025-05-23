@@ -183,18 +183,13 @@ agents/matlab/matlab_agent/docs/examples/InteractiveSimulation.m
 agents/matlab/matlab_agent/docs/examples/InteractiveSimulationWrapper.m
 # Distribution files
 agents/matlab/dist/
-
-#MATLABagent Evaluation & different approaches
-# agents/MATLABagent_tcp_v1
-# agents/MATLABagent_tcp
-# agents/MATLABagent_mat
-# agents/MATLABagent_icp
-# agents/MATLABagent_api_engine
-
+# Config files
 **/config/*.yaml
 **/config/*.yml
 **/resources/*.yaml
 **/resources/*.yml
+**/matlab/*.yaml
+**/matlab/*.yml
 
 #SIMULATION BRIDGE 
 /logs

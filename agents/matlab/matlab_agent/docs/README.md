@@ -94,20 +94,3 @@ These files provide reference implementations to help you structure your simulat
 #### Notes
 
 No additional files are handled. All data is transmitted exclusively through the TCP socket.
-
-## Author
-
-<div align="left" style="display: flex; align-items: center; gap: 15px;">
-  <img src="../images/profile.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
-  <div>
-    <h3 style="margin: 0;">Marco Melloni</h3>
-    <div style="margin-top: 5px;">
-      <a href="https://www.linkedin.com/in/marco-melloni/">
-        <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/>
-      </a>
-      <a href="https://github.com/marcomelloni" style="margin-left: 8px;">
-        <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/>
-      </a>
-    </div>
-  </div>
-</div>

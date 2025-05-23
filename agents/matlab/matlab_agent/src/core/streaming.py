@@ -12,12 +12,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import psutil
 
 from ..comm.interfaces import IMessageBroker
-from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 
@@ -31,10 +30,12 @@ def handle_streaming_simulation(
     message_broker: IMessageBroker,
     path_simulation: str,
     response_templates: Dict,
-    tcp_settings: Dict
+    tcp_settings: Dict,
 ) -> None:
+
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})
+    bridge_meta = data.get('bridge_meta', 'unknown')
     sim_path = path_simulation if path_simulation else data.get('path')
     sim_file = data.get('file')
 
@@ -44,7 +45,8 @@ def handle_streaming_simulation(
             ValueError("Missing path/file configuration"),
             source,
             message_broker,
-            response_templates
+            response_templates,
+            bridge_meta
         )
         return
 
@@ -58,7 +60,8 @@ def handle_streaming_simulation(
             source,
             message_broker,
             response_templates,
-            tcp_settings
+            tcp_settings,
+            bridge_meta
         )
         controller.start()
         logger.debug("Simulation inputs: %s", data.get('inputs', {}))
@@ -71,7 +74,8 @@ def handle_streaming_simulation(
                 'streaming',
                 response_templates,
                 outputs={'status': 'completed'},
-                metadata=controller.get_metadata()
+                metadata=controller.get_metadata(),
+                bridge_meta=bridge_meta
             )
         )
         logger.info("Completed: %s", sim_file)
@@ -138,10 +142,12 @@ class MatlabStreamingController:
         source: str,
         message_broker: IMessageBroker,
         response_templates: Dict,
-        tcp_settings: Dict
+        tcp_settings: Dict,
+        bridge_meta: Optional[str] = 'unknown'
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
+        self.bridge_meta: str = bridge_meta
         self.source: str = source
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
@@ -154,7 +160,7 @@ class MatlabStreamingController:
         # Check if the path is a directory and if the file exists
         # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.error(
+            logger.warning(
                 "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
                 self.sim_path,
                 self.sim_file)
@@ -221,12 +227,13 @@ class MatlabStreamingController:
             self.message_broker.send_result(
                 self.source,
                 create_response(
-                    'progress',
+                    'success',
                     self.sim_file,
                     'streaming',
                     self.response_templates,
-                    percentage=0,
-                    message="MATLAB simulation started"
+                    outputs={'status': 'completed'},
+                    metadata=self.get_metadata(),
+                    bridge_meta=self.bridge_meta
                 )
             )
 
@@ -247,7 +254,8 @@ class MatlabStreamingController:
             percentage=output.get('progress', {}).get('percentage', sequence),
             data=data_payload,
             metadata=output.get('metadata', {}),
-            sequence=sequence
+            sequence=sequence,
+            bridge_meta=self.bridge_meta
         )
         self.message_broker.send_result(self.source, response)
 
@@ -313,7 +321,8 @@ def _handle_streaming_error(
     error: Exception,
     source: str,
     message_broker: IMessageBroker,
-    response_templates: Dict
+    response_templates: Dict,
+    bridge_meta: Optional[str] = 'unknown'
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -338,6 +347,7 @@ def _handle_streaming_error(
             sim_file,
             'streaming',
             response_templates,
+            bridge_meta=bridge_meta,
             error={
                 'message': str(error),
                 'type': error_type,

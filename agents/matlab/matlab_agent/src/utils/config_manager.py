@@ -255,7 +255,7 @@ class ConfigManager:
                                          If None, uses the default location.
         """
         self.config_path: Path = Path(config_path) if config_path else Path(
-            __file__).parent.parent.parent / "config" / "config.yaml.template"
+            __file__).parent.parent.parent.parent / "config.yaml"
         try:
             raw_config = load_config(self.config_path)
             self.config = self._validate_config(raw_config)

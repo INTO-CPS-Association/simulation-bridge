@@ -8,7 +8,7 @@ import yaml
 class SimpleUsageMatlabAgent:
     def __init__(self, agent_identifier: str = "dt",
                  destination_identifier: str = "matlab",
-                 config_path: str = "use.yaml") -> None:
+                 config_path: str = "use.yaml.template") -> None:
         self.agent_id: str = agent_identifier
         self.destination_id: str = destination_identifier
 
@@ -60,7 +60,6 @@ class SimpleUsageMatlabAgent:
     def send_request(self, payload_data: Dict[str, Any]) -> None:
         payload: Dict[str, Any] = {
             **payload_data,
-            'destinations': [self.destination_id],
             'request_id': str(uuid.uuid4())
         }
 
