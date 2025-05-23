@@ -1,5 +1,6 @@
 # simulation:
-#   simulator: matlab
+#   id: dt
+#   destination: matlab
 #   type: batch # Type of simulation (batch,streaming)
 #   file: simulation_batch.m # Name of the simulation file
 #   inputs:
@@ -15,7 +16,8 @@
 #     y_f: Final y position
 #     z_f: Final z position
 # simulation:
-#   simulator: matlab
+#   id: dt
+#   destination: matlab
 #   type: batch # Type of simulation (batch,streaming)
 #   file: simulation_batch_1.m # Name of the simulation file
 #   inputs:
@@ -31,7 +33,8 @@
 #     speed_final: "Final speed (m/s)"
 #     time_elapsed: "Actual simulation time (s)"
 simulation:
-  simulator: matlab
+  id: dt
+  destination: matlab
   type: streaming
   file: simulation_streaming.m
   inputs:

@@ -2,7 +2,7 @@
 Message handler for processing incoming RabbitMQ messages.
 """
 import uuid
-from typing import Any, List, Optional, Dict
+from typing import Any, Optional, Dict
 
 import yaml
 from pika.adapters.blocking_connection import BlockingChannel
@@ -30,11 +30,13 @@ class SimulationOutputs(BaseModel):
 
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
-    simulator: str
+    id: str
+    destination: str
     type: str = Field(default="batch")
     file: str
     inputs: 'SimulationInputs'
     outputs: Optional['SimulationOutputs'] = None
+    bridge_meta: Optional[Dict[str, Any]] = None
 
     @field_validator('type', mode='before')
     @classmethod
@@ -49,7 +51,6 @@ class SimulationData(BaseModel):
 class MessagePayload(BaseModel):
     """Model for the entire message payload"""
     simulation: SimulationData
-    destinations: List[str]
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -126,6 +127,9 @@ class MessageHandler(IRabbitMQMessageHandler):
                     sim_type=msg_dict.get('simulation', {}).get(
                         'type', '') if isinstance(msg_dict, dict) else '',
                     response_templates={},
+                    bridge_meta=msg_dict.get('simulation', {}).get(
+                        'bridge_meta', 'unknown') if isinstance(msg_dict, dict) 
+                    else 'unknown',
                     error={'message': 'YAML parsing error',
                            'details': str(e), 'type': 'yaml_parse_error'}
                 )
@@ -144,6 +148,9 @@ class MessageHandler(IRabbitMQMessageHandler):
                 simulation_data = payload.simulation
                 sim_type = simulation_data.type
                 sim_file = simulation_data.file
+                bridge_meta = msg_dict.get('simulation', {}).get(
+                    'bridge_meta', 'unknown') if isinstance(msg_dict, dict) else 'unknown'
+
 
             except Exception as e:  # pylint: disable=broad-except
                 logger.error("Message validation failed: %s", e)
@@ -156,11 +163,13 @@ class MessageHandler(IRabbitMQMessageHandler):
                     sim_type=msg_dict.get('simulation', {}).get(
                         'type', '') if isinstance(msg_dict, dict) else '',
                     response_templates={},
+                    bridge_meta = bridge_meta,
                     error={
                         'message': 'Message validation failed',
                         'details': str(e),
                         'type': 'validation_error'
                     }
+                    
                 )
                 # Send the error response back to the source
                 self.rabbitmq_manager.send_result(source, error_response)
@@ -210,12 +219,12 @@ class MessageHandler(IRabbitMQMessageHandler):
 
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error processing message %s: %s", message_id, e)
-            # Create a generic error response
             error_response = create_response(
                 template_type='error',
                 sim_file='',
                 sim_type='',
                 response_templates={},
+                bridge_meta='unknown',
                 error={
                     'message': 'Error processing message',
                     'details': str(e),

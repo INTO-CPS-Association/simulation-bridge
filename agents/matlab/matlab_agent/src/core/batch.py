@@ -29,6 +29,7 @@ def handle_batch_simulation(
 ) -> None:
     """Process a batch simulation request and send results via message broker."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
+    bridge_meta = data.get('bridge_meta', 'unknown')
     sim_file = data.get('file')
 
     try:
@@ -41,20 +42,22 @@ def handle_batch_simulation(
                        source,
                        sim_file,
                        0,
-                       response_templates)
+                       response_templates,
+                       bridge_meta)
         _start_matlab_with_retry(sim)
         _send_progress(message_broker,
                        source,
                        sim_file,
                        50,
-                       response_templates)
+                       response_templates,
+                       bridge_meta)
         results = sim.run(inputs, outputs)
         metadata = _get_metadata(sim) if response_templates.get(
             'success', {}).get('include_metadata', False) else None
 
         success_response = create_response(
             'success', sim_file, 'batch', response_templates,
-            outputs=results, metadata=metadata
+            outputs=results, metadata=metadata, bridge_meta=bridge_meta
         )
         _send_response(message_broker,
                        source,
@@ -110,7 +113,8 @@ def _send_progress(
         source: str,
         sim_file: str,
         percentage: int,
-        response_templates: Dict
+        response_templates: Dict,
+        bridge_meta: str = 'unknown'
 ) -> None:
     """Send progress update if configured."""
     if response_templates.get('progress', {}).get('include_percentage', False):
@@ -119,7 +123,8 @@ def _send_progress(
             sim_file,
             'batch',
             response_templates,
-            percentage=percentage)
+            percentage=percentage,
+            bridge_meta=bridge_meta)
         _send_response(broker, source, progress_response)
 
 
