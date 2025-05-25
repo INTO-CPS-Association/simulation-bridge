@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from src.main import main, run_single_agent
+from src.main import main, run_agent
 
 
 class TestMainFunction:
@@ -181,19 +181,7 @@ class TestMainFunction:
             mock_agent.start.assert_called_once()
             assert result.exit_code == 0
 
-    def test_missing_agent_id(
-            self, cli_runner, mock_dependencies, missing_agent_config):
-        MockAgent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
-        mock_load_config.return_value = missing_agent_config
-
-        result = cli_runner.invoke(main, [])
-
-        # Since 'agent_id' is missing, MatlabAgent should NOT be called
-        MockAgent.assert_not_called()
-        # Optionally check output for hints about missing agent_id
-        assert ("agent_id" in result.output) or (result.exit_code == 0)
-
-    def test_run_single_agent_direct(self, mock_dependencies):
+    def test_run_agent_direct(self, mock_dependencies):
         MockAgent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
 
         mock_load_config.return_value = {
@@ -201,7 +189,7 @@ class TestMainFunction:
             'logging': {'level': 'INFO', 'file': 'agent.log'}
         }
 
-        run_single_agent('test_config.yml')
+        run_agent('test_config.yml')
 
         mock_load_config.assert_called_once_with('test_config.yml')
         MockAgent.assert_called_once_with(

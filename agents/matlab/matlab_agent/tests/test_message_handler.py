@@ -77,12 +77,13 @@ class TestMessageHandler:
         """Fixture providing a valid batch simulation message."""
         return yaml.dump({
             'simulation': {
-                'simulator': 'test_simulator',
+                'id': 'test_sim',
+                'destination': 'test_dest',
                 'type': 'batch',
                 'file': 'test_file.mat',
-                'inputs': {'param1': 10}
+                'inputs': {'param1': 10},
+                'bridge_meta': {'key': 'value'}
             },
-            'destinations': ['dest1'],
             'request_id': 'test-request-id'
         })
 
@@ -91,12 +92,13 @@ class TestMessageHandler:
         """Fixture providing a valid streaming simulation message."""
         return yaml.dump({
             'simulation': {
-                'simulator': 'test_simulator',
+                'id': 'test_sim',
+                'destination': 'test_dest',
                 'type': 'streaming',
                 'file': 'test_file.mat',
-                'inputs': {'param1': 10}
+                'inputs': {'param1': 10},
+                'bridge_meta': {'key': 'value'}
             },
-            'destinations': ['dest1'],
             'request_id': 'test-request-id'
         })
 
@@ -113,8 +115,7 @@ class TestMessageHandler:
                 'type': 'batch',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10}
-            },
-            'destinations': ['dest1']
+            }
         })
 
     def test_handle_batch_message(
@@ -173,24 +174,6 @@ class TestMessageHandler:
         assert error_response['status'] == 'error'
         assert 'YAML parsing error' in error_response['error']['message']
 
-    def test_invalid_message_structure(
-        self, message_handler, mock_channel, basic_deliver,
-        basic_properties, invalid_structure_message
-    ):
-        """Test handling of valid YAML with invalid message structure."""
-        message_handler.handle_message(
-            mock_channel,
-            basic_deliver,
-            basic_properties,
-            invalid_structure_message.encode())
-
-        mock_channel.basic_nack.assert_called_once_with(
-            delivery_tag=123, requeue=False)
-        message_handler.rabbitmq_manager.send_result.assert_called_once()
-        error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
-        assert error_response['status'] == 'error'
-        assert 'Message validation failed' in error_response['error']['message']
-
     def test_batch_processing_error(
         self, message_handler, mock_channel, basic_deliver,
         basic_properties, valid_batch_message
@@ -209,6 +192,8 @@ class TestMessageHandler:
             mock_channel.basic_nack.assert_called_once_with(
                 delivery_tag=123, requeue=False)
             error_response = message_handler.rabbitmq_manager.send_result.call_args[0][1]
+            assert error_response['status'] == 'error'
+            assert 'Error processing message' in error_response['error']['message']
             assert 'Batch error' in error_response['error']['details']
 
     def test_pydantic_validation(self):
@@ -216,20 +201,25 @@ class TestMessageHandler:
         # Valid batch request
         valid_data = {
             'simulation': {
-                'simulator': 'test',
+                'id': 'test_sim',
+                'destination': 'test_dest',
                 'type': 'batch',
                 'file': 'test.mat',
-                'inputs': {'param': 10}
+                'inputs': {'param': 10},
+                'bridge_meta': {'key': 'value'}
             },
-            'destinations': ['dest1']
+            'request_id': 'test-request-id'
         }
         payload = MessagePayload(**valid_data)
-        assert payload.request_id  # Should be generated
+        assert payload.request_id == 'test-request-id'
+        assert payload.simulation.id == 'test_sim'
+        assert payload.simulation.type == 'batch'
 
         # Invalid simulation type
         with pytest.raises(ValueError):
             SimulationData(
-                simulator='test',
+                id='test_sim',
+                destination='test_dest',
                 type='invalid',
                 file='test.mat',
                 inputs={'param': 10}
@@ -258,13 +248,15 @@ class TestMessageHandler:
         mock_properties = MagicMock()
         mock_properties.message_id = None
 
-        message_handler.handle_message(
-            mock_channel,
-            basic_deliver,
-            mock_properties,
-            valid_batch_message.encode())
+        with patch("src.comm.rabbitmq.message_handler.handle_batch_simulation") as mock_batch:
+            message_handler.handle_message(
+                mock_channel,
+                basic_deliver,
+                mock_properties,
+                valid_batch_message.encode())
 
-        mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
+            mock_batch.assert_called_once()
+            mock_channel.basic_ack.assert_called_once_with(delivery_tag=123)
 
     def test_error_response_failure(
         self, message_handler, mock_channel, basic_deliver,

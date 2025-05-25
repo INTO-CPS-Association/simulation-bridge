@@ -190,7 +190,7 @@ agents/matlab/dist/
 **/resources/*.yml
 **/matlab/*.yaml
 **/matlab/*.yml
-
+config*.yaml
 #SIMULATION BRIDGE 
 /logs
 

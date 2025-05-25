@@ -1,26 +1,8 @@
 import pytest
 from typing import Any, Dict, Callable
 from unittest.mock import MagicMock
-
-# Fix import errors by ensuring proper imports
-try:
-    from src.comm.connect import Connect
-    from src.comm.interfaces import IMessageBroker, IMessageHandler
-except ImportError:
-    # For testing purposes, we can create mock classes if imports fail
-    class Connect:
-        def __init__(self, agent_id, config, broker_type="rabbitmq"):
-            self.agent_id = agent_id
-            self.config = config
-            self.broker_type = broker_type
-            self.broker = None
-            self.message_handler = None
-
-    class IMessageBroker:
-        pass
-
-    class IMessageHandler:
-        pass
+from src.comm.connect import Connect
+from src.comm.interfaces import IMessageBroker, IMessageHandler
 
 
 @pytest.fixture(scope="function")

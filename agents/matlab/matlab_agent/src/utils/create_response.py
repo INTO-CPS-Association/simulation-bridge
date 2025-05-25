@@ -89,7 +89,7 @@ def create_response(
     sim_file: str,
     sim_type: str,
     response_templates: Dict[str, Any],
-    bridge_meta : str,
+    bridge_meta: str,
     **kwargs: Any
 ) -> Dict[str, Any]:
     """

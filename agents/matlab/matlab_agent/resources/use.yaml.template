@@ -1,7 +1,0 @@
-rabbitmq:
-  host: localhost
-  port: 5672
-  username: guest
-  password: guest
-  heartbeat: 600
-  vhost: /

@@ -1,3 +1,5 @@
+"""Test suite for streaming functionality."""
+
 import socket
 import time
 from pathlib import Path
@@ -190,29 +192,43 @@ def test_controller_start_failure(mock_popen, matlab_controller):
 
 @patch('src.core.streaming.StreamingConnection.start_server')
 @patch('src.core.streaming.subprocess.Popen')
+@patch('src.core.streaming.psutil.Process')
 def test_controller_start_success(
+        mock_psutil_process,
         mock_popen,
         mock_start_server,
         matlab_controller,
         mock_rabbit_client):
     """
-    Test successful controller.start sends initial progress notification.
+    Test successful controller.start sends initial success notification.
     """
     # Mock the MATLAB process
     fake_proc = MagicMock()
+    fake_proc.pid = 12345  # Set a valid PID
     mock_popen.return_value = fake_proc
+
+    # Mock psutil Process
+    mock_process = MagicMock()
+    mock_process.memory_info.return_value = MagicMock(rss=1024 * 1024)  # 1 MB
+    mock_process.cpu_percent.return_value = 5.0  # 5% CPU
+    mock_psutil_process.return_value = mock_process
 
     # Start the controller
     matlab_controller.start()
 
-    # Verify progress message was sent
+    # Verify success message was sent
     mock_rabbit_client.send_result.assert_called_once()
 
-    # Verify the keys in the sent progress message
+    # Verify the keys in the sent success message
     args = mock_rabbit_client.send_result.call_args[0]
     assert len(args) >= 2
-    progress_data = args[1]
-    assert 'progress' in progress_data
+    success_data = args[1]
+    assert success_data['status'] == 'completed'
+    assert 'metadata' in success_data
+    assert 'simulation' in success_data
+    assert success_data['simulation']['type'] == 'streaming'
+    assert success_data['simulation']['name'] == 'test_file.m'
+    assert 'bridge_meta' in success_data
 
 
 @patch('src.core.streaming.StreamingConnection.accept_connection')
@@ -313,7 +329,8 @@ def test_handle_streaming_error_bad_request(
         ValueError('Missing path/file configuration'),  # Value error
         'test_queue',  # Queue name
         mock_rabbit_client,  # RabbitMQ client
-        response_templates  # Response templates
+        response_templates,  # Response templates
+        'unknown'  # bridge_meta
     )
 
     # Get the sent error response
@@ -368,14 +385,15 @@ def test_handle_streaming_simulation_success(
     # Mock controller creation to return our fake
     monkeypatch.setattr(
         'src.core.streaming.MatlabStreamingController',
-        lambda path, f, s, r, rt, ts: fake_controller
+        lambda path, f, s, r, rt, ts, bm: fake_controller
     )
 
     # Complete simulation data with all required fields
     simulation_data = {
         'simulation': {
             'file': 'test_file.m',
-            'inputs': {'param': 'value'}
+            'inputs': {'param': 'value'},
+            'bridge_meta': {'key': 'value'}
         }
     }
 

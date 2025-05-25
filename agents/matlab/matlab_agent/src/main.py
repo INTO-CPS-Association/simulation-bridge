@@ -20,8 +20,7 @@ from .utils.config_loader import load_config
 def main(config_file=None, generate_config=False,
          generate_project=False) -> None:
     """
-    Main function to initialize and start the MATLAB agent.
-    Supports single or multiple agents with different configurations.
+    An agent service to manage Matlab simulations.
     """
     if generate_config:
         generate_default_config()
@@ -30,7 +29,7 @@ def main(config_file=None, generate_config=False,
         generate_default_project()
         return
     if config_file:
-        run_single_agent(config_file)
+        run_agent(config_file)
     else:
         if not os.path.exists('config.yaml'):
             print("""
@@ -47,7 +46,7 @@ matlab-agent --config-file /path/to/your/config.yaml
         """)
             return
         else:
-            run_single_agent('config.yaml')
+            run_agent('config.yaml')
 
 
 def generate_default_config():
@@ -113,7 +112,7 @@ def generate_default_project():
         print(f"Error generating configuration file: {e}")
 
 
-def run_single_agent(config_file):
+def run_agent(config_file):
     """Initializes and starts a single MATLAB agent instance."""
     broker_type = "rabbitmq"
     config = load_config(config_file)

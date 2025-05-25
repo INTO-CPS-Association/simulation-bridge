@@ -1,3 +1,5 @@
+"""Unit tests for create_response module."""
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -77,6 +79,7 @@ class TestSuccessResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             outputs=outputs
         )
 
@@ -84,6 +87,7 @@ class TestSuccessResponses:
         assert result['simulation']['name'] == 'test_sim.mat'
         assert result['simulation']['type'] == 'batch'
         assert result['simulation']['outputs'] == outputs
+        assert result['bridge_meta'] == 'test_bridge'
         assert 'timestamp' in result
 
     def test_create_response_success_streaming(self, base_response_templates):
@@ -100,6 +104,7 @@ class TestSuccessResponses:
             sim_file='test_sim.mat',
             sim_type='streaming',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             data=data
         )
 
@@ -107,6 +112,7 @@ class TestSuccessResponses:
         assert result['simulation']['name'] == 'test_sim.mat'
         assert result['simulation']['type'] == 'streaming'
         assert result['simulation']['outputs'] == data
+        assert result['bridge_meta'] == 'test_bridge'
         assert 'timestamp' in result
 
     def test_create_response_with_metadata(
@@ -128,12 +134,14 @@ class TestSuccessResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=response_templates_with_metadata,
+            bridge_meta='test_bridge',
             outputs={'result': 42},
             metadata=metadata
         )
 
         assert result['status'] == 'completed'
         assert result['metadata'] == metadata
+        assert result['bridge_meta'] == 'test_bridge'
 
 
 class TestErrorResponses:
@@ -156,6 +164,7 @@ class TestErrorResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             error=error_info
         )
 
@@ -165,6 +174,7 @@ class TestErrorResponses:
         assert result['error']['message'] == 'Something went wrong'
         assert result['error']['code'] == 500
         assert result['error']['type'] == 'execution_error'
+        assert result['bridge_meta'] == 'test_bridge'
         assert 'traceback' not in result['error']
 
     def test_create_response_error_with_stacktrace(
@@ -187,6 +197,7 @@ class TestErrorResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=response_templates_with_stacktrace,
+            bridge_meta='test_bridge',
             error=error_info
         )
 
@@ -194,6 +205,7 @@ class TestErrorResponses:
         assert result['error']['message'] == 'Something went wrong'
         assert result['error']['code'] == 400
         assert result['error']['traceback'] == traceback
+        assert result['bridge_meta'] == 'test_bridge'
 
 
 class TestProgressResponses:
@@ -212,6 +224,7 @@ class TestProgressResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             percentage=75,
             message='Processing data'
         )
@@ -221,6 +234,7 @@ class TestProgressResponses:
         assert result['simulation']['type'] == 'batch'
         assert result['progress']['percentage'] == 75
         assert result['progress']['message'] == 'Processing data'
+        assert result['bridge_meta'] == 'test_bridge'
 
     def test_create_response_progress_without_percentage(
             self, base_response_templates):
@@ -239,6 +253,7 @@ class TestProgressResponses:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=templates,
+            bridge_meta='test_bridge',
             percentage=75,  # This should be ignored
             message='Processing data'
         )
@@ -248,6 +263,7 @@ class TestProgressResponses:
         assert result['simulation']['type'] == 'batch'
         assert 'percentage' not in result.get('progress', {})
         assert result['progress']['message'] == 'Processing data'
+        assert result['bridge_meta'] == 'test_bridge'
 
     def test_create_response_progress_with_data(self, base_response_templates):
         """
@@ -263,6 +279,7 @@ class TestProgressResponses:
             sim_file='test_sim.mat',
             sim_type='streaming',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             percentage=50,
             message='Halfway there',
             data=stream_data
@@ -272,6 +289,7 @@ class TestProgressResponses:
         assert result['progress']['percentage'] == 50
         assert result['progress']['message'] == 'Halfway there'
         assert result['data'] == stream_data
+        assert result['bridge_meta'] == 'test_bridge'
 
 
 class TestStreamingResponses:
@@ -291,6 +309,7 @@ class TestStreamingResponses:
             sim_file='test_sim.mat',
             sim_type='streaming',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             data=stream_data,
             sequence=3
         )
@@ -300,6 +319,7 @@ class TestStreamingResponses:
         assert result['simulation']['type'] == 'streaming'
         assert result['data'] == stream_data
         assert result['sequence'] == 3
+        assert result['bridge_meta'] == 'test_bridge'
 
 
 class TestMiscellaneousFeatures:
@@ -319,10 +339,12 @@ class TestMiscellaneousFeatures:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             outputs={}
         )
 
         assert result['timestamp'] == '2023-01-01T12:00:00Z'
+        assert result['bridge_meta'] == 'test_bridge'
         fixed_datetime.now.return_value.strftime.assert_called_once_with(
             '%Y-%m-%dT%H:%M:%SZ')
 
@@ -338,12 +360,14 @@ class TestMiscellaneousFeatures:
             template_type='nonexistent',
             sim_file='test_sim.mat',
             sim_type='batch',
-            response_templates=base_response_templates
+            response_templates=base_response_templates,
+            bridge_meta='test_bridge'
         )
 
         assert result['status'] == 'nonexistent'
         assert result['simulation']['name'] == 'test_sim.mat'
         assert result['simulation']['type'] == 'batch'
+        assert result['bridge_meta'] == 'test_bridge'
         assert 'timestamp' in result
 
     def test_create_response_additional_kwargs(self, base_response_templates):
@@ -358,6 +382,7 @@ class TestMiscellaneousFeatures:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
+            bridge_meta='test_bridge',
             outputs={},
             custom_field='custom_value',
             another_field=123
@@ -366,3 +391,4 @@ class TestMiscellaneousFeatures:
         assert result['status'] == 'completed'
         assert result['custom_field'] == 'custom_value'
         assert result['another_field'] == 123
+        assert result['bridge_meta'] == 'test_bridge'

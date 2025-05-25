@@ -32,7 +32,6 @@ def handle_streaming_simulation(
     response_templates: Dict,
     tcp_settings: Dict,
 ) -> None:
-
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})
     bridge_meta = data.get('bridge_meta', 'unknown')

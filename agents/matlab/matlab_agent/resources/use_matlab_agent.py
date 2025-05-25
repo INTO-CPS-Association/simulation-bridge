@@ -8,7 +8,7 @@ import yaml
 class SimpleUsageMatlabAgent:
     def __init__(self, agent_identifier: str = "dt",
                  destination_identifier: str = "matlab",
-                 config_path: str = "use.yaml.template") -> None:
+                 config_path: str = "use.yaml") -> None:
         self.agent_id: str = agent_identifier
         self.destination_id: str = destination_identifier
 
@@ -63,10 +63,12 @@ class SimpleUsageMatlabAgent:
             'request_id': str(uuid.uuid4())
         }
 
+        # Aggiungi bridge_meta dentro simulation
+        payload.setdefault('simulation', {})['bridge_meta'] = {
+            'protocol': 'rabbitmq'
+        }
         payload_yaml: str = yaml.dump(payload, default_flow_style=False)
-
         routing_key: str = f"{self.agent_id}.{self.destination_id}"
-
         self.channel.basic_publish(
             exchange='ex.bridge.output',
             routing_key=routing_key,
