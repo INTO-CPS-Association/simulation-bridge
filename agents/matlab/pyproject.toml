@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "matlab-agent"                          
-version = "0.1.0"
+version = "0.2.0"
 description = "Agent for MATLAB integration"
 authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 readme = "README.md"

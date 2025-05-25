@@ -241,8 +241,8 @@ Example output:
 
 ```bash
 dist/
-├── matlab_agent-0.1.0-py3-none-any.whl
-└── matlab_agent-0.1.0.tar.gz
+├── matlab_agent-0.2.0-py3-none-any.whl
+└── matlab_agent-0.2.0.tar.gz
 ```
 
 ### Verifying the Package (Optional but Recommended)
@@ -250,7 +250,7 @@ dist/
 You can verify that the package works by installing it locally:
 
 ```bash
-pip install dist/matlab_agent-0.1.0-py3-none-any.whl
+pip install dist/matlab_agent-0.2.0-py3-none-any.whl
 ```
 
 Then, run the command defined in the script:
@@ -264,7 +264,7 @@ matlab-agent
 When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
 
 ```toml
-version = "0.2.0"
+version = "0.3.0"
 ```
 
 Then rebuild the package:
