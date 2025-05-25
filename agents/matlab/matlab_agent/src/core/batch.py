@@ -147,8 +147,6 @@ def _handle_error(error: Exception,
                   response_templates: Dict
                   ) -> None:
     """Handle errors and send error response."""
-    logger.error("Simulation '%s' failed: %s",
-                 sim_file, str(error), exc_info=True)
     error_type = _determine_error_type(error)
     error_response = create_response(
         'error',
@@ -162,7 +160,8 @@ def _handle_error(error: Exception,
                 'error',
                 {}).get(
                 'include_stacktrace',
-                False) else None})
+                False) else None},
+        bridge_meta=response_templates.get('bridge_meta', 'unknown'))
     _send_response(broker, source, error_response)
 
 

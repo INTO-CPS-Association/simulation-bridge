@@ -44,40 +44,19 @@ class MatlabSimulator:
         Args:
             path: Directory path containing the simulation files
             file: Name of the main simulation file
-            function_name: Name of the function to call (defaults to file name without extension)
+            function_name: Name of the function to call (defaults to file name without 
+            extension)
         """
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.function_name: str = function_name or os.path.splitext(file)[0]
         self.eng: Optional[matlab.engine.MatlabEngine] = None
         self.start_time: Optional[float] = None
-
         # Check if the path is a directory and if the file exists
-        # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.warning(
-                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
-                self.sim_path,
-                self.sim_file)
-            # Define fallback path inside package 'docs/examples'
-            fallback_path = (
-                Path(__file__).parent.parent.parent /
-                "docs" /
-                "examples" /
-                self.sim_file)
-            if fallback_path.exists():
-                logger.debug(
-                    "Found simulation file in fallback path: '%s'.",
-                    fallback_path)
-                self.sim_path = fallback_path.parent
-            else:
-                error_msg = (
-                    f"Simulation file '{self.sim_file}' not found in either "
-                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
-                logger.error(error_msg)
-                raise FileNotFoundError(error_msg)
-        logger.debug("Path to simulation: %s", self.sim_path)
-        logger.debug("Simulation file: %s", self.sim_file)
+            error_msg = (
+                f"Simulation file '{self.sim_file}' not found in directory '{self.sim_path}'.")
+            logger.error(error_msg)
         self._validate()
 
     def _validate(self) -> None:

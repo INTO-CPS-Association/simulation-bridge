@@ -79,9 +79,9 @@ def handle_streaming_simulation(
         )
         logger.info("Completed: %s", sim_file)
 
-    except Exception as e:  # pylint: disable=broad-except
+    except Exception as e:
         logger.error("Simulation failed: %s", str(e))
-        _handle_streaming_error(sim_file, e, source, message_broker)
+        _handle_streaming_error(sim_file, e, source, message_broker, response_templates)
     finally:
         if controller:
             controller.close()
@@ -157,29 +157,10 @@ class MatlabStreamingController:
         logger.debug("Path to simulation: %s", self.sim_path)
         logger.debug("Simulation file: %s", self.sim_file)
         # Check if the path is a directory and if the file exists
-        # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.warning(
-                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
-                self.sim_path,
-                self.sim_file)
-            # Define fallback path inside package 'docs/examples'
-            fallback_path = (
-                Path(__file__).parent.parent.parent /
-                "docs" /
-                "examples" /
-                self.sim_file)
-            if fallback_path.exists():
-                logger.debug(
-                    "Found simulation file in fallback path: '%s'.",
-                    fallback_path)
-                self.sim_path = fallback_path.parent
-            else:
-                error_msg = (
-                    f"Simulation file '{self.sim_file}' not found in either "
-                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
-                logger.error(error_msg)
-                raise FileNotFoundError(error_msg)
+            error_msg = (
+                f"Simulation file '{self.sim_file}' not found in directory '{self.sim_path}'.")
+            raise FileNotFoundError(error_msg)
         self._validate()
 
     def _validate(self) -> None:

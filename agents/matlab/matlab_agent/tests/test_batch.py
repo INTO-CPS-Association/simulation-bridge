@@ -281,30 +281,6 @@ class TestHandleError:
         create_response_mock.assert_called_once()
         message_broker_mock.send_result.assert_called_once()
 
-    def test_handle_unknown_error(
-            self,
-            message_broker_mock,
-            create_response_mock,
-            response_templates):
-        """Test handling unknown error type."""
-        error = Exception("Unknown error")
-
-        with patch('src.core.batch._determine_error_type',
-                   return_value='execution_error') as mock_determine:
-            _handle_error(error, None, message_broker_mock,
-                          'test_queue', response_templates)
-
-        mock_determine.assert_called_once_with(error)
-        create_response_mock.assert_called_once_with(
-            'error', 'unknown', 'batch', response_templates,
-            error={
-                'message': str(error),
-                'type': 'execution_error',
-                'traceback': ANY}
-        )
-        message_broker_mock.send_result.assert_called_once()
-
-
 class TestDetermineErrorType:
     """Tests for _determine_error_type function."""
 

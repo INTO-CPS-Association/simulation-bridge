@@ -121,7 +121,7 @@ if __name__ == "__main__":
     agent = SimpleUsageMatlabAgent(AGENT_ID, DESTINATION)
 
     try:
-        simulation_data = agent.load_yaml("../api/simulation.yaml")
+        simulation_data = agent.load_yaml("../../simulation.yaml")
         agent.send_request(simulation_data)
 
         print("\nPress Ctrl+C to terminate the program...")

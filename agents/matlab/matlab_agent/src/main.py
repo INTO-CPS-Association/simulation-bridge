@@ -1,6 +1,7 @@
 """
 Main entry point for the MATLAB Agent application.
 """
+from pathlib import Path
 import os
 import logging
 import click
@@ -50,22 +51,25 @@ matlab-agent --config-file /path/to/your/config.yaml
 
 
 def generate_default_config():
-    """Copy the template configuration file to the current directory."""
+    """Copy the template configuration file to the current directory if not already present."""
+    config_path = os.path.join(os.getcwd(), 'config.yaml')
+    if os.path.exists(config_path):
+        print(f"File already exists at path: {config_path}")
+        return
     try:
         try:
             from importlib.resources import files
             template_path = files('matlab_agent.config').joinpath(
                 'config.yaml.template')
-            with open(template_path, 'rb') as src, open('config.yaml', 'wb') as dst:
+            with open(template_path, 'rb') as src, open(config_path, 'wb') as dst:
                 dst.write(src.read())
         except (ImportError, AttributeError):
             import pkg_resources
-            template_content = pkg_resources.resource_string(
-                'matlab_agent.config', 'config.yaml.template')
-            with open('config.yaml', 'wb') as dst:
+            template_content = pkg_resources.resource_string('matlab_agent.config',
+                                                             'config.yaml.template')
+            with open(config_path, 'wb') as dst:
                 dst.write(template_content)
-        print(
-            f"Configuration template copied to: {os.path.join(os.getcwd(), 'config.yaml')}")
+        print(f"Configuration template copied to: {config_path}")
     except FileNotFoundError:
         print("Error: Template configuration file not found.")
     except Exception as e:
@@ -73,43 +77,83 @@ def generate_default_config():
 
 
 def generate_default_project():
-    """Copy the template configuration file to the current directory."""
+    """Copy all template project files to the current directory, only if they don't already exist."""
+
+    existing_files = []
+    created_files = []
+
+    # Mapping from output filename to importlib resource location
+    files_to_generate = {
+        'config.yaml': ('matlab_agent.config', 'config.yaml.template'),
+        'SimulationWrapper.m': ('matlab_agent.resources', 'SimulationWrapper.m'),
+        'simulation.yaml': ('matlab_agent.api', 'simulation.yaml.template'),
+        'SimulationBatch.m': ('matlab_agent.docs.examples', 'simulation_batch.m.template'),
+        'SimulationStreaming.m': ('matlab_agent.docs.examples', 'simulation_streaming.m.template'),
+    }
+
+    # Descriptions for each file
+    file_descriptions = {
+        'config.yaml': "Configuration file for the MATLAB agent",
+        'SimulationWrapper.m': "Helper class for handling streaming simulations",
+        'simulation.yaml': "Example API payload to communicate with the MATLAB agent",
+        'SimulationBatch.m': "Template for batch-mode simulations",
+        'SimulationStreaming.m': "Template for streaming-mode simulations",
+    }
+
     try:
         try:
             from importlib.resources import files
-            config_template_path = files('matlab_agent.config').joinpath(
-                'config.yaml.template')
-            with open(config_template_path, 'rb') as src, open('config.yaml', 'wb') as dst:
-                dst.write(src.read())
-            wrapper_template_path = files('matlab_agent.resources').joinpath(
-                'SimulationWrapper.m')
-            with open(wrapper_template_path, 'rb') as src, open('SimulationWrapper.m', 'wb') as dst:
-                dst.write(src.read())
-            batch_template_path = files('matlab_agent.docs.examples').joinpath(
-                'simulation_batch.m.template')
-            with open(batch_template_path, 'rb') as src, open('SimulationBatch.m', 'wb') as dst:
-                dst.write(src.read())
-            streaming_template_path = files('matlab_agent.docs.examples').joinpath(
-                'simulation_streaming.m.template')
-            with open(streaming_template_path, 'rb') as src, open('SimulationStreaming.m', 'wb') as dst:
-                dst.write(src.read())
+            for output_name, (package,
+                              resource_name) in files_to_generate.items():
+                output_path = Path(output_name)
+                if output_path.exists():
+                    existing_files.append(output_name)
+                    continue
+                resource_path = files(package).joinpath(resource_name)
+                with open(resource_path, 'rb') as src, open(output_path, 'wb') as dst:
+                    dst.write(src.read())
+                created_files.append(output_name)
         except (ImportError, AttributeError):
             import pkg_resources
-            template_content = pkg_resources.resource_string(
-                'matlab_agent.config', 'config.yaml.template')
-            with open('config.yaml', 'wb') as dst:
-                dst.write(template_content)
-        print(
-            "Project files generated successfully in the current directory:\n"
-            " - config.yaml\n"
-            " - SimulationWrapper.m\n"
-            " - SimulationBatch.m\n"
-            " - SimulationStreaming.m\n\n"
-            "You can now customize these files as needed and run the MATLAB agent.")
+            for output_name, (package,
+                              resource_name) in files_to_generate.items():
+                output_path = Path(output_name)
+                if output_path.exists():
+                    existing_files.append(output_name)
+                    continue
+                template_content = pkg_resources.resource_string(
+                    package, resource_name)
+                with open(output_path, 'wb') as dst:
+                    dst.write(template_content)
+                created_files.append(output_name)
+
+        # Print result summary
+        print("\nProject generation summary:\n")
+
+        if created_files:
+            print("🆕 Files created:")
+            for f in created_files:
+                description = file_descriptions.get(
+                    f, "No description available")
+                print(f" - {f:<25} : {description}")
+
+        if existing_files:
+            print("\n📄 Files already present (skipped):")
+            for f in existing_files:
+                description = file_descriptions.get(
+                    f, "No description available")
+                print(f" - {f:<25} : {description}")
+
+        if not created_files:
+            print("\nAll project files already exist. Nothing was created.")
+        else:
+            print(
+                "\nYou can now customize these files as needed and start using the MATLAB agent.")
+
     except FileNotFoundError:
-        print("Error: Template configuration file not found.")
+        print("❌ Error: One or more template files were not found.")
     except Exception as e:
-        print(f"Error generating configuration file: {e}")
+        print(f"❌ Error generating project files: {e}")
 
 
 def run_agent(config_file):
