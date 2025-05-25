@@ -172,38 +172,37 @@ response_templates:
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
 
-```bash
-poetry run matlab-agent --config-file <path_to_config.yaml>
-```
-
 ## Usage
 
 The agent requires a configuration file to run. You can start by copying the provided template and customizing it as needed.
 
 ### Getting Started
 
-1. Generate a configuration file template:
+**Generate a configuration file template:**
 
 ```bash
 poetry run matlab-agent --generate-config
 ```
 
-This creates a `config.yaml` file in your current directory that you can customize.
+This command creates a `config.yaml` file in your current directory. If the file already exists, it will not be overwritten.
 
-2. Generate all necessary project files:
+**Generate all default project files:**
 
 ```bash
 poetry run matlab-agent --generate-project
 ```
 
-This creates the following files:
+This command generates the following files in the current directory, but only if they don't already exist (no overwriting):
 
-- `config.yaml` - Configuration settings
-- `SimulationWrapper.m` - Main interface for MATLAB simulations
-- `SimulationBatch.m` - Template for batch simulations
-- `SimulationStreaming.m` - Template for streaming simulations
+- `config.yaml` — Configuration settings for the MATLAB agent
+- `SimulationWrapper.m` — Main MATLAB interface for simulations
+- `simulation.yaml` — Example API payload to communicate with the MATLAB agent
+- `SimulationBatch.m` — Template for batch-mode simulations
+- `SimulationStreaming.m` — Template for streaming-mode simulations
 
-3. Customize these files according to your simulation needs.
+Customize the generated files to fit your specific simulation needs.
+
+> **Note:** The `--generate-project` command helps you quickly bootstrap a MATLAB agent project with all essential files. If any of the target files already exist in your directory, they will be skipped to prevent accidental overwrites.
 
 ### Running the Agent
 
