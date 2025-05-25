@@ -1,6 +1,7 @@
-import pytest
-from typing import Any, Dict, Callable
+from typing import Any, Dict
 from unittest.mock import MagicMock
+import pytest
+
 from src.comm.connect import Connect
 from src.comm.interfaces import IMessageBroker, IMessageHandler
 
@@ -95,15 +96,8 @@ class TestConnectMethods:
     Tests for Connect methods: connect, setup, register, start, send, result, close.
     """
 
-    def setup_method(self, method):
-        """
-        Set up the test class instance before each test method.
-        This replaces the autouse fixture and prevents attribute-defined-outside-init.
-
-        Args:
-            method: The test method to be executed
-        """
-        # These fixtures will be injected by pytest
+    def __init__(self):
+        """Initialize test class attributes."""
         self.conn = None
 
     @pytest.fixture(autouse=True)
@@ -162,7 +156,8 @@ class TestConnectMethods:
         """
         def custom_handler(_):
             """Custom message handler that does nothing."""
-            pass
+            return None
+
         self.conn.register_message_handler(custom_handler)
         mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
             custom_handler)
@@ -263,7 +258,8 @@ class TestConnectMethods:
         # set
         def callback(_):
             """Simulation callback that does nothing."""
-            pass
+            return None
+
         self.conn.set_simulation_handler(callback)
         mock_message_handler.set_simulation_handler.assert_called_once_with(
             callback)

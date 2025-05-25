@@ -78,7 +78,7 @@ class TestMessageHandler:
         return yaml.dump({
             'simulation': {
                 'id': 'test_sim',
-                'destination': 'test_dest',
+                'simulator': 'test_dest',
                 'type': 'batch',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10},
@@ -93,7 +93,7 @@ class TestMessageHandler:
         return yaml.dump({
             'simulation': {
                 'id': 'test_sim',
-                'destination': 'test_dest',
+                'simulator': 'test_dest',
                 'type': 'streaming',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10},
@@ -202,7 +202,7 @@ class TestMessageHandler:
         valid_data = {
             'simulation': {
                 'id': 'test_sim',
-                'destination': 'test_dest',
+                'simulator': 'test_dest',
                 'type': 'batch',
                 'file': 'test.mat',
                 'inputs': {'param': 10},

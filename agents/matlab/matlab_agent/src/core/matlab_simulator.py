@@ -44,7 +44,7 @@ class MatlabSimulator:
         Args:
             path: Directory path containing the simulation files
             file: Name of the main simulation file
-            function_name: Name of the function to call (defaults to file name without 
+            function_name: Name of the function to call (defaults to file name without
             extension)
         """
         self.sim_path: Path = Path(path).resolve()

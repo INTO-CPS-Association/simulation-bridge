@@ -81,7 +81,12 @@ def handle_streaming_simulation(
 
     except Exception as e:
         logger.error("Simulation failed: %s", str(e))
-        _handle_streaming_error(sim_file, e, source, message_broker, response_templates)
+        _handle_streaming_error(
+            sim_file,
+            e,
+            source,
+            message_broker,
+            response_templates)
     finally:
         if controller:
             controller.close()

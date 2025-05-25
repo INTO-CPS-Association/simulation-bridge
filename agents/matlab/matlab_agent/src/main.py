@@ -2,7 +2,6 @@
 Main entry point for the MATLAB Agent application.
 """
 from pathlib import Path
-import os
 import logging
 import click
 from .utils.logger import setup_logger
@@ -32,7 +31,8 @@ def main(config_file=None, generate_config=False,
     if config_file:
         run_agent(config_file)
     else:
-        if not os.path.exists('config.yaml'):
+        config_path = Path('config.yaml')
+        if not config_path.exists():
             print("""
 Error: Configuration file 'config.yaml' not found.
 
@@ -47,13 +47,13 @@ matlab-agent --config-file /path/to/your/config.yaml
         """)
             return
         else:
-            run_agent('config.yaml')
+            run_agent(str(config_path))
 
 
 def generate_default_config():
     """Copy the template configuration file to the current directory if not already present."""
-    config_path = os.path.join(os.getcwd(), 'config.yaml')
-    if os.path.exists(config_path):
+    config_path = Path.cwd() / 'config.yaml'
+    if config_path.exists():
         print(f"File already exists at path: {config_path}")
         return
     try:

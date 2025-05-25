@@ -2,7 +2,7 @@ simulation:
   id: dt
   # Unique identifier of the sender of this simulation request
 
-  destination: matlab
+  simulator: matlab
   # Specifies the target system for the simulation.
   # Use 'matlab' to route the request to the MATLAB simulator.
 

@@ -281,6 +281,7 @@ class TestHandleError:
         create_response_mock.assert_called_once()
         message_broker_mock.send_result.assert_called_once()
 
+
 class TestDetermineErrorType:
     """Tests for _determine_error_type function."""
 

@@ -3,7 +3,6 @@ Comprehensive test suite for main.py with 90%+ code coverage.
 Tests all functions including CLI commands, file generation, and error handling.
 Fixed version addressing pkg_resources and assertion issues.
 """
-import os
 import logging
 from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open, call
@@ -11,9 +10,9 @@ import pytest
 from click.testing import CliRunner
 
 from src.main import (
-    main, 
-    run_agent, 
-    generate_default_config, 
+    main,
+    run_agent,
+    generate_default_config,
     generate_default_project
 )
 
@@ -108,24 +107,25 @@ class TestMainFunction:
             'logging': {'level': 'INFO', 'file': 'agent.log'}
         }
 
-        config_path = os.path.abspath('matlab_agent/config/config.yaml.template')
-        result = cli_runner.invoke(main, ['-c', config_path])
+        config_path = Path('matlab_agent/config/config.yaml.template').resolve()
+        result = cli_runner.invoke(main, ['-c', str(config_path)])
 
-        mock_load_config.assert_called_once_with(config_path)
+        mock_load_config.assert_called_once_with(str(config_path))
         mock_matlab_agent.assert_called_once_with(
             'custom_agent',
             broker_type='rabbitmq',
-            config_path=config_path
+            config_path=str(config_path)
         )
         mock_agent = mock_matlab_agent.return_value
         mock_agent.start.assert_called_once()
         assert result.exit_code == 0
 
-    def test_main_without_config_file_exists(self, cli_runner, mock_dependencies, default_config):
+    def test_main_without_config_file_exists(
+            self, cli_runner, mock_dependencies, default_config):
         """Test main function when config.yaml exists in current directory."""
         mock_matlab_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
 
-        with patch('os.path.exists', return_value=True):
+        with patch('pathlib.Path.exists', return_value=True):
             mock_load_config.return_value = default_config
             result = cli_runner.invoke(main, [])
 
@@ -141,7 +141,7 @@ class TestMainFunction:
 
     def test_main_without_config_file_missing(self, cli_runner):
         """Test main function when config.yaml is missing."""
-        with patch('os.path.exists', return_value=False):
+        with patch('pathlib.Path.exists', return_value=False):
             result = cli_runner.invoke(main, [])
             assert "Error: Configuration file 'config.yaml' not found." in result.output
             assert "matlab-agent --generate-config" in result.output
@@ -153,7 +153,7 @@ class TestMainFunction:
         with patch('src.main.MatlabAgent') as mock_matlab_agent, \
                 patch('src.main.setup_logger') as mock_setup_logger, \
                 patch('src.main.load_config') as mock_load_config, \
-                patch('os.path.exists', return_value=True):
+                patch('pathlib.Path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -176,7 +176,7 @@ class TestMainFunction:
         with patch('src.main.MatlabAgent') as mock_matlab_agent, \
                 patch('src.main.setup_logger') as mock_setup_logger, \
                 patch('src.main.load_config') as mock_load_config, \
-                patch('os.path.exists', return_value=True):
+                patch('pathlib.Path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -190,7 +190,8 @@ class TestMainFunction:
             result = cli_runner.invoke(main, [])
 
             mock_agent.stop.assert_called_once()
-            mock_logger.error.assert_called_with("Error running agent: %s", test_exception)
+            mock_logger.error.assert_called_with(
+                "Error running agent: %s", test_exception)
             assert result.exit_code == 0
 
     def test_invalid_log_level_fallback(self, cli_runner, invalid_log_config):
@@ -198,7 +199,7 @@ class TestMainFunction:
         with patch('src.main.MatlabAgent') as mock_matlab_agent, \
                 patch('src.main.setup_logger') as mock_setup_logger, \
                 patch('src.main.load_config') as mock_load_config, \
-                patch('os.path.exists', return_value=True):
+                patch('pathlib.Path.exists', return_value=True):
 
             mock_logger = MagicMock()
             mock_setup_logger.return_value = mock_logger
@@ -247,131 +248,152 @@ class TestMainFunction:
     def test_generate_default_config_success_importlib(self):
         """Test successful config generation using importlib.resources."""
         config_content = b"test config content"
-        
-        with patch('os.path.exists', return_value=False), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('importlib.resources.files') as mock_files, \
-             patch('builtins.open', mock_open()) as mock_file:
-            
+        # Use relative path for cross-platform compatibility
+        test_dir = Path('test/dir')
+        config_path = test_dir / 'config.yaml'
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=False), \
+                patch('importlib.resources.files') as mock_files, \
+                patch('builtins.open', mock_open()) as mock_file:
+
             # Mock importlib.resources.files behavior
             mock_resource = MagicMock()
             mock_resource.joinpath.return_value = mock_resource
             mock_files.return_value = mock_resource
-            
+
             # Mock context manager for reading
-            mock_src = MagicMock()
-            mock_src.__enter__ = MagicMock(return_value=mock_src)
-            mock_src.__exit__ = MagicMock(return_value=None)
-            mock_src.read = MagicMock(return_value=config_content)
-            
-            # Mock context manager for writing  
-            mock_dst = MagicMock()
-            mock_dst.__enter__ = MagicMock(return_value=mock_dst)
-            mock_dst.__exit__ = MagicMock(return_value=None)
-            mock_dst.write = MagicMock()
-            
-            mock_file.side_effect = [mock_src, mock_dst]
-            
+            mock_context = MagicMock()
+            mock_context.__enter__ = MagicMock(return_value=mock_context)
+            mock_context.__exit__ = MagicMock(return_value=None)
+            mock_context.read = MagicMock(return_value=config_content)
+            mock_resource.open = MagicMock(return_value=mock_context)
+
             with patch('builtins.print') as mock_print:
                 generate_default_config()
-                
-                mock_print.assert_called_with(
-                    "Configuration template copied to: /test/dir/config.yaml"
-                )
+
+                # Check if print was called with the success message
+                expected_message = f"Configuration template copied to: {config_path}"
+                mock_print.assert_any_call(expected_message)
 
     def test_generate_default_config_fallback_pkg_resources(self):
         """Test config generation fallback to pkg_resources."""
         config_content = b"test config content"
-        
+        # Use relative path for cross-platform compatibility
+        test_dir = Path('test/dir')
+        config_path = test_dir / 'config.yaml'
+
         # Create a mock pkg_resources module
         mock_pkg_resources = MagicMock()
         mock_pkg_resources.resource_string.return_value = config_content
-        
-        with patch('os.path.exists', return_value=False), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('importlib.resources.files', side_effect=ImportError()), \
-             patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-             patch('builtins.open', mock_open()) as mock_file, \
-             patch('builtins.print') as mock_print:
-            
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=False), \
+                patch('importlib.resources.files', side_effect=ImportError()), \
+                patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
+                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.print') as mock_print:
+
             generate_default_config()
-            
-            mock_print.assert_called_with(
-                "Configuration template copied to: /test/dir/config.yaml"
-            )
+
+            expected_message = f"Configuration template copied to: {config_path}"
+            mock_print.assert_any_call(expected_message)
 
     def test_generate_default_config_file_exists(self):
         """Test config generation when file already exists."""
-        with patch('os.path.exists', return_value=True), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('builtins.print') as mock_print:
-            
+        test_dir = Path(
+            'test/dir')  # Use relative path for cross-platform compatibility
+        config_path = test_dir / 'config.yaml'
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=True), \
+                patch('builtins.print') as mock_print:
+
             generate_default_config()
-            
-            mock_print.assert_called_with(
-                "File already exists at path: /test/dir/config.yaml"
-            )
+
+            expected_message = f"File already exists at path: {config_path}"
+            mock_print.assert_any_call(expected_message)
 
     def test_generate_default_config_file_not_found(self):
         """Test config generation when template file is not found."""
-        with patch('os.path.exists', return_value=False), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('importlib.resources.files') as mock_files, \
-             patch('builtins.print') as mock_print:
-            
+        test_dir = Path(
+            'test/dir')  # Use relative path for cross-platform compatibility
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=False), \
+                patch('importlib.resources.files') as mock_files, \
+                patch('builtins.print') as mock_print:
+
             mock_files.side_effect = FileNotFoundError()
-            
+
             generate_default_config()
-            
-            mock_print.assert_called_with(
-                "Error: Template configuration file not found."
-            )
+
+            expected_message = "Error: Template configuration file not found."
+            mock_print.assert_any_call(expected_message)
 
     def test_generate_default_config_general_exception(self):
         """Test config generation with general exception."""
         test_error = Exception("General error")
-        
-        with patch('os.path.exists', return_value=False), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('importlib.resources.files', side_effect=test_error), \
-             patch('builtins.print') as mock_print:
-            
+        # Use relative path for cross-platform compatibility
+        test_dir = Path('test/dir')
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=False), \
+                patch('importlib.resources.files', side_effect=test_error), \
+                patch('builtins.print') as mock_print:
+
             generate_default_config()
-            
-            mock_print.assert_called_with(
-                f"Error generating configuration file: {test_error}"
-            )
+
+            expected_message = f"Error generating configuration file: {test_error}"
+            mock_print.assert_any_call(expected_message)
+
+    def test_generate_config_with_attribute_error_fallback(self):
+        """Test config generation with AttributeError fallback to pkg_resources."""
+        config_content = b"test config content"
+        # Use relative path for cross-platform compatibility
+        test_dir = Path('test/dir')
+        config_path = test_dir / 'config.yaml'
+
+        # Create a mock pkg_resources module
+        mock_pkg_resources = MagicMock()
+        mock_pkg_resources.resource_string.return_value = config_content
+
+        with patch('pathlib.Path.cwd', return_value=test_dir), \
+                patch('pathlib.Path.exists', return_value=False), \
+                patch('importlib.resources.files', side_effect=AttributeError()), \
+                patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
+                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.print') as mock_print:
+
+            generate_default_config()
+
+            expected_message = f"Configuration template copied to: {config_path}"
+            mock_print.assert_any_call(expected_message)
 
     # Test generate_default_project function
     def test_generate_default_project_success_importlib(self):
         """Test successful project generation using importlib.resources."""
         with patch('pathlib.Path.exists', return_value=False), \
-             patch('importlib.resources.files') as mock_files, \
-             patch('builtins.open', mock_open()) as mock_file, \
-             patch('builtins.print') as mock_print:
-            
+                patch('importlib.resources.files') as mock_files, \
+                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.print') as mock_print:
+
             # Mock importlib.resources.files behavior
             mock_resource = MagicMock()
             mock_resource.joinpath.return_value = mock_resource
             mock_files.return_value = mock_resource
-            
+
             # Mock context manager for reading
-            mock_src = MagicMock()
-            mock_src.__enter__ = MagicMock(return_value=mock_src)
-            mock_src.__exit__ = MagicMock(return_value=None)
-            mock_src.read = MagicMock(return_value=b"content")
-            
-            # Mock context manager for writing  
-            mock_dst = MagicMock()
-            mock_dst.__enter__ = MagicMock(return_value=mock_dst)
-            mock_dst.__exit__ = MagicMock(return_value=None)
-            mock_dst.write = MagicMock()
-            
-            mock_file.side_effect = [mock_src, mock_dst] * 10  # Multiple files
-            
+            mock_context = MagicMock()
+            mock_context.__enter__ = MagicMock(return_value=mock_context)
+            mock_context.__exit__ = MagicMock(return_value=None)
+            mock_context.read = MagicMock(return_value=b"content")
+            mock_resource.open = MagicMock(return_value=mock_context)
+
             generate_default_project()
-            
-            # Verify summary is printed
+
+            # Verify summary is printed - look for any call containing "Files
+            # created"
             print_calls = [str(call) for call in mock_print.call_args_list]
             assert any("🆕 Files created:" in call for call in print_calls)
 
@@ -380,15 +402,15 @@ class TestMainFunction:
         # Create a mock pkg_resources module
         mock_pkg_resources = MagicMock()
         mock_pkg_resources.resource_string.return_value = b"content"
-        
+
         with patch('pathlib.Path.exists', return_value=False), \
-             patch('importlib.resources.files', side_effect=ImportError()), \
-             patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-             patch('builtins.open', mock_open()), \
-             patch('builtins.print') as mock_print:
-            
+                patch('importlib.resources.files', side_effect=ImportError()), \
+                patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
+                patch('builtins.open', mock_open()), \
+                patch('builtins.print') as mock_print:
+
             generate_default_project()
-            
+
             # Verify summary is printed
             print_calls = [str(call) for call in mock_print.call_args_list]
             assert any("🆕 Files created:" in call for call in print_calls)
@@ -396,11 +418,12 @@ class TestMainFunction:
     def test_generate_default_project_all_files_exist(self):
         """Test project generation when all files already exist."""
         with patch('pathlib.Path.exists', return_value=True), \
-             patch('builtins.print') as mock_print:
-            
+                patch('builtins.print') as mock_print:
+
             generate_default_project()
-            
-            # Check that the "all files exist" message appears somewhere in the calls
+
+            # Check that the "all files exist" message appears somewhere in the
+            # calls
             print_calls = [str(call) for call in mock_print.call_args_list]
             output_text = " ".join(print_calls)
             assert "All project files already exist" in output_text
@@ -408,52 +431,50 @@ class TestMainFunction:
     def test_generate_default_project_file_not_found(self):
         """Test project generation when template files are not found."""
         with patch('pathlib.Path.exists', return_value=False), \
-             patch('importlib.resources.files', side_effect=FileNotFoundError()), \
-             patch('builtins.print') as mock_print:
-            
+                patch('importlib.resources.files', side_effect=FileNotFoundError()), \
+                patch('builtins.print') as mock_print:
+
             generate_default_project()
-            
-            mock_print.assert_called_with(
-                "❌ Error: One or more template files were not found."
-            )
+
+            expected_message = "❌ Error: One or more template files were not found."
+            mock_print.assert_any_call(expected_message)
 
     def test_generate_default_project_general_exception(self):
         """Test project generation with general exception."""
         test_error = Exception("General project error")
-        
+
         with patch('pathlib.Path.exists', return_value=False), \
-             patch('importlib.resources.files', side_effect=test_error), \
-             patch('builtins.print') as mock_print:
-            
+                patch('importlib.resources.files', side_effect=test_error), \
+                patch('builtins.print') as mock_print:
+
             generate_default_project()
-            
-            mock_print.assert_called_with(
-                f"❌ Error generating project files: {test_error}"
-            )
+
+            expected_message = f"❌ Error generating project files: {test_error}"
+            mock_print.assert_any_call(expected_message)
 
     # Test logging level parsing edge cases
     def test_various_log_levels(self, cli_runner):
         """Test different logging levels are handled correctly."""
         log_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
-        
+
         for level in log_levels:
             config = {
                 'logging': {'level': level, 'file': 'test.log'},
                 'agent': {'agent_id': 'test_agent'}
             }
-            
+
             with patch('src.main.MatlabAgent') as mock_matlab_agent, \
                     patch('src.main.setup_logger') as mock_setup_logger, \
                     patch('src.main.load_config', return_value=config), \
-                    patch('os.path.exists', return_value=True):
-                
+                    patch('pathlib.Path.exists', return_value=True):
+
                 mock_logger = MagicMock()
                 mock_setup_logger.return_value = mock_logger
                 mock_agent = MagicMock()
                 mock_matlab_agent.return_value = mock_agent
-                
+
                 result = cli_runner.invoke(main, [])
-                
+
                 expected_level = getattr(logging, level)
                 mock_setup_logger.assert_called_once_with(
                     level=expected_level,
@@ -466,7 +487,8 @@ class TestMainFunction:
         """Test the if __name__ == '__main__' block."""
         with patch('src.main.main') as mock_main_func:
             # Simulate running the module directly
-            exec("if __name__ == '__main__': main()", {'__name__': '__main__', 'main': mock_main_func})
+            exec("if __name__ == '__main__': main()", {
+                 '__name__': '__main__', 'main': mock_main_func})
             mock_main_func.assert_called_once()
 
     # Test edge cases for CLI options
@@ -479,25 +501,26 @@ class TestMainFunction:
     def test_cli_short_config_option(self, cli_runner, mock_dependencies):
         """Test short form of config option (-c)."""
         mock_matlab_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
-        
+
         mock_load_config.return_value = {
             'agent': {'agent_id': 'test_agent'},
             'logging': {'level': 'INFO', 'file': 'test.log'}
         }
-        
-        config_path = os.path.abspath('matlab_agent/config/config.yaml.template')
-        result = cli_runner.invoke(main, ['-c', config_path])
-        
-        mock_load_config.assert_called_once_with(config_path)
+
+        config_path = Path('matlab_agent/config/config.yaml.template').resolve()
+        result = cli_runner.invoke(main, ['-c', str(config_path)])
+
+        mock_load_config.assert_called_once_with(str(config_path))
         assert result.exit_code == 0
 
     def test_multiple_flags_priority(self, cli_runner):
         """Test that generate flags take priority over other operations."""
         with patch('src.main.generate_default_config') as mock_gen_conf, \
-             patch('src.main.generate_default_project') as mock_gen_proj:
-            
+                patch('src.main.generate_default_project') as mock_gen_proj:
+
             # Test generate-config takes precedence
-            result = cli_runner.invoke(main, ['--generate-config', '--generate-project'])
+            result = cli_runner.invoke(
+                main, ['--generate-config', '--generate-project'])
             mock_gen_conf.assert_called_once()
             mock_gen_proj.assert_not_called()
             assert result.exit_code == 0
@@ -505,15 +528,15 @@ class TestMainFunction:
     def test_broker_type_hardcoded(self, cli_runner, mock_dependencies):
         """Test that broker_type is hardcoded to 'rabbitmq'."""
         mock_matlab_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
-        
+
         mock_load_config.return_value = {
             'agent': {'agent_id': 'test_agent'},
             'logging': {'level': 'INFO', 'file': 'test.log'}
         }
-        
-        with patch('os.path.exists', return_value=True):
+
+        with patch('pathlib.Path.exists', return_value=True):
             result = cli_runner.invoke(main, [])
-            
+
             mock_matlab_agent.assert_called_once_with(
                 'test_agent',
                 broker_type='rabbitmq',  # Verify hardcoded value
@@ -521,42 +544,20 @@ class TestMainFunction:
             )
             assert result.exit_code == 0
 
-    # Additional tests to increase coverage
-    def test_generate_config_with_attribute_error_fallback(self):
-        """Test config generation with AttributeError fallback to pkg_resources."""
-        config_content = b"test config content"
-        
-        # Create a mock pkg_resources module
-        mock_pkg_resources = MagicMock()
-        mock_pkg_resources.resource_string.return_value = config_content
-        
-        with patch('os.path.exists', return_value=False), \
-             patch('os.getcwd', return_value='/test/dir'), \
-             patch('importlib.resources.files', side_effect=AttributeError()), \
-             patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-             patch('builtins.open', mock_open()), \
-             patch('builtins.print') as mock_print:
-            
-            generate_default_config()
-            
-            mock_print.assert_called_with(
-                "Configuration template copied to: /test/dir/config.yaml"
-            )
-
     def test_generate_project_with_attribute_error_fallback(self):
         """Test project generation with AttributeError fallback to pkg_resources."""
         # Create a mock pkg_resources module
         mock_pkg_resources = MagicMock()
         mock_pkg_resources.resource_string.return_value = b"content"
-        
+
         with patch('pathlib.Path.exists', return_value=False), \
-             patch('importlib.resources.files', side_effect=AttributeError()), \
-             patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-             patch('builtins.open', mock_open()), \
-             patch('builtins.print') as mock_print:
-            
+                patch('importlib.resources.files', side_effect=AttributeError()), \
+                patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
+                patch('builtins.open', mock_open()), \
+                patch('builtins.print') as mock_print:
+
             generate_default_project()
-            
+
             # Verify summary is printed
             print_calls = [str(call) for call in mock_print.call_args_list]
             assert any("🆕 Files created:" in call for call in print_calls)
@@ -564,6 +565,7 @@ class TestMainFunction:
     def test_config_file_nonexistent_path(self, cli_runner):
         """Test main function with nonexistent config file path."""
         with patch('src.main.load_config', side_effect=FileNotFoundError("Config not found")):
-            result = cli_runner.invoke(main, ['-c', '/nonexistent/config.yaml'])
+            result = cli_runner.invoke(
+                main, ['-c', str(Path('/nonexistent/config.yaml'))])
             # Should exit with error code due to unhandled exception
             assert result.exit_code != 0
