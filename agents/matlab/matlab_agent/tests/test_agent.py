@@ -2,9 +2,8 @@
 Tests for the MatlabAgent class that interfaces with MATLAB simulations.
 """
 
-import json
-import pytest
 from unittest import mock
+import pytest
 from src.core.agent import MatlabAgent
 
 
@@ -20,7 +19,7 @@ def rabbit_config():
 
 
 @pytest.fixture
-def config_dict(rabbit_config):
+def config_dict(rabbit_config):  # pylint: disable=redefined-outer-name
     """Return a standard configuration dictionary for testing."""
     return {
         "rabbitmq": rabbit_config
@@ -28,7 +27,7 @@ def config_dict(rabbit_config):
 
 
 @pytest.fixture
-def mock_config_manager(config_dict):
+def mock_config_manager(config_dict):  # pylint: disable=redefined-outer-name
     """Provide a mock instance of ConfigManager with standard configuration."""
     with mock.patch("src.core.agent.ConfigManager") as mock_cm:
         instance = mock_cm.return_value
@@ -59,7 +58,7 @@ def mock_logger():
 
 
 @pytest.fixture
-def matlab_agent(mock_config_manager, mock_connect):
+def matlab_agent(mock_config_manager, mock_connect):  # pylint: disable=redefined-outer-name,unused-argument
     """Create a MatlabAgent instance with mocked dependencies."""
     return MatlabAgent(agent_id="test-agent")
 
@@ -68,7 +67,7 @@ class TestMatlabAgentInitialization:
     """Tests for MatlabAgent initialization."""
 
     def test_default_initialization(
-            self, matlab_agent, mock_config_manager, mock_connect):
+            self, matlab_agent, mock_config_manager, mock_connect):  # pylint: disable=redefined-outer-name
         """Agent loads config, connects, sets up and registers handler."""
         # ConfigManager.get_config called
         mock_config_manager.get_config.assert_called_once()
@@ -88,7 +87,7 @@ class TestMatlabAgentInitialization:
             # custom config_path
             mock_cm_inst = mock_cm.return_value
             mock_cm_inst.get_config.return_value = {"foo": "bar"}
-            agent1 = MatlabAgent("agent1", config_path="/etc/conf.yaml")
+            _ = MatlabAgent("agent1", config_path="/etc/conf.yaml")
             mock_cm.assert_called_once_with("/etc/conf.yaml")
             mock_conn.assert_called_with("agent1", {"foo": "bar"}, "rabbitmq")
 
@@ -97,7 +96,7 @@ class TestMatlabAgentInitialization:
             mock_conn.reset_mock()
             mock_cm_inst.get_config.return_value = {"baz": 123}
 
-            agent2 = MatlabAgent("agent2", broker_type="mqtt")
+            _ = MatlabAgent("agent2", broker_type="mqtt")
             mock_cm.assert_called_once_with(None)
             mock_conn.assert_called_with("agent2", {"baz": 123}, "mqtt")
 
@@ -106,7 +105,7 @@ class TestMatlabAgentOperations:
     """Tests for MatlabAgent start/stop/send_result."""
 
     def test_start_and_error_handling(
-            self, matlab_agent, mock_connect, mock_logger):
+            self, matlab_agent, mock_connect, mock_logger):  # pylint: disable=redefined-outer-name
         """start() calls start_consuming and handles different exceptions."""
         # --- Normal start ---
         matlab_agent.start()
@@ -141,12 +140,12 @@ class TestMatlabAgentOperations:
         # Verifica che sia stato loggato lo stack trace
         mock_logger.exception.assert_called_once_with("Stack trace:")
 
-    def test_stop(self, matlab_agent, mock_connect):
+    def test_stop(self, matlab_agent, mock_connect):  # pylint: disable=redefined-outer-name
         """stop() calls comm.close()."""
         matlab_agent.stop()
         mock_connect.close.assert_called_once()
 
-    def test_send_result(self, matlab_agent, mock_connect):
+    def test_send_result(self, matlab_agent, mock_connect):  # pylint: disable=redefined-outer-name
         """send_result() delegates to comm.send_result."""
         data = {"value": 42}
         res = matlab_agent.send_result("dest", data)

@@ -26,7 +26,7 @@ pytest = "^8.3.5"
 pytest-cov = "^6.1.1"
 
 [tool.poetry.scripts]
-matlab-agent = "matlab_agent.src.run_default_agent:run"  
+matlab-agent = "matlab_agent.src.main:main"  
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]             

@@ -2,9 +2,11 @@
 Test suite for the ConfigManager class.
 """
 from pathlib import Path
-import pytest
 from unittest import mock
+
+import pytest
 from pydantic import ValidationError
+
 from src.utils.config_manager import ConfigManager
 
 
@@ -111,21 +113,69 @@ def config_manager(mock_config_path, mock_load_config, mock_path_exists):
     return ConfigManager(mock_config_path)
 
 
-def test_config_manager_initialization(
-        config_manager,
-        mock_load_config,
-        mock_config_path):
-    """
-    Test that ConfigManager initializes correctly with the provided configuration.
-
-    Args:
-        config_manager: The pre-configured ConfigManager fixture
-        mock_load_config: The mocked load_config function fixture
-        mock_config_path: The mock config path fixture
-    """
-    mock_load_config.assert_called_once_with(Path(mock_config_path))
-    assert config_manager.config["agent"]["agent_id"] == "matlab"
-    assert config_manager.config["rabbitmq"]["host"] == "localhost"
+def test_config_manager_initialization():
+    """Test that ConfigManager initializes correctly with the provided configuration."""
+    config_path = "/fake/path/config.yaml"
+    test_config_data = {
+        "agent": {"agent_id": "matlab"},
+        "rabbitmq": {
+            "host": "localhost",
+            "port": 5672,
+            "username": "guest",
+            "password": "guest",
+            "heartbeat": 600
+        },
+        "exchanges": {
+            "input": "ex.bridge.output",
+            "output": "ex.sim.result"
+        },
+        "queue": {
+            "durable": True,
+            "prefetch_count": 1
+        },
+        "logging": {
+            "level": "INFO",
+            "file": "logs/matlab_agent.log"
+        },
+        "tcp": {
+            "host": "localhost",
+            "port": 5678
+        },
+        "response_templates": {
+            "success": {
+                "status": "success",
+                "simulation": {"type": "batch"},
+                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+                "include_metadata": True,
+                "metadata_fields": ["execution_time", "memory_usage", "matlab_version"]
+            },
+            "error": {
+                "status": "error",
+                "include_stacktrace": False,
+                "error_codes": {
+                    "invalid_config": 400,
+                    "matlab_start_failure": 500,
+                    "execution_error": 500,
+                    "timeout": 504,
+                    "missing_file": 404
+                },
+                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+            },
+            "progress": {
+                "status": "in_progress",
+                "include_percentage": True,
+                "update_interval": 5,
+                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+            }
+        }
+    }
+    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
+            mock.patch.object(Path, "exists", return_value=True):
+        load_config_mock.return_value = test_config_data
+        manager = ConfigManager(config_path)
+        load_config_mock.assert_called_once_with(Path(config_path))
+        assert manager.config["agent"]["agent_id"] == "matlab"
+        assert manager.config["rabbitmq"]["host"] == "localhost"
 
 
 def test_get_default_config():
@@ -138,30 +188,44 @@ def test_get_default_config():
     assert default_config["rabbitmq"]["port"] == 5672
 
 
-def test_get_config(config_manager):
-    """
-    Test that get_config returns the correct configuration values.
+def test_get_config():
+    """Test that get_config returns the correct configuration values."""
+    config_path = "/fake/path/config.yaml"
+    test_config_data = {
+        "agent": {"agent_id": "matlab"},
+        "rabbitmq": {"host": "localhost", "port": 5672}
+    }
+    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
+            mock.patch.object(Path, "exists", return_value=True):
+        load_config_mock.return_value = test_config_data
+        manager = ConfigManager(config_path)
+        config = manager.get_config()
 
-    Args:
-        config_manager: The pre-configured ConfigManager fixture
-    """
-    config = config_manager.get_config()
-
-    assert config["agent"]["agent_id"] == "matlab"
-    assert config["rabbitmq"]["host"] == "localhost"
+        assert config["agent"]["agent_id"] == "matlab"
+        assert config["rabbitmq"]["host"] == "localhost"
 
 
-def test_validate_config_success(config_manager, mock_config_data):
-    """
-    Test that config validation succeeds with correct data.
+def test_validate_config_success():
+    """Test that config validation succeeds with correct data."""
+    test_config_data = {
+        "agent": {"agent_id": "matlab"},
+        "rabbitmq": {
+            "host": "localhost",
+            "port": 5672,
+            "username": "guest",
+            "password": "guest",
+            "heartbeat": 600
+        }
+    }
+    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
+            mock.patch.object(Path, "exists", return_value=True):
+        load_config_mock.return_value = test_config_data
+        manager = ConfigManager("/fake/path/config.yaml")
 
-    Args:
-        config_manager: The pre-configured ConfigManager fixture
-        mock_config_data: The test configuration data fixture
-    """
-    validated_config = config_manager._validate_config(mock_config_data)
-
-    assert validated_config["agent"]["agent_id"] == "matlab"
+        # Test the protected method directly
+        validated_config = manager._validate_config(
+            test_config_data)  # pylint: disable=protected-access
+        assert validated_config["agent"]["agent_id"] == "matlab"
 
 
 def test_validate_config_failure():
@@ -170,7 +234,8 @@ def test_validate_config_failure():
     invalid_config = {"rabbitmq": {"port": "not_a_number"}}
 
     with pytest.raises(ValidationError):
-        manager._validate_config(invalid_config)
+        manager._validate_config(
+            invalid_config)  # pylint: disable=protected-access
 
 
 def test_initialization_with_invalid_path():

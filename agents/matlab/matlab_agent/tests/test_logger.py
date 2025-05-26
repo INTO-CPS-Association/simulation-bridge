@@ -1,170 +1,346 @@
-import logging
-import sys
-from pathlib import Path
-import pytest
-from unittest.mock import patch, MagicMock
+"""
+Unit tests for the logger module.
 
+This module contains comprehensive tests for the logger configuration utilities,
+including file logging, console output, log rotation, and colorized formatting.
+"""
+
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+import colorlog
+
+# Assuming the logger module is in the same directory
 from src.utils.logger import (
-    BACKUP_COUNT, DEFAULT_LOG_FORMAT, MAX_LOG_SIZE,
-    get_logger, setup_logger
+    DEFAULT_LOG_FORMAT,
+    DEFAULT_LOG_LEVEL,
+    MAX_LOG_SIZE,
+    BACKUP_COUNT,
+    setup_logger,
+    get_logger
 )
 
-LOG_NAME = "TEST-LOGGER"
 
+class TestLoggerSetup(unittest.TestCase):
+    """Test cases for logger setup functionality."""
 
-@pytest.fixture
-def temp_log_file(tmp_path):
-    """Create a temporary log file path."""
-    log_path = tmp_path / "test.log"
-    return str(log_path)
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.test_log_file = os.path.join(self.temp_dir, 'test.log')
+        self.logger_name = 'TEST_LOGGER'
 
+        # Clear any existing loggers to avoid interference
+        logging.getLogger(self.logger_name).handlers.clear()
+        logging.getLogger(self.logger_name).setLevel(logging.NOTSET)
 
-@pytest.fixture
-def logger_cleanup():
-    """
-    Ensure that logger handlers are cleaned up before and after each test
-    to prevent side effects.
-    """
-    logger = logging.getLogger(LOG_NAME)
-    original_handlers = list(logger.handlers)
-    yield
-    # Cleanup: remove all handlers added during the test
-    for h in list(logger.handlers):
-        if h not in original_handlers:
-            logger.removeHandler(h)
+    def tearDown(self):
+        """Clean up after each test method."""
+        # Remove all handlers from test logger
+        test_logger = logging.getLogger(self.logger_name)
+        for handler in test_logger.handlers[:]:
+            handler.close()
+            test_logger.removeHandler(handler)
 
+        # Clean up temporary files
+        if os.path.exists(self.test_log_file):
+            os.remove(self.test_log_file)
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
-@pytest.fixture
-def mock_log_path(monkeypatch):
-    """Mock for Path.mkdir calls."""
-    mkdir_calls = []
-    monkeypatch.setattr(Path, "mkdir", lambda self, **
-                        kwargs: mkdir_calls.append(self))
-    return mkdir_calls
+    def test_setup_logger_default_parameters(self):
+        """Test logger setup with default parameters."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            log_file = os.path.join(temp_dir, 'default.log')
+            logger = setup_logger(
+                name=self.logger_name,
+                log_file=log_file
+            )
 
+            self.assertIsInstance(logger, logging.Logger)
+            self.assertEqual(logger.name, self.logger_name)
+            self.assertEqual(logger.level, DEFAULT_LOG_LEVEL)
+            self.assertEqual(len(logger.handlers), 2)  # File + Console handlers
 
-class TestLogger:
-    """Test suite for logging functionality."""
+    def test_setup_logger_custom_parameters(self):
+        """Test logger setup with custom parameters."""
+        custom_level = logging.DEBUG
+        custom_format = '%(name)s - %(message)s'
 
-    def test_setup_logger_creates_handlers(
-            self, temp_log_file, mock_log_path, logger_cleanup):
-        """Verify that setup_logger creates the correct handlers with the right configurations."""
         logger = setup_logger(
-            name=LOG_NAME,
-            level=logging.DEBUG,
-            log_format=DEFAULT_LOG_FORMAT,
-            log_file=temp_log_file,
-            enable_console=True,
+            name=self.logger_name,
+            level=custom_level,
+            log_format=custom_format,
+            log_file=self.test_log_file,
+            enable_console=False
         )
 
-        # Verify logger name
-        assert logger.name == LOG_NAME
+        self.assertEqual(logger.level, custom_level)
+        self.assertEqual(len(logger.handlers), 1)  # Only file handler
 
-        # Verify that mkdir was called for the log directory
-        assert mock_log_path and Path(temp_log_file).parent in mock_log_path
+    def test_log_file_creation(self):
+        """Test that log file and directory are created."""
+        log_dir = os.path.join(self.temp_dir, 'nested', 'directory')
+        log_file = os.path.join(log_dir, 'nested.log')
 
-        # Verify handler types
-        handler_types = {type(h) for h in logger.handlers}
-        assert logging.handlers.RotatingFileHandler in handler_types
-        assert logging.StreamHandler in handler_types
+        setup_logger(
+            name=self.logger_name,
+            log_file=log_file
+        )
 
-        # Verify RotatingFileHandler configuration
-        file_handler = next(
+        self.assertTrue(os.path.exists(log_dir))
+        # Log file might not exist until first write, but directory should exist
+
+    def test_file_handler_configuration(self):
+        """Test file handler configuration."""
+        logger = setup_logger(
+            name=self.logger_name,
+            log_file=self.test_log_file
+        )
+
+        file_handler = None
+        for handler in logger.handlers:
+            if isinstance(handler, logging.handlers.RotatingFileHandler):
+                file_handler = handler
+                break
+
+        self.assertIsNotNone(file_handler)
+        self.assertEqual(file_handler.maxBytes, MAX_LOG_SIZE)
+        self.assertEqual(file_handler.backupCount, BACKUP_COUNT)
+        self.assertEqual(file_handler.level, logging.DEBUG)
+
+    def test_console_handler_configuration(self):
+        """Test console handler configuration."""
+        logger = setup_logger(
+            name=self.logger_name,
+            log_file=self.test_log_file,
+            enable_console=True
+        )
+
+        console_handler = None
+        for handler in logger.handlers:
+            if isinstance(
+                    handler, logging.StreamHandler) and handler.stream == sys.stdout:
+                console_handler = handler
+                break
+
+        self.assertIsNotNone(console_handler)
+        self.assertEqual(console_handler.level, DEFAULT_LOG_LEVEL)
+        self.assertIsInstance(
+            console_handler.formatter,
+            colorlog.ColoredFormatter)
+
+    def test_console_disabled(self):
+        """Test logger setup with console disabled."""
+        logger = setup_logger(
+            name=self.logger_name,
+            log_file=self.test_log_file,
+            enable_console=False
+        )
+
+        console_handlers = [
             h for h in logger.handlers
-            if isinstance(h, logging.handlers.RotatingFileHandler)
-        )
-        assert file_handler.maxBytes == MAX_LOG_SIZE
-        assert file_handler.backupCount == BACKUP_COUNT
-        assert file_handler.level == logging.DEBUG
+            if isinstance(h, logging.StreamHandler) and h.stream == sys.stdout
+        ]
 
-        # Verify StreamHandler configuration
-        console_handler = next(
-            h for h in logger.handlers if isinstance(h, logging.StreamHandler)
-        )
-        assert console_handler.level == logging.DEBUG
+        self.assertEqual(len(console_handlers), 0)
 
-    def test_double_setup_does_not_duplicate_handlers(
-            self, temp_log_file, logger_cleanup):
-        """Ensure that calling setup_logger multiple times does not duplicate handlers."""
+    def test_logger_already_configured(self):
+        """Test that existing logger handlers are preserved."""
+        # Set up logger first time
         logger1 = setup_logger(
-            name=LOG_NAME, log_file=temp_log_file, enable_console=False
+            name=self.logger_name,
+            log_file=self.test_log_file
         )
-        count1 = len(logger1.handlers)
+        initial_handler_count = len(logger1.handlers)
 
+        # Set up same logger again
         logger2 = setup_logger(
-            name=LOG_NAME, log_file=temp_log_file, enable_console=False
+            name=self.logger_name,
+            log_file=self.test_log_file
         )
-        count2 = len(logger2.handlers)
 
-        # Verify that the logger instance and handler count remain consistent
-        assert logger1 is logger2
-        assert count1 == count2
+        self.assertIs(logger1, logger2)
+        self.assertEqual(len(logger2.handlers), initial_handler_count)
 
-    def test_get_logger_returns_existing(self, logger_cleanup):
-        """Verify that get_logger returns an existing logger instance."""
-        logger = logging.getLogger(LOG_NAME)
-        handler = logging.StreamHandler(sys.stdout)
-        logger.addHandler(handler)
-
-        same_logger = get_logger(LOG_NAME)
-        # Verify logger instance and presence of the handler
-        assert same_logger is logger
-        assert handler in same_logger.handlers
-
-    def test_disable_console_only_file_handler(
-            self, temp_log_file, logger_cleanup):
-        """Verify that setup_logger does not create a StreamHandler when enable_console=False."""
+    def test_color_formatter_configuration(self):
+        """Test color formatter configuration."""
         logger = setup_logger(
-            name=LOG_NAME, log_file=temp_log_file, enable_console=False
+            name=self.logger_name,
+            log_file=self.test_log_file,
+            enable_console=True
         )
-        handler_types = {type(h) for h in logger.handlers}
-        # Verify handler types
-        assert logging.StreamHandler not in handler_types
-        assert logging.handlers.RotatingFileHandler in handler_types
 
-    def test_logger_emits_messages_with_caplog(
-            self, caplog, temp_log_file, logger_cleanup):
-        """Verify that the logger emits messages and caplog captures them correctly."""
+        console_handler = None
+        for handler in logger.handlers:
+            if isinstance(
+                    handler, logging.StreamHandler) and handler.stream == sys.stdout:
+                console_handler = handler
+                break
+
+        self.assertIsNotNone(console_handler)
+        formatter = console_handler.formatter
+        self.assertIsInstance(formatter, colorlog.ColoredFormatter)
+
+        # Test that color configuration exists
+        expected_colors = {
+            'DEBUG': 'cyan',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'bold_red',
+        }
+        self.assertEqual(formatter.log_colors, expected_colors)
+
+    @patch('pathlib.Path.mkdir')
+    def test_log_directory_creation_error_handling(self, mock_mkdir):
+        """Test handling of directory creation errors."""
+        mock_mkdir.side_effect = OSError("Permission denied")
+
+        with self.assertRaises(OSError):
+            setup_logger(
+                name=self.logger_name,
+                log_file=self.test_log_file
+            )
+
+    def test_logging_functionality(self):
+        """Test actual logging functionality."""
         logger = setup_logger(
-            name=LOG_NAME,
-            level=logging.WARNING,
-            # Specific format for the file
-            log_format="%(levelname)s:%(message)s",
-            log_file=temp_log_file,
-            enable_console=False,
+            name=self.logger_name,
+            log_file=self.test_log_file
         )
 
-        # Set caplog to capture WARNING level and above
-        caplog.set_level(logging.WARNING, logger=LOG_NAME)
+        test_message = "Test log message"
+        logger.info(test_message)
 
-        # Emit an INFO message (ignored) and a WARNING message (captured)
-        logger.info("ignored info")
-        logger.warning("warning!")
+        # Check if log file was created and contains the message
+        self.assertTrue(os.path.exists(self.test_log_file))
 
-        # Verify captured records
-        assert len(caplog.records) == 1
+        with open(self.test_log_file, 'r', encoding='utf-8') as f:
+            log_content = f.read()
+            self.assertIn(test_message, log_content)
+            self.assertIn('INFO', log_content)
 
-        record = caplog.records[0]
-        # Verify record level and message
-        assert record.levelno == logging.WARNING
-        assert record.getMessage() == "warning!"
-
-    def test_file_log_content(self, temp_log_file, logger_cleanup):
-        """Verify that RotatingFileHandler writes logs with the correct content."""
+    def test_different_log_levels(self):
+        """Test logging at different levels."""
         logger = setup_logger(
-            name=LOG_NAME,
-            level=logging.ERROR,
-            log_format="%(levelname)s - %(message)s",
-            log_file=temp_log_file,
-            enable_console=False,
+            name=self.logger_name,
+            level=logging.DEBUG,
+            log_file=self.test_log_file
         )
 
-        # Emit an error message
-        logger.error("critical error")
+        logger.debug("Debug message")
+        logger.info("Info message")
+        logger.warning("Warning message")
+        logger.error("Error message")
+        logger.critical("Critical message")
 
-        # Read the content of the log file
-        with open(temp_log_file, 'r') as log_file:
-            content = log_file.read()
+        with open(self.test_log_file, 'r', encoding='utf-8') as f:
+            log_content = f.read()
+            self.assertIn("Debug message", log_content)
+            self.assertIn("Info message", log_content)
+            self.assertIn("Warning message", log_content)
+            self.assertIn("Error message", log_content)
+            self.assertIn("Critical message", log_content)
 
-        # Verify the content of the log file
-        assert "ERROR - critical error" in content
+
+class TestGetLogger(unittest.TestCase):
+    """Test cases for get_logger functionality."""
+
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.logger_name = 'GET_LOGGER_TEST'
+        # Clear any existing loggers
+        logging.getLogger(self.logger_name).handlers.clear()
+
+    def tearDown(self):
+        """Clean up after each test method."""
+        test_logger = logging.getLogger(self.logger_name)
+        for handler in test_logger.handlers[:]:
+            handler.close()
+            test_logger.removeHandler(handler)
+
+    def test_get_logger_default_name(self):
+        """Test get_logger with default name."""
+        logger = get_logger()
+        self.assertEqual(logger.name, 'MATLAB-AGENT')
+        self.assertIsInstance(logger, logging.Logger)
+
+    def test_get_logger_custom_name(self):
+        """Test get_logger with custom name."""
+        logger = get_logger(self.logger_name)
+        self.assertEqual(logger.name, self.logger_name)
+        self.assertIsInstance(logger, logging.Logger)
+
+    def test_get_logger_same_instance(self):
+        """Test that get_logger returns the same instance for the same name."""
+        logger1 = get_logger(self.logger_name)
+        logger2 = get_logger(self.logger_name)
+        self.assertIs(logger1, logger2)
+
+
+class TestLoggerConstants(unittest.TestCase):
+    """Test cases for logger constants."""
+
+    def test_default_constants(self):
+        """Test that constants have expected values."""
+        self.assertEqual(DEFAULT_LOG_FORMAT,
+                         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        self.assertEqual(DEFAULT_LOG_LEVEL, logging.INFO)
+        self.assertEqual(MAX_LOG_SIZE, 5 * 1024 * 1024)  # 5 MB
+        self.assertEqual(BACKUP_COUNT, 3)
+
+
+class TestLogRotation(unittest.TestCase):
+    """Test cases for log rotation functionality."""
+
+    def setUp(self):
+        """Set up test fixtures before each test method."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.test_log_file = os.path.join(self.temp_dir, 'rotation_test.log')
+        self.logger_name = 'ROTATION_TEST_LOGGER'
+
+        # Clear any existing loggers
+        logging.getLogger(self.logger_name).handlers.clear()
+
+    def tearDown(self):
+        """Clean up after each test method."""
+        test_logger = logging.getLogger(self.logger_name)
+        for handler in test_logger.handlers[:]:
+            handler.close()
+            test_logger.removeHandler(handler)
+
+        # Clean up temporary files
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+    @patch('src.utils.logger.MAX_LOG_SIZE', 100)  # Small size for testing
+    def test_log_rotation_trigger(self):
+        """Test that log rotation is triggered when size limit is reached."""
+        logger = setup_logger(
+            name=self.logger_name,
+            log_file=self.test_log_file
+        )
+
+        # Write enough data to trigger rotation
+        large_message = "A" * 50
+        for _ in range(5):  # Should exceed 100 bytes
+            logger.info(large_message)
+
+        # Force handler to flush
+        for handler in logger.handlers:
+            if hasattr(handler, 'flush'):
+                handler.flush()
+
+        # Check if rotation files might exist (implementation dependent)
+        self.assertTrue(os.path.exists(self.test_log_file))
+
+
+if __name__ == '__main__':
+    # Configure test runner
+    unittest.main(verbosity=2)

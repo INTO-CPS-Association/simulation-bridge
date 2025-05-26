@@ -1,9 +1,8 @@
 """Unit tests for the batch processing module with improved structure."""
 
+from unittest.mock import Mock, patch, call, ANY
+
 import pytest
-from unittest.mock import Mock, patch, call, MagicMock
-from pathlib import Path
-from unittest.mock import ANY
 
 from src.core.matlab_simulator import MatlabSimulationError
 from src.core.batch import (
@@ -33,7 +32,7 @@ def config_mock():
 
 
 @pytest.fixture
-def patched_config(monkeypatch, config_mock):
+def patched_config(monkeypatch, config_mock):  # pylint: disable=unused-argument
     """Patch the configuration loader to return our mock config."""
     with patch('src.core.batch.config', config_mock):
         yield config_mock
@@ -182,36 +181,32 @@ class TestStartMatlabWithRetry:
 class TestSendProgress:
     """Tests for _send_progress function."""
 
-    def test_send_progress_enabled(
-            self,
-            message_broker_mock,
-            create_response_mock,
-            response_templates):
+    def test_send_progress_enabled(self):
         """Test sending progress when enabled."""
-        _send_progress(message_broker_mock, 'test_queue', 'sim.m',
-                       50,
-                       response_templates)
-        create_response_mock.assert_called_once_with(
-            'progress', 'sim.m', 'batch', response_templates, percentage=50, bridge_meta='unknown',
-            request_id='unknown')
-        message_broker_mock.send_result.assert_called_once()
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
+        templates = {
+            'progress': {'include_percentage': True}
+        }
+        with patch('src.core.batch.create_response') as response_mock:
+            response_mock.return_value = {'status': 'mocked_response'}
+            _send_progress(broker_mock, 'test_queue', 'sim.m', 50, templates)
+            response_mock.assert_called_once_with(
+                'progress', 'sim.m', 'batch', templates, percentage=50,
+                bridge_meta='unknown', request_id='unknown')
+            broker_mock.send_result.assert_called_once()
 
-    def test_send_progress_disabled(
-            self,
-            message_broker_mock,
-            create_response_mock,
-            response_templates):
+    def test_send_progress_disabled(self):
         """Test not sending progress when disabled."""
-        # Modifica response_templates per disabilitare il reporting del
-        # progresso
-        disabled_templates = response_templates.copy()
-        disabled_templates['progress'] = {'include_percentage': False}
-
-        _send_progress(message_broker_mock, 'test_queue', 'sim.m', 50,
-                       disabled_templates)
-
-        create_response_mock.assert_not_called()
-        message_broker_mock.send_result.assert_not_called()
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
+        templates = {
+            'progress': {'include_percentage': False}
+        }
+        with patch('src.core.batch.create_response') as response_mock:
+            _send_progress(broker_mock, 'test_queue', 'sim.m', 50, templates)
+            response_mock.assert_not_called()
+            broker_mock.send_result.assert_not_called()
 
 
 class TestGetMetadata:
@@ -232,17 +227,18 @@ class TestGetMetadata:
 class TestSendResponse:
     """Tests for _send_response function."""
 
-    def test_send_response(self, message_broker_mock):
+    def test_send_response(self):
         """Test sending response via broker."""
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
         response = {'status': 'completed', 'data': {'result': 42}}
 
         with patch('src.core.batch.yaml.dump') as mock_dump, \
                 patch('src.core.batch.logger.debug') as mock_logger_debug:
 
-            _send_response(message_broker_mock, 'test_queue', response)
+            _send_response(broker_mock, 'test_queue', response)
 
-        message_broker_mock.send_result.assert_called_once_with(
-            'test_queue', response)
+        broker_mock.send_result.assert_called_once_with('test_queue', response)
         mock_dump.assert_called_once_with(response)
         mock_logger_debug.assert_called_once_with(mock_dump.return_value)
 
@@ -250,37 +246,41 @@ class TestSendResponse:
 class TestHandleError:
     """Tests for _handle_error function."""
 
-    def test_handle_file_not_found_error(
-            self,
-            message_broker_mock,
-            create_response_mock,
-            response_templates):
+    def test_handle_file_not_found_error(self):
         """Test handling FileNotFoundError."""
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
+        templates = {'error': {'include_stacktrace': False}}
         error = FileNotFoundError("File not found")
 
-        with patch('src.core.batch._determine_error_type',
-                   return_value='missing_file') as mock_determine:
-            _handle_error(error, 'sim.m', message_broker_mock,
-                          'test_queue', response_templates)
+        with patch('src.core.batch._determine_error_type', return_value='missing_file') as mock_determine, \
+                patch('src.core.batch.create_response', return_value={'status': 'error'}) as response_mock, \
+                patch('src.core.batch._send_response') as send_response_mock:
+
+            _handle_error(error, 'sim.m', broker_mock, 'test_queue', templates)
 
         mock_determine.assert_called_once_with(error)
-        create_response_mock.assert_called_once()
-        message_broker_mock.send_result.assert_called_once()
+        response_mock.assert_called_once()
+        send_response_mock.assert_called_once_with(
+            broker_mock, 'test_queue', {'status': 'error'})
 
-    def test_handle_value_error(
-            self, message_broker_mock, create_response_mock,
-            response_templates):
+    def test_handle_value_error(self):
         """Test handling ValueError."""
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
+        templates = {'error': {'include_stacktrace': False}}
         error = ValueError("Invalid config")
 
-        with patch('src.core.batch._determine_error_type',
-                   return_value='invalid_config') as mock_determine:
-            _handle_error(error, 'sim.m', message_broker_mock,
-                          'test_queue', response_templates)
+        with patch('src.core.batch._determine_error_type', return_value='invalid_config') as mock_determine, \
+                patch('src.core.batch.create_response', return_value={'status': 'error'}) as response_mock, \
+                patch('src.core.batch._send_response') as send_response_mock:
+
+            _handle_error(error, 'sim.m', broker_mock, 'test_queue', templates)
 
         mock_determine.assert_called_once_with(error)
-        create_response_mock.assert_called_once()
-        message_broker_mock.send_result.assert_called_once()
+        response_mock.assert_called_once()
+        send_response_mock.assert_called_once_with(
+            broker_mock, 'test_queue', {'status': 'error'})
 
 
 class TestDetermineErrorType:
@@ -316,227 +316,177 @@ class TestDetermineErrorType:
 class TestHandleBatchSimulation:
     """Tests for handle_batch_simulation function."""
 
-    def test_successful_simulation(
-            self,
-            sample_simulation_data,
-            message_broker_mock,
-            matlab_simulator_mock,
-            create_response_mock,
-            response_templates):
+    def test_successful_simulation(self):
         """Test successful simulation execution."""
-        # Setup
-        mock_simulator, simulator_instance = matlab_simulator_mock
-        source = "test_queue"
-        path_simulation = "test/path"
-        bridge_meta = "test_bridge"
-        request_id = "test_request_id"
-
-        # Add bridge_meta to sample data
-        sample_simulation_data['simulation']['bridge_meta'] = bridge_meta
-        sample_simulation_data['simulation']['request_id'] = request_id
-
-        # Mock _send_progress
-        with patch('src.core.batch._send_progress') as mock_progress:
-            # Execute
+        sim_data = {
+            'simulation': {
+                'name': 'test_sim',
+                'file': 'simulation_batch.m',
+                'function_name': 'simulation_batch',
+                'inputs': {
+                    'param1': 10, 'x_i': 10, 'y_i': 10, 'z_i': 10,
+                    'v_x': 1, 'v_y': 1, 'v_z': 1, 't': 10
+                },
+                'outputs': ['result1', 'x_f', 'y_f', 'z_f'],
+                'bridge_meta': 'test_bridge',
+                'request_id': 'test_request_id'
+            }
+        }
+        broker_mock = Mock()
+        broker_mock.send_result = Mock()
+        templates = {
+            'success': {'include_metadata': True},
+            'progress': {'include_percentage': True},
+            'error': {'include_stacktrace': False}
+        }
+        with patch('src.core.batch.MatlabSimulator') as sim_mock, \
+                patch('src.core.batch.create_response') as response_mock, \
+                patch('src.core.batch._send_progress') as progress_mock:
+            simulator_instance = Mock()
+            simulator_instance.run.return_value = {
+                'x_f': 20.0, 'y_f': 20.0, 'z_f': 20.0}
+            simulator_instance.get_metadata.return_value = {'exec_time': 1.0}
+            sim_mock.return_value = simulator_instance
+            response_mock.return_value = {'status': 'success'}
             handle_batch_simulation(
-                sample_simulation_data,
-                source,
-                message_broker_mock,
-                path_simulation,
-                response_templates
+                sim_data,
+                'test_queue',
+                broker_mock,
+                'test/path',
+                templates)
+            sim_mock.assert_called_once_with(
+                'test/path',
+                sim_data['simulation']['file'],
+                sim_data['simulation']['function_name']
             )
-
-            # Verify simulator initialization
-            mock_simulator.assert_called_once_with(
-                path_simulation,
-                sample_simulation_data['simulation']['file'],
-                sample_simulation_data['simulation']['function_name']
-            )
-
-            # Verify progress updates
             progress_calls = [
-                call(
-                    message_broker_mock,
-                    source,
-                    sample_simulation_data['simulation']['file'],
-                    0,
-                    response_templates,
-                    bridge_meta,
-                    request_id
-                ),
-                call(
-                    message_broker_mock,
-                    source,
-                    sample_simulation_data['simulation']['file'],
-                    50,
-                    response_templates,
-                    bridge_meta,
-                    request_id
-                )
+                call(broker_mock, 'test_queue', sim_data['simulation']['file'], 0,
+                     templates, 'test_bridge', 'test_request_id'),
+                call(broker_mock, 'test_queue', sim_data['simulation']['file'], 50,
+                     templates, 'test_bridge', 'test_request_id')
             ]
-            assert mock_progress.call_count == 2
-            mock_progress.assert_has_calls(progress_calls)
-
-            # Verify simulation execution
+            assert progress_mock.call_count == 2
+            progress_mock.assert_has_calls(progress_calls)
             simulator_instance.start.assert_called_once()
             simulator_instance.run.assert_called_once_with(
-                sample_simulation_data['simulation']['inputs'],
-                sample_simulation_data['simulation']['outputs']
+                sim_data['simulation']['inputs'],
+                sim_data['simulation']['outputs']
             )
-
-            # Verify success response
-            create_response_mock.assert_called_with(
+            response_mock.assert_called_with(
                 'success',
-                sample_simulation_data['simulation']['file'],
+                sim_data['simulation']['file'],
                 'batch',
-                response_templates,
+                templates,
                 outputs=simulator_instance.run.return_value,
                 metadata=simulator_instance.get_metadata.return_value,
-                bridge_meta=bridge_meta,
-                request_id=request_id
+                bridge_meta='test_bridge',
+                request_id='test_request_id'
             )
-
-            # Verify response sending
-            message_broker_mock.send_result.assert_called_with(
-                source,
-                create_response_mock.return_value
-            )
-
-            # Verify cleanup
+            broker_mock.send_result.assert_called_with(
+                'test_queue', response_mock.return_value)
             simulator_instance.close.assert_called_once()
 
-    def test_validation_error(
-            self,
-            sample_simulation_data,
-            message_broker_mock,
-            matlab_simulator_mock,
-            create_response_mock,
-            response_templates):
+    def test_validation_error(self):
         """Test handling of validation errors."""
-        # Setup
-        source = "test_queue"
-        path_simulation = "test/path"
-        bridge_meta = "test_bridge"
-        sample_simulation_data['simulation']['bridge_meta'] = bridge_meta
-
-        # Remove required field to trigger validation error
-        del sample_simulation_data['simulation']['file']
-
-        # Mock _handle_error to verify it's called correctly
-        with patch('src.core.batch._handle_error') as mock_handle_error:
-            # Execute
+        sim_data = {
+            'simulation': {
+                'name': 'test_sim',
+                'function_name': 'simulation_batch',
+                'bridge_meta': 'test_bridge'
+            }
+        }
+        broker_mock = Mock()
+        templates = {'error': {'include_stacktrace': False}}
+        with patch('src.core.batch._handle_error') as handle_error_mock:
             handle_batch_simulation(
-                sample_simulation_data,
-                source,
-                message_broker_mock,
-                path_simulation,
-                response_templates
-            )
-
-            # Verify error handling
-            mock_handle_error.assert_called_once_with(
+                sim_data,
+                'test_queue',
+                broker_mock,
+                'test/path',
+                templates)
+            handle_error_mock.assert_called_once_with(
                 ANY,  # error
-                None,  # sim_file - changed from 'unknown' to None to match actual behavior
-                message_broker_mock,
-                source,
-                response_templates
+                None,  # sim_file
+                broker_mock,
+                'test_queue',
+                templates
             )
-
-            # Verify the error type
-            error = mock_handle_error.call_args[0][0]
+            error = handle_error_mock.call_args[0][0]
             assert isinstance(error, ValueError)
             assert str(error) == "Missing 'file' in simulation config"
 
-    def test_matlab_error(
-            self,
-            sample_simulation_data,
-            message_broker_mock,
-            matlab_simulator_mock,
-            create_response_mock,
-            response_templates):
+    def test_matlab_error(self):
         """Test handling of MATLAB startup errors."""
-        # Setup
-        mock_simulator, simulator_instance = matlab_simulator_mock
-        source = "test_queue"
-        path_simulation = "test/path"
-        bridge_meta = "test_bridge"
-        sample_simulation_data['simulation']['bridge_meta'] = bridge_meta
-
-        # Simulate MATLAB startup failure
-        simulator_instance.start.side_effect = MatlabSimulationError(
-            "MATLAB engine failed to start")
-
-        # Mock _handle_error to verify it's called correctly
-        with patch('src.core.batch._handle_error') as mock_handle_error:
-            # Execute
+        sim_data = {
+            'simulation': {
+                'name': 'test_sim',
+                'file': 'simulation_batch.m',
+                'function_name': 'simulation_batch',
+                'inputs': {'param1': 10},
+                'outputs': ['result1'],
+                'bridge_meta': 'test_bridge'
+            }
+        }
+        broker_mock = Mock()
+        templates = {'error': {'include_stacktrace': False}}
+        with patch('src.core.batch.MatlabSimulator') as sim_mock, \
+                patch('src.core.batch._handle_error') as handle_error_mock:
+            simulator_instance = Mock()
+            simulator_instance.start.side_effect = MatlabSimulationError(
+                "MATLAB engine failed to start")
+            sim_mock.return_value = simulator_instance
             handle_batch_simulation(
-                sample_simulation_data,
-                source,
-                message_broker_mock,
-                path_simulation,
-                response_templates
-            )
-
-            # Verify error handling
-            mock_handle_error.assert_called_once_with(
+                sim_data,
+                'test_queue',
+                broker_mock,
+                'test/path',
+                templates)
+            handle_error_mock.assert_called_once_with(
                 ANY,  # error
-                sample_simulation_data['simulation']['file'],
-                message_broker_mock,
-                source,
-                response_templates
+                sim_data['simulation']['file'],
+                broker_mock,
+                'test_queue',
+                templates
             )
-
-            # Verify the error type
-            error = mock_handle_error.call_args[0][0]
+            error = handle_error_mock.call_args[0][0]
             assert isinstance(error, MatlabSimulationError)
             assert str(error) == "MATLAB engine failed to start"
-
-            # Verify cleanup
             simulator_instance.close.assert_called_once()
 
-    def test_run_error(
-            self,
-            sample_simulation_data,
-            message_broker_mock,
-            matlab_simulator_mock,
-            create_response_mock,
-            response_templates):
+    def test_run_error(self):
         """Test handling of simulation execution errors."""
-        # Setup
-        mock_simulator, simulator_instance = matlab_simulator_mock
-        source = "test_queue"
-        path_simulation = "test/path"
-        bridge_meta = "test_bridge"
-        sample_simulation_data['simulation']['bridge_meta'] = bridge_meta
-
-        # Simulate execution error
-        simulator_instance.run.side_effect = MatlabSimulationError(
-            "Simulation execution failed")
-
-        # Mock _handle_error to verify it's called correctly
-        with patch('src.core.batch._handle_error') as mock_handle_error:
-            # Execute
+        sim_data = {
+            'simulation': {
+                'name': 'test_sim',
+                'file': 'simulation_batch.m',
+                'function_name': 'simulation_batch',
+                'inputs': {'param1': 10},
+                'outputs': ['result1'],
+                'bridge_meta': 'test_bridge'
+            }
+        }
+        broker_mock = Mock()
+        templates = {'error': {'include_stacktrace': False}}
+        with patch('src.core.batch.MatlabSimulator') as sim_mock, \
+                patch('src.core.batch._handle_error') as handle_error_mock:
+            simulator_instance = Mock()
+            simulator_instance.run.side_effect = MatlabSimulationError(
+                "Simulation execution failed")
+            sim_mock.return_value = simulator_instance
             handle_batch_simulation(
-                sample_simulation_data,
-                source,
-                message_broker_mock,
-                path_simulation,
-                response_templates
-            )
-
-            # Verify error handling
-            mock_handle_error.assert_called_once_with(
+                sim_data,
+                'test_queue',
+                broker_mock,
+                'test/path',
+                templates)
+            handle_error_mock.assert_called_once_with(
                 ANY,  # error
-                sample_simulation_data['simulation']['file'],
-                message_broker_mock,
-                source,
-                response_templates
+                sim_data['simulation']['file'],
+                broker_mock,
+                'test_queue',
+                templates
             )
-
-            # Verify the error type
-            error = mock_handle_error.call_args[0][0]
+            error = handle_error_mock.call_args[0][0]
             assert isinstance(error, MatlabSimulationError)
             assert str(error) == "Simulation execution failed"
-
-            # Verify cleanup
             simulator_instance.close.assert_called_once()

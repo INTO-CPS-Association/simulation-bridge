@@ -1,265 +1,634 @@
-from typing import Any, Dict
-from unittest.mock import MagicMock
+"""
+Test module for the Connect communication wrapper.
+
+This module contains comprehensive tests for the Connect class,
+testing all its methods and error conditions.
+"""
+
 import pytest
+from unittest.mock import Mock, patch, MagicMock
+from typing import Dict, Any, Optional, Callable
 
+# Import the class under test
+# Assuming the structure: from communication.connect import Connect
+# Adjust the import path according to your project structure
 from src.comm.connect import Connect
-from src.comm.interfaces import IMessageBroker, IMessageHandler
 
 
-@pytest.fixture(scope="function")
-def config_dict() -> Dict[str, Any]:
-    """
-    Provides a basic configuration dictionary for Connect.
-    """
-    return {
-        "exchanges": {"output": "test.exchange"},
-        "simulation": {"path": None}  # Added path_simulation
-    }
+class TestConnect:
+    """Test class for the Connect communication wrapper."""
 
+    @pytest.fixture
+    def mock_config(self) -> Dict[str, Any]:
+        """Provide a mock configuration for testing."""
+        return {
+            "exchanges": {
+                "output": "ex.sim.result",
+                "input": "ex.sim.input"
+            },
+            "rabbitmq": {
+                "host": "localhost",
+                "port": 5672,
+                "username": "guest",
+                "password": "guest"
+            }
+        }
 
-@pytest.fixture(scope="function")
-def agent_id() -> str:
-    """
-    Provides a sample agent identifier.
-    """
-    return "agent123"
+    @pytest.fixture
+    def agent_id(self) -> str:
+        """Provide a test agent ID."""
+        return "test_agent_001"
 
+    @pytest.fixture
+    def mock_rabbitmq_manager(self) -> Mock:
+        """Create a mock RabbitMQ manager."""
+        mock_manager = Mock()
+        mock_manager.connect.return_value = True
+        mock_manager.setup_infrastructure.return_value = None
+        mock_manager.send_message.return_value = True
+        mock_manager.send_result.return_value = True
+        mock_manager.start_consuming.return_value = None
+        mock_manager.close.return_value = None
+        mock_manager.register_message_handler.return_value = None
+        mock_manager.channel = Mock()
+        mock_manager.channel.is_open = True
+        return mock_manager
 
-@pytest.fixture(scope="function")
-def mock_rabbitmq_manager(monkeypatch):
-    """
-    Patch RabbitMQManager and return its mock.
-    """
-    mock_manager = MagicMock(spec=IMessageBroker)
-    # Ensure connect returns True by default
-    mock_manager.connect.return_value = True
-    mock_manager.channel = MagicMock()
-    mock_manager.channel.is_open = True
-    monkeypatch.setattr("src.comm.connect.RabbitMQManager",
-                        lambda agent_id, config: mock_manager)
-    return mock_manager
+    @pytest.fixture
+    def mock_message_handler(self) -> Mock:
+        """Create a mock message handler."""
+        mock_handler = Mock()
+        mock_handler.handle_message = Mock()
+        mock_handler.set_simulation_handler = Mock()
+        return mock_handler
 
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_init_with_rabbitmq(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test initialization with RabbitMQ broker type."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
 
-@pytest.fixture(scope="function")
-def mock_message_handler(monkeypatch):
-    """
-    Patch MessageHandler and return its mock.
-    """
-    mock_handler = MagicMock(spec=IMessageHandler)
-    # Handler must have handle_message and set_simulation_handler
-    mock_handler.handle_message = MagicMock()
-    mock_handler.set_simulation_handler = MagicMock()
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config, "rabbitmq")
 
-    # Fix: Explicitly match the MessageHandler constructor signature with
-    # three parameters
-    monkeypatch.setattr(
-        "src.comm.connect.MessageHandler",
-        lambda agent_id, broker, config=None: mock_handler
-    )
-    return mock_handler
+        # Assertions
+        assert connect.agent_id == agent_id
+        assert connect.config == mock_config
+        assert connect.broker_type == "rabbitmq"
+        assert connect.broker == mock_rabbitmq_manager
+        assert connect.message_handler == mock_message_handler
 
+        # Verify initialization calls
+        mock_rabbitmq_manager_class.assert_called_once_with(
+            agent_id, mock_config)
+        mock_message_handler_class.assert_called_once_with(
+            agent_id, mock_rabbitmq_manager, mock_config
+        )
 
-class TestConnectInitialization:
-    """
-    Tests for the Connect class initialization and broker selection.
-    """
+    def test_init_with_unsupported_broker(
+        self,
+        agent_id: str,
+        mock_config: Dict[str, Any]
+    ) -> None:
+        """Test initialization with unsupported broker type."""
+        with pytest.raises(ValueError, match="Unsupported broker type: kafka"):
+            Connect(agent_id, mock_config, "kafka")
 
-    def test_default_broker_initialization(self, agent_id, config_dict,
-                                           mock_rabbitmq_manager, mock_message_handler):
-        """
-        Ensure Connect initializes RabbitMQManager and MessageHandler by default.
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_connect_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful connection to broker."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
 
-        Args:
-            agent_id: Sample agent ID
-            config_dict: Configuration dictionary
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-            mock_message_handler: Mock message handler
-        """
-        conn = Connect(agent_id, config_dict)
-        assert conn.broker is mock_rabbitmq_manager
-        assert conn.message_handler is mock_message_handler
+        # Create Connect instance and connect
+        connect = Connect(agent_id, mock_config)
+        connect.connect()
 
-    def test_unsupported_broker_type(self, agent_id, config_dict):
-        """
-        Passing an unsupported broker_type should raise ValueError.
-
-        Args:
-            agent_id: Sample agent ID
-            config_dict: Configuration dictionary
-        """
-        with pytest.raises(ValueError):
-            Connect(agent_id, config_dict, broker_type="kafka")
-
-
-class TestConnectMethods:
-    """
-    Tests for Connect methods: connect, setup, register, start, send, result, close.
-    """
-
-    def __init__(self):
-        """Initialize test class attributes."""
-        self.conn = None
-
-    @pytest.fixture(autouse=True)
-    def setup_connect(self, agent_id, config_dict,
-                      mock_rabbitmq_manager, mock_message_handler):
-        """
-        Set up a Connect instance for each test.
-
-        Args:
-            agent_id: Sample agent ID
-            config_dict: Configuration dictionary
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-            mock_message_handler: Mock message handler
-        """
-        self.conn = Connect(agent_id, config_dict)
-
-    def test_connect_calls_broker_connect(self, mock_rabbitmq_manager):
-        """
-        connect() should invoke broker.connect().
-
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        self.conn.connect()
+        # Verify connect was called
         mock_rabbitmq_manager.connect.assert_called_once()
 
-    def test_setup_calls_infrastructure(self, mock_rabbitmq_manager):
-        """
-        setup() should call setup_infrastructure() on broker.
+    def test_connect_without_broker(self) -> None:
+        """Test connect method when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        self.conn.setup()
+        with pytest.raises(RuntimeError, match="Broker not initialized"):
+            connect.connect()
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_setup_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful setup of infrastructure."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance and setup
+        connect = Connect(agent_id, mock_config)
+        connect.setup()
+
+        # Verify setup was called
         mock_rabbitmq_manager.setup_infrastructure.assert_called_once()
 
-    def test_register_default_handler(
-            self, mock_rabbitmq_manager, mock_message_handler):
-        """
-        register_message_handler() without args uses default handler.
+    def test_setup_without_broker(self) -> None:
+        """Test setup method when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-            mock_message_handler: Mock message handler
-        """
-        self.conn.register_message_handler()
+        with pytest.raises(RuntimeError, match="Broker not initialized"):
+            connect.setup()
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_register_message_handler_default(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test registering default message handler."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance and register handler
+        connect = Connect(agent_id, mock_config)
+        connect.register_message_handler()
+
+        # Verify handler registration
         mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
-            mock_message_handler.handle_message)
+            mock_message_handler.handle_message
+        )
 
-    def test_register_custom_handler(self, mock_rabbitmq_manager):
-        """
-        register_message_handler() with custom callable.
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_register_message_handler_custom(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test registering custom message handler."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        def custom_handler(_):
-            """Custom message handler that does nothing."""
-            return None
+        # Create custom handler
+        custom_handler = Mock()
 
-        self.conn.register_message_handler(custom_handler)
+        # Create Connect instance and register custom handler
+        connect = Connect(agent_id, mock_config)
+        connect.register_message_handler(custom_handler)
+
+        # Verify custom handler registration
         mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
-            custom_handler)
+            custom_handler
+        )
 
-    def test_start_consuming_channel_active(self, mock_rabbitmq_manager):
-        """
-        start_consuming() when channel open should call broker.start_consuming().
+    def test_register_message_handler_without_broker(self) -> None:
+        """Test registering message handler when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
+        connect.message_handler = None
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        self.conn.start_consuming()
+        with pytest.raises(
+            RuntimeError,
+            match="Broker or message handler not initialized"
+        ):
+            connect.register_message_handler()
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_start_consuming_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful start of message consumption."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance and start consuming
+        connect = Connect(agent_id, mock_config)
+        connect.start_consuming()
+
+        # Verify start_consuming was called
         mock_rabbitmq_manager.start_consuming.assert_called_once()
 
-    def test_start_consuming_reconnect_on_closed_channel(
-            self, mock_rabbitmq_manager):
-        """
-        If channel closed, start_consuming tries reconnect then abort on failure.
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    @patch('src.comm.connect.logger')
+    def test_start_consuming_with_reconnection(
+        self,
+        mock_logger: Mock,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test start consuming with channel reconnection."""
+        # Setup mocks - channel is closed initially
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+        mock_rabbitmq_manager.channel = None
+        mock_rabbitmq_manager.connect.return_value = True
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        mock_rabbitmq_manager.channel.is_open = False
+        # Create Connect instance and start consuming
+        connect = Connect(agent_id, mock_config)
+        connect.start_consuming()
+
+        # Verify reconnection attempt and successful consumption
+        mock_rabbitmq_manager.connect.assert_called_once()
+        mock_rabbitmq_manager.start_consuming.assert_called_once()
+        mock_logger.debug.assert_called()
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    @patch('src.comm.connect.logger')
+    def test_start_consuming_failed_reconnection(
+        self,
+        mock_logger: Mock,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test start consuming with failed reconnection."""
+        # Setup mocks - channel is closed and reconnection fails
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+        mock_rabbitmq_manager.channel = None
         mock_rabbitmq_manager.connect.return_value = False
 
-        # Should not raise, but not call start_consuming
-        self.conn.start_consuming()
-        mock_rabbitmq_manager.connect.assert_called()
+        # Create Connect instance and start consuming
+        connect = Connect(agent_id, mock_config)
+        connect.start_consuming()
+
+        # Verify error logging and no consumption attempt
+        mock_logger.error.assert_called_with(
+            "Failed to initialize or reopen channel. Consumption aborted."
+        )
         mock_rabbitmq_manager.start_consuming.assert_not_called()
 
-    def test_send_message_rabbitmq(self, mock_rabbitmq_manager):
-        """
-        send_message() should delegate to broker.send_message with exchange/routing.
+    def test_start_consuming_without_broker(self) -> None:
+        """Test start consuming when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        sent = self.conn.send_message(
-            destination="dest",
-            message="hello",
-            exchange="ex",
-            routing_key="rk",
-        )
-        assert sent is mock_rabbitmq_manager.send_message.return_value
+        with pytest.raises(RuntimeError, match="Broker not initialized"):
+            connect.start_consuming()
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_send_message_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful message sending."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config)
+
+        # Send message
+        destination = "target_agent"
+        message = {"data": "test_message"}
+        result = connect.send_message(destination, message)
+
+        # Verify message was sent
+        assert result is True
+        expected_exchange = "ex.sim.result"
+        expected_routing_key = f"{agent_id}.{destination}"
         mock_rabbitmq_manager.send_message.assert_called_once_with(
-            "ex", "rk", "hello", None)
-
-    def test_send_message_defaults(self, mock_rabbitmq_manager, config_dict):
-        """
-        send_message() uses config.exchange and agent_id.dest as routing key.
-
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-            config_dict: Configuration dictionary
-        """
-        sent = self.conn.send_message("dest", "msg")
-        assert sent is mock_rabbitmq_manager.send_message.return_value
-        mock_rabbitmq_manager.send_message.assert_called_once_with(
-            config_dict["exchanges"]["output"],
-            f"{self.conn.agent_id}.dest",
-            "msg",
-            None,
+            expected_exchange, expected_routing_key, message, None
         )
 
-    def test_send_result(self, mock_rabbitmq_manager):
-        """
-        send_result() delegates to broker.send_result.
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_send_message_with_kwargs(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test message sending with custom parameters."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        res = self.conn.send_result("x", {"a": 1})
-        assert res is mock_rabbitmq_manager.send_result.return_value
-        mock_rabbitmq_manager.send_result.assert_called_once_with("x", {
-            "a": 1})
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config)
 
-    def test_close_calls_broker_close(self, mock_rabbitmq_manager):
-        """
-        close() should call broker.close().
+        # Send message with custom parameters
+        destination = "target_agent"
+        message = {"data": "test_message"}
+        custom_exchange = "custom.exchange"
+        custom_routing_key = "custom.routing.key"
+        properties = {"priority": 5}
 
-        Args:
-            mock_rabbitmq_manager: Mock RabbitMQ manager
-        """
-        self.conn.close()
+        result = connect.send_message(
+            destination,
+            message,
+            exchange=custom_exchange,
+            routing_key=custom_routing_key,
+            properties=properties
+        )
+
+        # Verify message was sent with custom parameters
+        assert result is True
+        mock_rabbitmq_manager.send_message.assert_called_once_with(
+            custom_exchange, custom_routing_key, message, properties
+        )
+
+    def test_send_message_without_broker(self) -> None:
+        """Test send message when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
+
+        with pytest.raises(RuntimeError, match="Broker not initialized"):
+            connect.send_message("destination", "message")
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_send_result_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful result sending."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config)
+
+        # Send result
+        destination = "target_agent"
+        result_data = {"status": "success", "data": {"value": 42}}
+        result = connect.send_result(destination, result_data)
+
+        # Verify result was sent
+        assert result is True
+        mock_rabbitmq_manager.send_result.assert_called_once_with(
+            destination, result_data
+        )
+
+    def test_send_result_without_broker(self) -> None:
+        """Test send result when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
+
+        with pytest.raises(RuntimeError, match="Broker not initialized"):
+            connect.send_result("destination", {"result": "data"})
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_close_success(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test successful connection closing."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance and close
+        connect = Connect(agent_id, mock_config)
+        connect.close()
+
+        # Verify close was called
         mock_rabbitmq_manager.close.assert_called_once()
 
-    def test_get_and_set_message_handler(self, mock_message_handler):
-        """
-        get_message_handler() and set_simulation_handler() should work.
+    @patch('src.comm.connect.logger')
+    def test_close_without_broker(self, mock_logger: Mock) -> None:
+        """Test closing when broker is not initialized."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.broker = None
 
-        Args:
-            mock_message_handler: Mock message handler
-        """
-        # get
-        handler = self.conn.get_message_handler()
-        assert handler is mock_message_handler
+        # Close connection
+        connect.close()
 
-        # set
-        def callback(_):
-            """Simulation callback that does nothing."""
-            return None
+        # Verify warning was logged
+        mock_logger.warning.assert_called_once_with(
+            "Attempted to close a non-initialized broker"
+        )
 
-        self.conn.set_simulation_handler(callback)
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_get_message_handler(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test getting the message handler."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config)
+
+        # Get message handler
+        handler = connect.get_message_handler()
+
+        # Verify handler is returned
+        assert handler == mock_message_handler
+
+    def test_get_message_handler_when_none(self) -> None:
+        """Test getting message handler when it's None."""
+        # Create instance without proper initialization
+        connect = Connect.__new__(Connect)
+        connect.message_handler = None
+
+        # Get message handler
+        handler = connect.get_message_handler()
+
+        # Verify None is returned
+        assert handler is None
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_set_simulation_handler(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock,
+        mock_message_handler: Mock
+    ) -> None:
+        """Test setting simulation handler."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Create Connect instance
+        connect = Connect(agent_id, mock_config)
+
+        # Create simulation handler
+        simulation_handler = Mock()
+
+        # Set simulation handler
+        connect.set_simulation_handler(simulation_handler)
+
+        # Verify handler was set
         mock_message_handler.set_simulation_handler.assert_called_once_with(
-            callback)
+            simulation_handler
+        )
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_set_simulation_handler_without_message_handler(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock,
+        agent_id: str,
+        mock_config: Dict[str, Any],
+        mock_rabbitmq_manager: Mock
+    ) -> None:
+        """Test setting simulation handler when message handler is None."""
+        # Setup mocks
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = None
+
+        # Create Connect instance (this will make message_handler None)
+        connect = Connect.__new__(Connect)
+        connect.message_handler = None
+
+        # Create simulation handler
+        simulation_handler = Mock()
+
+        # Set simulation handler (should not raise exception)
+        connect.set_simulation_handler(simulation_handler)
+
+        # No assertion needed - just verify no exception is raised
+
+
+class TestConnectIntegration:
+    """Integration tests for Connect class workflow."""
+
+    @patch('src.comm.connect.RabbitMQManager')
+    @patch('src.comm.connect.MessageHandler')
+    def test_full_workflow(
+        self,
+        mock_message_handler_class: Mock,
+        mock_rabbitmq_manager_class: Mock
+    ) -> None:
+        """Test a complete workflow from initialization to cleanup."""
+        # Setup mocks
+        mock_rabbitmq_manager = Mock()
+        mock_rabbitmq_manager.connect.return_value = True
+        mock_rabbitmq_manager.setup_infrastructure.return_value = None
+        mock_rabbitmq_manager.send_message.return_value = True
+        mock_rabbitmq_manager.channel = Mock()
+        mock_rabbitmq_manager.channel.is_open = True
+
+        mock_message_handler = Mock()
+
+        mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
+        mock_message_handler_class.return_value = mock_message_handler
+
+        # Configuration and agent ID
+        agent_id = "integration_test_agent"
+        config = {
+            "exchanges": {"output": "ex.test.output"},
+            "rabbitmq": {"host": "localhost"}
+        }
+
+        # Initialize Connect
+        connect = Connect(agent_id, config)
+
+        # Full workflow
+        connect.connect()
+        connect.setup()
+        connect.register_message_handler()
+        connect.start_consuming()
+
+        # Send a message
+        result = connect.send_message("target", {"test": "data"})
+        assert result is True
+
+        # Cleanup
+        connect.close()
+
+        # Verify all operations were called
+        mock_rabbitmq_manager.connect.assert_called_once()
+        mock_rabbitmq_manager.setup_infrastructure.assert_called_once()
+        mock_rabbitmq_manager.register_message_handler.assert_called_once()
+        mock_rabbitmq_manager.start_consuming.assert_called_once()
+        mock_rabbitmq_manager.send_message.assert_called_once()
+        mock_rabbitmq_manager.close.assert_called_once()
