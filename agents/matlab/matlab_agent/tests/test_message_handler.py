@@ -77,14 +77,14 @@ class TestMessageHandler:
         """Fixture providing a valid batch simulation message."""
         return yaml.dump({
             'simulation': {
-                'id': 'test_sim',
+                'client_id': 'test_sim',
                 'simulator': 'test_dest',
                 'type': 'batch',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10},
-                'bridge_meta': {'key': 'value'}
-            },
-            'request_id': 'test-request-id'
+                'bridge_meta': {'key': 'value'},
+                'request_id': 'test-request-id'
+            }
         })
 
     @pytest.fixture(scope="function")
@@ -92,14 +92,14 @@ class TestMessageHandler:
         """Fixture providing a valid streaming simulation message."""
         return yaml.dump({
             'simulation': {
-                'id': 'test_sim',
+                'client_id': 'test_sim',
                 'simulator': 'test_dest',
                 'type': 'streaming',
                 'file': 'test_file.mat',
                 'inputs': {'param1': 10},
-                'bridge_meta': {'key': 'value'}
-            },
-            'request_id': 'test-request-id'
+                'bridge_meta': {'key': 'value'},
+                'request_id': 'test-request-id'
+            }
         })
 
     @pytest.fixture(scope="function")
@@ -201,18 +201,18 @@ class TestMessageHandler:
         # Valid batch request
         valid_data = {
             'simulation': {
-                'id': 'test_sim',
+                'client_id': 'test_sim',
                 'simulator': 'test_dest',
                 'type': 'batch',
                 'file': 'test.mat',
                 'inputs': {'param': 10},
-                'bridge_meta': {'key': 'value'}
+                'bridge_meta': {'key': 'value'},
+                'request_id': 'test-request-id'
             },
-            'request_id': 'test-request-id'
         }
         payload = MessagePayload(**valid_data)
-        assert payload.request_id == 'test-request-id'
-        assert payload.simulation.id == 'test_sim'
+        assert payload.simulation.request_id == 'test-request-id'
+        assert payload.simulation.client_id == 'test_sim'
         assert payload.simulation.type == 'batch'
 
         # Invalid simulation type

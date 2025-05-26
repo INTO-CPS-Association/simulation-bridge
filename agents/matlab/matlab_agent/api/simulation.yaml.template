@@ -1,4 +1,7 @@
 simulation:
+  request_id: abcdef12345
+  # (RequestID) to identify each request.
+
   client_id: dt
   # Unique identifier of the sender of this simulation request
 

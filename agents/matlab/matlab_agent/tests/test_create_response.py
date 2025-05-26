@@ -80,6 +80,7 @@ class TestSuccessResponses:
             sim_type='batch',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             outputs=outputs
         )
 
@@ -105,6 +106,7 @@ class TestSuccessResponses:
             sim_type='streaming',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             data=data
         )
 
@@ -135,6 +137,7 @@ class TestSuccessResponses:
             sim_type='batch',
             response_templates=response_templates_with_metadata,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             outputs={'result': 42},
             metadata=metadata
         )
@@ -165,6 +168,7 @@ class TestErrorResponses:
             sim_type='batch',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             error=error_info
         )
 
@@ -198,6 +202,7 @@ class TestErrorResponses:
             sim_type='batch',
             response_templates=response_templates_with_stacktrace,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             error=error_info
         )
 
@@ -225,6 +230,7 @@ class TestProgressResponses:
             sim_type='batch',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             percentage=75,
             message='Processing data'
         )
@@ -254,6 +260,7 @@ class TestProgressResponses:
             sim_type='batch',
             response_templates=templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             percentage=75,  # This should be ignored
             message='Processing data'
         )
@@ -280,6 +287,7 @@ class TestProgressResponses:
             sim_type='streaming',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             percentage=50,
             message='Halfway there',
             data=stream_data
@@ -310,6 +318,7 @@ class TestStreamingResponses:
             sim_type='streaming',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             data=stream_data,
             sequence=3
         )
@@ -340,6 +349,7 @@ class TestMiscellaneousFeatures:
             sim_type='batch',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             outputs={}
         )
 
@@ -361,13 +371,15 @@ class TestMiscellaneousFeatures:
             sim_file='test_sim.mat',
             sim_type='batch',
             response_templates=base_response_templates,
-            bridge_meta='test_bridge'
+            bridge_meta='test_bridge',
+            request_id='request_id_test',
         )
 
         assert result['status'] == 'nonexistent'
         assert result['simulation']['name'] == 'test_sim.mat'
         assert result['simulation']['type'] == 'batch'
         assert result['bridge_meta'] == 'test_bridge'
+        assert result['request_id'] == 'request_id_test'
         assert 'timestamp' in result
 
     def test_create_response_additional_kwargs(self, base_response_templates):
@@ -383,6 +395,7 @@ class TestMiscellaneousFeatures:
             sim_type='batch',
             response_templates=base_response_templates,
             bridge_meta='test_bridge',
+            request_id='request_id_test',
             outputs={},
             custom_field='custom_value',
             another_field=123

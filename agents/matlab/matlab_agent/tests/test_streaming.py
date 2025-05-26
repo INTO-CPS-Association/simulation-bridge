@@ -385,7 +385,7 @@ def test_handle_streaming_simulation_success(
     # Mock controller creation to return our fake
     monkeypatch.setattr(
         'src.core.streaming.MatlabStreamingController',
-        lambda path, f, s, r, rt, ts, bm: fake_controller
+        lambda path, f, s, r, rt, ts, bm, rid: fake_controller
     )
 
     # Complete simulation data with all required fields
@@ -393,7 +393,8 @@ def test_handle_streaming_simulation_success(
         'simulation': {
             'file': 'test_file.m',
             'inputs': {'param': 'value'},
-            'bridge_meta': {'key': 'value'}
+            'bridge_meta': {'key': 'value'},
+            'request_id': '12345',
         }
     }
 

@@ -30,6 +30,7 @@ def handle_batch_simulation(
     """Process a batch simulation request and send results via message broker."""
     data: Dict[str, Any] = parsed_data.get('simulation', {})
     bridge_meta = data.get('bridge_meta', 'unknown')
+    request_id = data.get('request_id', 'unknown')
     sim_file = data.get('file')
 
     try:
@@ -43,21 +44,24 @@ def handle_batch_simulation(
                        sim_file,
                        0,
                        response_templates,
-                       bridge_meta)
+                       bridge_meta,
+                       request_id)
         _start_matlab_with_retry(sim)
         _send_progress(message_broker,
                        source,
                        sim_file,
                        50,
                        response_templates,
-                       bridge_meta)
+                       bridge_meta,
+                       request_id)
         results = sim.run(inputs, outputs)
         metadata = _get_metadata(sim) if response_templates.get(
             'success', {}).get('include_metadata', False) else None
 
         success_response = create_response(
             'success', sim_file, 'batch', response_templates,
-            outputs=results, metadata=metadata, bridge_meta=bridge_meta
+            outputs=results, metadata=metadata, bridge_meta=bridge_meta,
+            request_id=request_id
         )
         _send_response(message_broker,
                        source,
@@ -114,7 +118,8 @@ def _send_progress(
         sim_file: str,
         percentage: int,
         response_templates: Dict,
-        bridge_meta: str = 'unknown'
+        bridge_meta: str = 'unknown',
+        request_id: str = 'unknown'
 ) -> None:
     """Send progress update if configured."""
     if response_templates.get('progress', {}).get('include_percentage', False):
@@ -124,7 +129,8 @@ def _send_progress(
             'batch',
             response_templates,
             percentage=percentage,
-            bridge_meta=bridge_meta)
+            bridge_meta=bridge_meta,
+            request_id=request_id)
         _send_response(broker, source, progress_response)
 
 
@@ -161,7 +167,9 @@ def _handle_error(error: Exception,
                 {}).get(
                 'include_stacktrace',
                 False) else None},
-        bridge_meta=response_templates.get('bridge_meta', 'unknown'))
+        bridge_meta=response_templates.get('bridge_meta', 'unknown'),
+        request_id=response_templates.get('request_id', 'unknown')
+    )
     _send_response(broker, source, error_response)
 
 

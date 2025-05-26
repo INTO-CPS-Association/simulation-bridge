@@ -34,6 +34,7 @@ def handle_streaming_simulation(
 ) -> None:
     """Process streaming simulation request."""
     data = parsed_data.get('simulation', {})
+    request_id = data.get('request_id', '')
     bridge_meta = data.get('bridge_meta', 'unknown')
     sim_path = path_simulation if path_simulation else data.get('path')
     sim_file = data.get('file')
@@ -45,7 +46,8 @@ def handle_streaming_simulation(
             source,
             message_broker,
             response_templates,
-            bridge_meta
+            bridge_meta,
+            request_id
         )
         return
 
@@ -60,7 +62,8 @@ def handle_streaming_simulation(
             message_broker,
             response_templates,
             tcp_settings,
-            bridge_meta
+            bridge_meta,
+            request_id
         )
         controller.start()
         logger.debug("Simulation inputs: %s", data.get('inputs', {}))
@@ -74,7 +77,8 @@ def handle_streaming_simulation(
                 response_templates,
                 outputs={'status': 'completed'},
                 metadata=controller.get_metadata(),
-                bridge_meta=bridge_meta
+                bridge_meta=bridge_meta,
+                request_id=request_id,
             )
         )
         logger.info("Completed: %s", sim_file)
@@ -86,7 +90,9 @@ def handle_streaming_simulation(
             e,
             source,
             message_broker,
-            response_templates)
+            response_templates,
+            bridge_meta,
+            request_id)
     finally:
         if controller:
             controller.close()
@@ -147,11 +153,13 @@ class MatlabStreamingController:
         message_broker: IMessageBroker,
         response_templates: Dict,
         tcp_settings: Dict,
-        bridge_meta: Optional[str] = 'unknown'
+        bridge_meta: Optional[str] = 'unknown',
+        request_id: Optional[str] = 'unknown'
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.bridge_meta: str = bridge_meta
+        self.request_id: str = request_id
         self.source: str = source
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
@@ -218,7 +226,8 @@ class MatlabStreamingController:
                     self.response_templates,
                     outputs={'status': 'completed'},
                     metadata=self.get_metadata(),
-                    bridge_meta=self.bridge_meta
+                    bridge_meta=self.bridge_meta,
+                    request_id=self.request_id
                 )
             )
 
@@ -240,7 +249,8 @@ class MatlabStreamingController:
             data=data_payload,
             metadata=output.get('metadata', {}),
             sequence=sequence,
-            bridge_meta=self.bridge_meta
+            bridge_meta=self.bridge_meta,
+            request_id=self.request_id,
         )
         self.message_broker.send_result(self.source, response)
 
@@ -307,7 +317,8 @@ def _handle_streaming_error(
     source: str,
     message_broker: IMessageBroker,
     response_templates: Dict,
-    bridge_meta: Optional[str] = 'unknown'
+    bridge_meta: Optional[str] = 'unknown',
+    request_id: Optional[str] = 'unknown'
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -333,6 +344,7 @@ def _handle_streaming_error(
             'streaming',
             response_templates,
             bridge_meta=bridge_meta,
+            request_id=request_id,
             error={
                 'message': str(error),
                 'type': error_type,

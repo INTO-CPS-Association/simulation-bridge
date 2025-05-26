@@ -192,7 +192,8 @@ class TestSendProgress:
                        50,
                        response_templates)
         create_response_mock.assert_called_once_with(
-            'progress', 'sim.m', 'batch', response_templates, percentage=50, bridge_meta='unknown')
+            'progress', 'sim.m', 'batch', response_templates, percentage=50, bridge_meta='unknown',
+            request_id='unknown')
         message_broker_mock.send_result.assert_called_once()
 
     def test_send_progress_disabled(
@@ -328,9 +329,11 @@ class TestHandleBatchSimulation:
         source = "test_queue"
         path_simulation = "test/path"
         bridge_meta = "test_bridge"
+        request_id = "test_request_id"
 
         # Add bridge_meta to sample data
         sample_simulation_data['simulation']['bridge_meta'] = bridge_meta
+        sample_simulation_data['simulation']['request_id'] = request_id
 
         # Mock _send_progress
         with patch('src.core.batch._send_progress') as mock_progress:
@@ -358,7 +361,8 @@ class TestHandleBatchSimulation:
                     sample_simulation_data['simulation']['file'],
                     0,
                     response_templates,
-                    bridge_meta
+                    bridge_meta,
+                    request_id
                 ),
                 call(
                     message_broker_mock,
@@ -366,7 +370,8 @@ class TestHandleBatchSimulation:
                     sample_simulation_data['simulation']['file'],
                     50,
                     response_templates,
-                    bridge_meta
+                    bridge_meta,
+                    request_id
                 )
             ]
             assert mock_progress.call_count == 2
@@ -387,7 +392,8 @@ class TestHandleBatchSimulation:
                 response_templates,
                 outputs=simulator_instance.run.return_value,
                 metadata=simulator_instance.get_metadata.return_value,
-                bridge_meta=bridge_meta
+                bridge_meta=bridge_meta,
+                request_id=request_id
             )
 
             # Verify response sending

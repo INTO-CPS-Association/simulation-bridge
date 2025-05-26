@@ -30,6 +30,7 @@ class SimulationOutputs(BaseModel):
 
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
+    request_id: str
     client_id: str
     simulator: str
     type: str = Field(default="batch")
@@ -130,6 +131,9 @@ class MessageHandler(IRabbitMQMessageHandler):
                     bridge_meta=msg_dict.get('simulation', {}).get(
                         'bridge_meta', 'unknown') if isinstance(msg_dict, dict)
                     else 'unknown',
+                    request_id=msg_dict.get('simulation', {}).get(
+                        'request_id', 'unknown') if isinstance(msg_dict, dict)
+                    else 'unknown',
                     error={'message': 'YAML parsing error',
                            'details': str(e), 'type': 'yaml_parse_error'}
                 )
@@ -148,6 +152,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 sim_file = simulation_data.file
                 bridge_meta = msg_dict.get('simulation', {}).get(
                     'bridge_meta', 'unknown') if isinstance(msg_dict, dict) else 'unknown'
+                request_id = simulation_data.request_id
             except Exception as e:
                 logger.error("Message validation failed: %s", e)
 
@@ -160,6 +165,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                         'type', '') if isinstance(msg_dict, dict) else '',
                     response_templates={},
                     bridge_meta=bridge_meta,
+                    request_id=request_id,
                     error={
                         'message': 'Message validation failed',
                         'details': str(e),
@@ -202,6 +208,8 @@ class MessageHandler(IRabbitMQMessageHandler):
                     sim_file=sim_file,
                     sim_type=sim_type,
                     response_templates={},
+                    bridge_meta=bridge_meta,
+                    request_id=request_id,
                     error={
                         'message': f'Unknown simulation type: {sim_type}',
                         'type': 'invalid_simulation_type'
@@ -218,6 +226,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 sim_type='',
                 response_templates={},
                 bridge_meta='unknown',
+                request_id='unknown',
                 error={
                     'message': 'Error processing message',
                     'details': str(e),
