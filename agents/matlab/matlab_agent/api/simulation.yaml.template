@@ -1,5 +1,5 @@
 simulation:
-  id: dt
+  client_id: dt
   # Unique identifier of the sender of this simulation request
 
   simulator: matlab

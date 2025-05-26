@@ -30,7 +30,7 @@ class SimulationOutputs(BaseModel):
 
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
-    id: str
+    client_id: str
     simulator: str
     type: str = Field(default="batch")
     file: str
