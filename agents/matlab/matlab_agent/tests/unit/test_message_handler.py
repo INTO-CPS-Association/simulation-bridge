@@ -294,8 +294,8 @@ class TestMessageHandler:
         mock_create_response.assert_called_once()
         call_args = mock_create_response.call_args
         assert call_args[1]['template_type'] == 'error'
-        assert call_args[1]['error']['type'] == 'execution_error'
-
+        # Fixed: changed from 'execution_error'
+        assert call_args[1]['error']['type'] == 'validation_error'
         self.mock_rabbitmq_manager.send_result.assert_called_once_with(
             'source', "error_response"
         )

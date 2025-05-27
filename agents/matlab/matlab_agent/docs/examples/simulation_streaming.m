@@ -5,6 +5,7 @@ function Simulation()
     
 
     % Extract parameters from the received JSON inputs
+    time_step = inputs.time_step;
     num_agents = inputs.num_agents;
     max_steps = inputs.max_steps;
     avoidance_threshold = inputs.avoidance_threshold;
@@ -70,7 +71,7 @@ function Simulation()
         wrapper.send_output(output_data);
 
         current_step = current_step + 1;
-        pause(0.07);
+        pause(time_step);
     end
 
     % Cleanup

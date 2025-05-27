@@ -150,19 +150,26 @@ class MessageHandler(IRabbitMQMessageHandler):
                 simulation_data = payload.simulation
                 sim_type = simulation_data.type
                 sim_file = simulation_data.file
-                bridge_meta = msg_dict.get('simulation', {}).get(
-                    'bridge_meta', 'unknown') if isinstance(msg_dict, dict) else 'unknown'
+                bridge_meta = simulation_data.bridge_meta or 'unknown'
                 request_id = simulation_data.request_id
             except Exception as e:
                 logger.error("Message validation failed: %s", e)
+                sim_file = ''
+                sim_type = ''
+                bridge_meta = 'unknown'
+                request_id = 'unknown'
+                if isinstance(msg_dict, dict) and 'simulation' in msg_dict:
+                    sim_data = msg_dict['simulation']
+                    sim_file = sim_data.get('file', '')
+                    sim_type = sim_data.get('type', '')
+                    bridge_meta = sim_data.get('bridge_meta', 'unknown')
+                    request_id = sim_data.get('request_id', 'unknown')
 
                 # Create an error response
                 error_response = create_response(
                     template_type='error',
-                    sim_file=msg_dict.get('simulation', {}).get(
-                        'file', '') if isinstance(msg_dict, dict) else '',
-                    sim_type=msg_dict.get('simulation', {}).get(
-                        'type', '') if isinstance(msg_dict, dict) else '',
+                    sim_file=sim_file,
+                    sim_type=sim_type,
                     response_templates={},
                     bridge_meta=bridge_meta,
                     request_id=request_id,
@@ -171,7 +178,6 @@ class MessageHandler(IRabbitMQMessageHandler):
                         'details': str(e),
                         'type': 'validation_error'
                     }
-
                 )
                 # Send the error response back to the source
                 self.rabbitmq_manager.send_result(source, error_response)
