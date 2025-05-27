@@ -14,6 +14,7 @@ from src.core.streaming import (
     StreamingConnection,
     _handle_streaming_error,
     handle_streaming_simulation)
+from src.utils.performance_monitor import PerformanceMonitor
 
 
 @pytest.fixture
@@ -92,6 +93,12 @@ def streaming_connection():
     connection = StreamingConnection('127.0.0.1', 0)
     yield connection
     connection.close()
+
+
+@pytest.fixture
+def performance_monitor():
+    """Fixture providing a PerformanceMonitor instance."""
+    return PerformanceMonitor()
 
 
 @pytest.fixture
@@ -178,7 +185,7 @@ def test_streaming_connection_lifecycle(streaming_connection):
 
 
 @patch('src.core.streaming.subprocess.Popen')
-def test_controller_start_failure(mock_popen, matlab_controller):
+def test_controller_start_failure(mock_popen, matlab_controller, performance_monitor):
     """
     Test that controller.start raises MatlabStreamingError when Popen fails.
     """
@@ -187,7 +194,7 @@ def test_controller_start_failure(mock_popen, matlab_controller):
 
     # Verify exception is raised
     with pytest.raises(MatlabStreamingError):
-        matlab_controller.start()
+        matlab_controller.start(performance_monitor)
 
 
 @patch('src.core.streaming.StreamingConnection.start_server')
@@ -198,7 +205,8 @@ def test_controller_start_success(
         mock_popen,
         mock_start_server,
         matlab_controller,
-        mock_rabbit_client):
+        mock_rabbit_client,
+        performance_monitor):
     """
     Test successful controller.start sends initial success notification.
     """
@@ -214,7 +222,7 @@ def test_controller_start_success(
     mock_psutil_process.return_value = mock_process
 
     # Start the controller
-    matlab_controller.start()
+    matlab_controller.start(performance_monitor)
 
     # Verify success message was sent
     mock_rabbit_client.send_result.assert_called_once()

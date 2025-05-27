@@ -25,6 +25,11 @@ logging:
   level: INFO # Log level (DEBUG, INFO, ERROR)
   file: logs/matlab_agent.log
 
+performance:
+  enabled: false  # Enable/disable performance monitoring
+  log_dir: performance_logs  # Directory where performance logs will be stored
+  log_filename: performance_metrics.csv  # Name of the CSV file for performance metrics
+
 tcp:
   host: localhost
   port: 5678

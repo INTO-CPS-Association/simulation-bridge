@@ -52,6 +52,11 @@ class Config(BaseModel):
     log_level: LogLevel = Field(default=LogLevel.INFO)
     log_file: str = Field(default="logs/matlab_agent.log")
 
+    # Performance configuration
+    performance_enabled: bool = Field(default=False)
+    performance_log_dir: str = Field(default="performance_logs")
+    performance_log_filename: str = Field(default="performance_metrics.csv")
+
     # TCP configuration
     tcp_host: str = Field(default="localhost")
     tcp_port: int = Field(default=5678)
@@ -114,6 +119,11 @@ class Config(BaseModel):
             "logging": {
                 "level": self.log_level.value,
                 "file": self.log_file
+            },
+            "performance": {
+                "enabled": self.performance_enabled,
+                "log_dir": self.performance_log_dir,
+                "log_filename": self.performance_log_filename
             },
             "tcp": {
                 "host": self.tcp_host,
@@ -188,6 +198,15 @@ class Config(BaseModel):
             flat_config["log_level"] = logging.get("level", LogLevel.INFO)
             flat_config["log_file"] = logging.get(
                 "file", "logs/matlab_agent.log")
+
+        # Extract performance section if present
+        if performance := config_dict.get("performance", {}):
+            flat_config["performance_enabled"] = performance.get(
+                "enabled", False)
+            flat_config["performance_log_dir"] = performance.get(
+                "log_dir", "performance_logs")
+            flat_config["performance_log_filename"] = performance.get(
+                "log_filename", "performance_metrics.csv")
 
         # Extract tcp section if present
         if tcp := config_dict.get("tcp", {}):

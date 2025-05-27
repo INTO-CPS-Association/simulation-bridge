@@ -15,31 +15,51 @@ from ..utils.logger import get_logger
 from ..utils.create_response import create_response
 from ..comm.interfaces import IMessageBroker
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
+from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
 logger = get_logger()
 
 
 def handle_batch_simulation(
-    parsed_data: Dict[str, Any],
+    msg_dict: Dict[str, Any],
     source: str,
-    message_broker: IMessageBroker,
+    rabbitmq_manager: IMessageBroker,
     path_simulation: str,
     response_templates: Dict[str, Any]
 ) -> None:
-    """Process a batch simulation request and send results via message broker."""
-    data: Dict[str, Any] = parsed_data.get('simulation', {})
-    bridge_meta = data.get('bridge_meta', 'unknown')
-    request_id = data.get('request_id', 'unknown')
-    sim_file = data.get('file')
+    """
+    Handle a batch simulation request.
+
+    Args:
+        msg_dict (Dict[str, Any]): The message dictionary
+        source (str): The source of the message
+        rabbitmq_manager (IMessageBroker): The RabbitMQ manager instance
+        path_simulation (str): Path to the simulation files
+        response_templates (Dict[str, Any]): Response templates
+    """
+    # Initialize performance monitor
+    performance_monitor = PerformanceMonitor()
+    operation_id = msg_dict.get('simulation', {}).get('request_id', 'unknown')
+    performance_monitor.start_operation(operation_id)
 
     try:
+        # Record MATLAB start
+        performance_monitor.record_matlab_start()
+
+        data: Dict[str, Any] = msg_dict.get('simulation', {})
+        bridge_meta = data.get('bridge_meta', 'unknown')
+        request_id = data.get('request_id', 'unknown')
+        sim_file = data.get('file')
+
         function_name = _validate_simulation_data(data)
         sim_path = path_simulation
         inputs, outputs = _extract_io_specs(data)
         logger.info("Starting simulation '%s'", sim_file)
         sim = MatlabSimulator(sim_path, sim_file, function_name)
-        _send_progress(message_broker,
+        # Record MATLAB startup complete
+        performance_monitor.record_matlab_startup_complete()
+        _send_progress(rabbitmq_manager,
                        source,
                        sim_file,
                        0,
@@ -47,7 +67,7 @@ def handle_batch_simulation(
                        bridge_meta,
                        request_id)
         _start_matlab_with_retry(sim)
-        _send_progress(message_broker,
+        _send_progress(rabbitmq_manager,
                        source,
                        sim_file,
                        50,
@@ -57,22 +77,30 @@ def handle_batch_simulation(
         results = sim.run(inputs, outputs)
         metadata = _get_metadata(sim) if response_templates.get(
             'success', {}).get('include_metadata', False) else None
-
+        # Record simulation complete
+        performance_monitor.record_simulation_complete()
+        # Record MATLAB stop
+        performance_monitor.record_matlab_stop()
+        # Create and send success response
         success_response = create_response(
             'success', sim_file, 'batch', response_templates,
             outputs=results, metadata=metadata, bridge_meta=bridge_meta,
             request_id=request_id
         )
-        _send_response(message_broker,
-                       source,
-                       success_response)
+
+        # Send result and record it
+        if rabbitmq_manager.send_result(source, success_response):
+            performance_monitor.record_result_sent()
+
         logger.info("Simulation '%s' completed successfully", sim_file)
 
     except Exception as e:  # pylint: disable=broad-except
-        _handle_error(e, sim_file, message_broker, source, response_templates)
+        _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
     finally:
         if 'sim' in locals():
             sim.close()
+        # Always complete the operation to record metrics
+        performance_monitor.complete_operation()
 
 
 def _validate_simulation_data(
@@ -131,7 +159,7 @@ def _send_progress(
             percentage=percentage,
             bridge_meta=bridge_meta,
             request_id=request_id)
-        _send_response(broker, source, progress_response)
+        broker.send_result(source, progress_response)
 
 
 def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:
