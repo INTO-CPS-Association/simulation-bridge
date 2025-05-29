@@ -218,7 +218,7 @@ The Simulation Bridge requires a configuration file to run.
 **Generate a configuration file template:**
 
 ```bash
-poetry run matlab-agent --generate-config
+poetry run simulation-bridge --generate-config
 ```
 
 This command creates a `config.yaml` file in your current directory. If the file already exists, it will not be overwritten. It will create a copy of `simulation_bridge/config/config.yaml.template`, which you can modify according to your environment.
