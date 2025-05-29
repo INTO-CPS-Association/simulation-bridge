@@ -176,7 +176,9 @@ cython_debug/
 .DS_Store
 
 #MATLAB agent
+agents/matlab/client
 agents/matlab/logs
+agents/matlab/performance_log
 # Interactive simulation in progress
 agents/matlab/matlab_agent/src/interactive/ 
 agents/matlab/matlab_agent/docs/examples/InteractiveSimulation.m
@@ -192,6 +194,7 @@ agents/matlab/dist/
 **/matlab/*.yml
 config*.yaml
 simulation*.yaml
+*.csv
 #SIMULATION BRIDGE 
 /logs
 

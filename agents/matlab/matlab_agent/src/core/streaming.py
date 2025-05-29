@@ -12,74 +12,115 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 import psutil
 
 from ..comm.interfaces import IMessageBroker
-from ..utils.config_loader import load_config
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
 logger = get_logger()
 
 
 def handle_streaming_simulation(
-    parsed_data: Dict[str, Any],
+    msg_dict: Dict[str, Any],
     source: str,
-    message_broker: IMessageBroker,
+    rabbitmq_manager: IMessageBroker,
     path_simulation: str,
-    response_templates: Dict,
-    tcp_settings: Dict
+    response_templates: Dict[str, Any],
+    tcp_settings: Dict[str, Any]
 ) -> None:
-    """Process streaming simulation request."""
-    data = parsed_data.get('simulation', {})
-    sim_path = path_simulation if path_simulation else data.get('path')
-    sim_file = data.get('file')
+    """
+    Handle a streaming simulation request.
 
-    if not sim_path or not sim_file:
-        _handle_streaming_error(
-            '',
-            ValueError("Missing path/file configuration"),
-            source,
-            message_broker,
-            response_templates
-        )
-        return
+    Args:
+        msg_dict (Dict[str, Any]): The message dictionary
+        source (str): The source of the message
+        rabbitmq_manager (IMessageBroker): The RabbitMQ manager instance
+        path_simulation (str): Path to the simulation files
+        response_templates (Dict[str, Any]): Response templates
+        tcp_settings (Dict[str, Any]): TCP connection settings
+    """
+    # Initialize performance monitor
+    performance_monitor = PerformanceMonitor()
+    operation_id = msg_dict.get('simulation', {}).get('request_id', 'unknown')
+    performance_monitor.start_operation(operation_id)
 
-    logger.info("Processing streaming simulation: %s", sim_file)
+    # Initialize controller as None
     controller = None
 
     try:
+        data = msg_dict.get('simulation', {})
+        request_id = data.get('request_id', '')
+        bridge_meta = data.get('bridge_meta', 'unknown')
+        sim_path = path_simulation if path_simulation else data.get('path')
+        sim_file = data.get('file')
+
+        if not sim_path or not sim_file:
+            _handle_streaming_error(
+                '',
+                ValueError("Missing path/file configuration"),
+                source,
+                rabbitmq_manager,
+                response_templates,
+                bridge_meta,
+                request_id
+            )
+            return
+
+        logger.info("Processing streaming simulation: %s", sim_file)
+        # Record MATLAB start
+        performance_monitor.record_matlab_start()
         controller = MatlabStreamingController(
             sim_path,
             sim_file,
             source,
-            message_broker,
+            rabbitmq_manager,
             response_templates,
-            tcp_settings
+            tcp_settings,
+            bridge_meta,
+            request_id
         )
-        controller.start()
+        controller.start(performance_monitor)
         logger.debug("Simulation inputs: %s", data.get('inputs', {}))
         controller.run(data.get('inputs', {}))
-        message_broker.send_result(
-            source,
-            create_response(
-                'success',
-                sim_file,
-                'streaming',
-                response_templates,
-                outputs={'status': 'completed'},
-                metadata=controller.get_metadata()
-            )
+        # Record MATLAB stop
+        performance_monitor.record_matlab_stop()
+        # Create and send success response
+        success_response = create_response(
+            template_type='success',
+            sim_file=sim_file,
+            sim_type='streaming',
+            response_templates=response_templates,
+            outputs={'status': 'completed'},
+            metadata=controller.get_metadata(),
+            bridge_meta=bridge_meta,
+            request_id=request_id,
         )
+        # Send result and record it
+        if rabbitmq_manager.send_result(source, success_response):
+            performance_monitor.record_result_sent()
         logger.info("Completed: %s", sim_file)
 
-    except Exception as e:  # pylint: disable=broad-except
-        logger.error("Simulation failed: %s", str(e))
-        _handle_streaming_error(sim_file, e, source, message_broker)
+    except Exception as e:
+        logger.error("Error in streaming simulation: %s", e)
+        error_response = create_response(
+            template_type='error',
+            sim_file=sim_file if 'sim_file' in locals() else '',
+            sim_type='streaming',
+            response_templates=response_templates,
+            bridge_meta=bridge_meta,
+            request_id=request_id,
+            error={'message': str(e), 'type': 'execution_error'}
+        )
+        rabbitmq_manager.send_result(source, error_response)
+        raise
     finally:
+        # Always complete the operation to record metrics
+        performance_monitor.complete_operation()
         if controller:
             controller.close()
 
@@ -138,10 +179,14 @@ class MatlabStreamingController:
         source: str,
         message_broker: IMessageBroker,
         response_templates: Dict,
-        tcp_settings: Dict
+        tcp_settings: Dict,
+        bridge_meta: Optional[str] = 'unknown',
+        request_id: Optional[str] = 'unknown'
     ) -> None:
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
+        self.bridge_meta: str = bridge_meta
+        self.request_id: str = request_id
         self.source: str = source
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
@@ -152,29 +197,10 @@ class MatlabStreamingController:
         logger.debug("Path to simulation: %s", self.sim_path)
         logger.debug("Simulation file: %s", self.sim_file)
         # Check if the path is a directory and if the file exists
-        # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.error(
-                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
-                self.sim_path,
-                self.sim_file)
-            # Define fallback path inside package 'docs/examples'
-            fallback_path = (
-                Path(__file__).parent.parent.parent /
-                "docs" /
-                "examples" /
-                self.sim_file)
-            if fallback_path.exists():
-                logger.debug(
-                    "Found simulation file in fallback path: '%s'.",
-                    fallback_path)
-                self.sim_path = fallback_path.parent
-            else:
-                error_msg = (
-                    f"Simulation file '{self.sim_file}' not found in either "
-                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
-                logger.error(error_msg)
-                raise FileNotFoundError(error_msg)
+            error_msg = (
+                f"Simulation file '{self.sim_file}' not found in directory '{self.sim_path}'.")
+            raise FileNotFoundError(error_msg)
         self._validate()
 
     def _validate(self) -> None:
@@ -206,7 +232,7 @@ class MatlabStreamingController:
             raise MatlabStreamingError(
                 f"Failed to start MATLAB process: {e}") from e
 
-    def start(self) -> None:
+    def start(self, performance_monitor: PerformanceMonitor) -> None:
         """Start streaming server and MATLAB process."""
         logger.debug("Starting streaming server for: %s", self.sim_file)
         try:
@@ -217,16 +243,20 @@ class MatlabStreamingController:
                 self.connection.host,
                 self.connection.port)
             self._start_matlab()
+            # Record MATLAB startup complete
+            performance_monitor.record_matlab_startup_complete()
             logger.debug("MATLAB process started")
             self.message_broker.send_result(
                 self.source,
                 create_response(
-                    'progress',
+                    'success',
                     self.sim_file,
                     'streaming',
                     self.response_templates,
-                    percentage=0,
-                    message="MATLAB simulation started"
+                    outputs={'status': 'completed'},
+                    metadata=self.get_metadata(),
+                    bridge_meta=self.bridge_meta,
+                    request_id=self.request_id
                 )
             )
 
@@ -247,7 +277,9 @@ class MatlabStreamingController:
             percentage=output.get('progress', {}).get('percentage', sequence),
             data=data_payload,
             metadata=output.get('metadata', {}),
-            sequence=sequence
+            sequence=sequence,
+            bridge_meta=self.bridge_meta,
+            request_id=self.request_id,
         )
         self.message_broker.send_result(self.source, response)
 
@@ -313,7 +345,9 @@ def _handle_streaming_error(
     error: Exception,
     source: str,
     message_broker: IMessageBroker,
-    response_templates: Dict
+    response_templates: Dict,
+    bridge_meta: Optional[str] = 'unknown',
+    request_id: Optional[str] = 'unknown'
 ) -> None:
     """Handle error response creation and sending."""
     error_type = 'execution_error'
@@ -338,6 +372,8 @@ def _handle_streaming_error(
             sim_file,
             'streaming',
             response_templates,
+            bridge_meta=bridge_meta,
+            request_id=request_id,
             error={
                 'message': str(error),
                 'type': error_type,

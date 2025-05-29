@@ -1,5 +1,7 @@
 # Simulation Bridge
 
+The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts.
+It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
 The Simulation Bridge is a modular, reusable, and bidirectional middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated simulators. It provides a standardized interface to connect these entities, facilitating distributed execution and management of simulations across heterogeneous environments.
 
 This framework supports multiple protocols and interaction modes, allowing for flexible integration and real-time control, monitoring, and data exchange in distributed simulation systems. By abstracting the communication layer, the Simulation Bridge simplifies running simulations remotely.

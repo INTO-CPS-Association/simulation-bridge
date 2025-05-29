@@ -5,10 +5,12 @@ abstraction to manage communication and handle simulation processing.
 
 from typing import Any, Dict, Optional
 import sys
+import uuid
 
 from ..interfaces.config_manager import IConfigManager
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 from ..comm.connect import Connect
 
 # Configure logger
@@ -42,18 +44,14 @@ class MatlabAgent:
         self.config_manager: IConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
 
+        # Initialize performance monitor
+        self.performance_monitor = PerformanceMonitor(config=self.config)
         # Initialize the communication layer
         self.comm = Connect(self.agent_id, self.config, broker_type)
-
         # Set up the communication infrastructure
         self.comm.connect()
         self.comm.setup()
-
-        # Use the default message handler from MessageHandler class
-        # This will use the properly implemented handler from
-        # rabbitmq/message_handler.py
         self.comm.register_message_handler()
-
         logger.debug("MATLAB agent initialized successfully")
 
     def start(self) -> None:
@@ -88,6 +86,13 @@ class MatlabAgent:
         logger.info("Stopping MATLAB agent")
         self.comm.close()
 
+        # Log performance summary before stopping
+        summary = self.performance_monitor.get_summary()
+        if summary:
+            logger.info("Performance Summary:")
+            for metric, value in summary.items():
+                logger.info(f"  {metric}: {value:.2f}")
+
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
         Send operation results to the specified destination.
@@ -99,4 +104,43 @@ class MatlabAgent:
         Returns:
             bool: True if successful, False otherwise
         """
-        return self.comm.send_result(destination, result)
+        success = self.comm.send_result(destination, result)
+        if success:
+            self.performance_monitor.record_result_sent()
+        return success
+
+    def handle_request(self, request: Dict[str, Any]) -> None:
+        """
+        Handle an incoming request and track its performance.
+
+        Args:
+            request (Dict[str, Any]): The incoming request data
+        """
+        operation_id = str(uuid.uuid4())
+        self.performance_monitor.start_operation(operation_id)
+
+        try:
+            # Record MATLAB start
+            self.performance_monitor.record_matlab_start()
+
+            # Your existing request handling logic here
+            # ...
+
+            # Record MATLAB startup complete
+            self.performance_monitor.record_matlab_startup_complete()
+
+            # Your simulation logic here
+            # ...
+
+            # Record simulation complete
+            self.performance_monitor.record_simulation_complete()
+
+            # Record MATLAB stop
+            self.performance_monitor.record_matlab_stop()
+
+        except Exception as e:
+            logger.error(f"Error processing request {operation_id}: {e}")
+            raise
+        finally:
+            # Always complete the operation to record metrics
+            self.performance_monitor.complete_operation()

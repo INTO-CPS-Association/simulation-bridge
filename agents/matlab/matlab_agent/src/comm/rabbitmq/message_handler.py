@@ -2,7 +2,7 @@
 Message handler for processing incoming RabbitMQ messages.
 """
 import uuid
-from typing import Any, List, Optional, Dict
+from typing import Any, Optional, Dict
 
 import yaml
 from pika.adapters.blocking_connection import BlockingChannel
@@ -30,11 +30,14 @@ class SimulationOutputs(BaseModel):
 
 class SimulationData(BaseModel):
     """Model for simulation data structure"""
+    request_id: str
+    client_id: str
     simulator: str
     type: str = Field(default="batch")
     file: str
     inputs: 'SimulationInputs'
     outputs: Optional['SimulationOutputs'] = None
+    bridge_meta: Optional[Dict[str, Any]] = None
 
     @field_validator('type', mode='before')
     @classmethod
@@ -49,7 +52,6 @@ class SimulationData(BaseModel):
 class MessagePayload(BaseModel):
     """Model for the entire message payload"""
     simulation: SimulationData
-    destinations: List[str]
     request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 
@@ -126,6 +128,12 @@ class MessageHandler(IRabbitMQMessageHandler):
                     sim_type=msg_dict.get('simulation', {}).get(
                         'type', '') if isinstance(msg_dict, dict) else '',
                     response_templates={},
+                    bridge_meta=msg_dict.get('simulation', {}).get(
+                        'bridge_meta', 'unknown') if isinstance(msg_dict, dict)
+                    else 'unknown',
+                    request_id=msg_dict.get('simulation', {}).get(
+                        'request_id', 'unknown') if isinstance(msg_dict, dict)
+                    else 'unknown',
                     error={'message': 'YAML parsing error',
                            'details': str(e), 'type': 'yaml_parse_error'}
                 )
@@ -133,29 +141,38 @@ class MessageHandler(IRabbitMQMessageHandler):
                 ch.basic_nack(delivery_tag=method.delivery_tag,
                               requeue=False)  # Don't requeue the message
                 return
-
             # Validate the message structure using Pydantic
             try:
                 # Validate the message against our expected schema
                 payload = MessagePayload(**msg_dict)
                 logger.debug("Message validation successful")
-
                 # Access the validated data
                 simulation_data = payload.simulation
                 sim_type = simulation_data.type
                 sim_file = simulation_data.file
-
-            except Exception as e:  # pylint: disable=broad-except
+                bridge_meta = simulation_data.bridge_meta or 'unknown'
+                request_id = simulation_data.request_id
+            except Exception as e:
                 logger.error("Message validation failed: %s", e)
+                sim_file = ''
+                sim_type = ''
+                bridge_meta = 'unknown'
+                request_id = 'unknown'
+                if isinstance(msg_dict, dict) and 'simulation' in msg_dict:
+                    sim_data = msg_dict['simulation']
+                    sim_file = sim_data.get('file', '')
+                    sim_type = sim_data.get('type', '')
+                    bridge_meta = sim_data.get('bridge_meta', 'unknown')
+                    request_id = sim_data.get('request_id', 'unknown')
 
                 # Create an error response
                 error_response = create_response(
                     template_type='error',
-                    sim_file=msg_dict.get('simulation', {}).get(
-                        'file', '') if isinstance(msg_dict, dict) else '',
-                    sim_type=msg_dict.get('simulation', {}).get(
-                        'type', '') if isinstance(msg_dict, dict) else '',
+                    sim_file=sim_file,
+                    sim_type=sim_type,
                     response_templates={},
+                    bridge_meta=bridge_meta,
+                    request_id=request_id,
                     error={
                         'message': 'Message validation failed',
                         'details': str(e),
@@ -164,13 +181,10 @@ class MessageHandler(IRabbitMQMessageHandler):
                 )
                 # Send the error response back to the source
                 self.rabbitmq_manager.send_result(source, error_response)
-
                 # Acknowledge the message so it's not requeued
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
                 return
-
             logger.info("Received simulation type: %s", sim_type)
-
             # Process based on simulation type
             if sim_type == 'batch':
                 handle_batch_simulation(
@@ -200,6 +214,8 @@ class MessageHandler(IRabbitMQMessageHandler):
                     sim_file=sim_file,
                     sim_type=sim_type,
                     response_templates={},
+                    bridge_meta=bridge_meta,
+                    request_id=request_id,
                     error={
                         'message': f'Unknown simulation type: {sim_type}',
                         'type': 'invalid_simulation_type'
@@ -210,12 +226,13 @@ class MessageHandler(IRabbitMQMessageHandler):
 
         except Exception as e:  # pylint: disable=broad-except
             logger.error("Error processing message %s: %s", message_id, e)
-            # Create a generic error response
             error_response = create_response(
                 template_type='error',
                 sim_file='',
                 sim_type='',
                 response_templates={},
+                bridge_meta='unknown',
+                request_id='unknown',
                 error={
                     'message': 'Error processing message',
                     'details': str(e),

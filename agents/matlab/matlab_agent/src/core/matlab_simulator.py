@@ -16,7 +16,6 @@ from typing import Dict, Union, List, Optional, Any, Tuple
 
 import psutil
 import matlab.engine
-from importlib import resources
 
 from ..utils.logger import get_logger
 
@@ -45,40 +44,19 @@ class MatlabSimulator:
         Args:
             path: Directory path containing the simulation files
             file: Name of the main simulation file
-            function_name: Name of the function to call (defaults to file name without extension)
+            function_name: Name of the function to call (defaults to file name without
+            extension)
         """
         self.sim_path: Path = Path(path).resolve()
         self.sim_file: str = file
         self.function_name: str = function_name or os.path.splitext(file)[0]
         self.eng: Optional[matlab.engine.MatlabEngine] = None
         self.start_time: Optional[float] = None
-
         # Check if the path is a directory and if the file exists
-        # If not, try to find the file in the docs/examples directory
         if not self.sim_path.exists() or not (self.sim_path / self.sim_file).exists():
-            logger.error(
-                "Directory '%s' or file '%s' not found. Trying fallback in 'docs/examples'.",
-                self.sim_path,
-                self.sim_file)
-            # Define fallback path inside package 'docs/examples'
-            fallback_path = (
-                Path(__file__).parent.parent.parent /
-                "docs" /
-                "examples" /
-                self.sim_file)
-            if fallback_path.exists():
-                logger.debug(
-                    "Found simulation file in fallback path: '%s'.",
-                    fallback_path)
-                self.sim_path = fallback_path.parent
-            else:
-                error_msg = (
-                    f"Simulation file '{self.sim_file}' not found in either "
-                    f"'{self.sim_path}' or fallback directory '{fallback_path.parent}'.")
-                logger.error(error_msg)
-                raise FileNotFoundError(error_msg)
-        logger.debug("Path to simulation: %s", self.sim_path)
-        logger.debug("Simulation file: %s", self.sim_file)
+            error_msg = (
+                f"Simulation file '{self.sim_file}' not found in directory '{self.sim_path}'.")
+            logger.error(error_msg)
         self._validate()
 
     def _validate(self) -> None:
@@ -101,7 +79,7 @@ class MatlabSimulator:
             self.eng.eval("clear; clc;", nargout=0)
             self.eng.addpath(str(self.sim_path), nargout=0)
             logger.debug("MATLAB engine started successfully")
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # Catch generic exceptions for compatibility
             logger.error("Failed to start MATLAB engine: %s", str(e))
             raise MatlabSimulationError(
                 f"Failed to start MATLAB engine: {str(e)}") from e
@@ -123,7 +101,7 @@ class MatlabSimulator:
 
             return self._process_results(result, outputs)
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # Catch generic exceptions for compatibility
             msg = f"Simulation error: {str(e)}"
             logger.error(msg, exc_info=True)
             raise MatlabSimulationError(msg) from e
@@ -148,7 +126,6 @@ class MatlabSimulator:
         process = psutil.Process(os.getpid())
         metadata['memory_usage'] = process.memory_info().rss / \
             (1024 * 1024)  # MB
-
         if self.eng:
             try:
                 metadata['matlab_version'] = self.eng.eval(
@@ -195,7 +172,7 @@ class MatlabSimulator:
             try:
                 self.eng.quit()
                 logger.debug("MATLAB engine closed successfully")
-            except Exception as e:
+            except matlab.engine.EngineError as e:
                 logger.warning("Error closing MATLAB engine: %s", str(e))
             finally:
                 self.eng = None

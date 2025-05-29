@@ -5,13 +5,56 @@ The MATLAB Agent is a Python-based connector designed to interface with MATLAB s
 - **Batch Simulation**: Executes predefined MATLAB routines with specified input parameters, collecting the final results upon completion.
 - **Streaming Simulation (Agent-Based)**: Allows sending input once, with the output being received in real-time during the simulation.
 
-The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings are defined in the configuration file located at `matlab_agent/config/config.yaml`.
+The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
 
 <div align="center">
   <img src="matlab_agent/images/structure.png" alt="MATLAB Agent Structure" width="600" style="border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
 </div>
 
+## Table of Contents
+
+- [MATLAB agent](#matlab-agent)
+  - [Table of Contents](#table-of-contents)
+  - [Demo Video](#demo-video)
+  - [Requirements](#requirements)
+    - [Installation](#installation)
+      - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
+      - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
+      - [3. Install Project Dependencies](#3-install-project-dependencies)
+      - [4. Install the MATLAB Engine API for Python](#4-install-the-matlab-engine-api-for-python)
+        - [4.1 Installation using in-built Python package](#41-installation-using-in-built-python-package)
+        - [5.2 Install pip package](#52-install-pip-package)
+      - [5. Verify the MATLAB Engine Installation](#5-verify-the-matlab-engine-installation)
+    - [Configuration](#configuration)
+  - [Usage](#usage)
+    - [Getting Started](#getting-started)
+    - [Running the Agent](#running-the-agent)
+  - [Distributing the Package as a PIP Package with Poetry](#distributing-the-package-as-a-pip-package-with-poetry)
+    - [Verifying the Package (Optional but Recommended)](#verifying-the-package-optional-but-recommended)
+    - [Releasing a New Version](#releasing-a-new-version)
+  - [Demonstration](#demonstration)
+  - [Quick Start: Interacting with the MATLAB Agent](#quick-start-interacting-with-the-matlab-agent)
+  - [Workflow](#workflow)
+  - [Package Development](#package-development)
+  - [Author](#author)
+
+## Demo Video
+
+For a comprehensive demonstration of the MATLAB Agent in action, you can:
+
+- [Watch the full video (MOV format)](matlab_agent/images/demo_matlab_agent.mov)
+
+Or view a quick preview below:
+
+<p align="center">
+  <img src="matlab_agent/images/demo_matlab_agent.gif" alt="MATLAB Agent Demo Preview" width="800">
+</p>
+
+<p align="center"><i>A video demonstration of the MATLAB Agent in action</i></p>
+
 ## Requirements
+
+### Installation
 
 #### 1. Clone the Repository and Navigate to the Working Directory
 
@@ -20,7 +63,7 @@ git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
 ```
 
-### 2. Install Poetry and Create Virtual Environment
+#### 2. Install Poetry and Create Virtual Environment
 
 Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
 
@@ -113,6 +156,7 @@ Explanation on different fields of the yaml template is given below.
 ```yaml
 agent:
   agent_id: matlab # Specifies the unique identifier for the agent. This ID is used to distinguish the agent in the system.
+  simulator: matlab # Specifies the name of the simulator
 
 rabbitmq:
   host: localhost # The hostname or IP address of the RabbitMQ server.
@@ -172,35 +216,59 @@ response_templates:
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
 
-```bash
-poetry run matlab-agent --config-file <path_to_config.yaml>
-```
-
 ## Usage
 
 The agent requires a configuration file to run. You can start by copying the provided template and customizing it as needed.
-To create a copy of the default configuration file `config.yaml.template`, run the following command from the project root:
+
+### Getting Started
+
+**Generate a configuration file template:**
 
 ```bash
-poetry run simulation-bridge --generate-config
+poetry run matlab-agent --generate-config
 ```
 
-To start the MATLAB Agent with the default configuration (`matlab_agent/config/config.yaml.template`):
+This command creates a `config.yaml` file in your current directory. If the file already exists, it will not be overwritten.
 
-1. Open a terminal and navigate to the project's root directory.
-2. Run the following command:
+**Generate Project Files:**
+
+To create a complete set of template files for your MATLAB agent project:
+
+```bash
+poetry run matlab-agent --generate-project
+```
+
+This command creates the following structure in your current directory (existing files won't be overwritten):
+
+```
+.
+├── config.yaml                 # Agent configuration settings
+├── SimulationBatch.m           # Template for batch simulations
+├── SimulationStreaming.m       # Template for streaming simulations
+├── SimulationWrapper.m         # MATLAB class for easy communication with the MATLAB Agent during streaming simulations
+└── client/
+  ├── simulation.yaml         # Example simulation request payload
+  ├── use.yaml                # Client configuration file
+  └── use_matlab_agent.py     # Client script to send requests
+```
+
+Each template file contains documentation and can be customized for your specific simulation requirements.
+
+### Running the Agent
+
+To start the MATLAB Agent with the default configuration:
 
 ```bash
 poetry run matlab-agent
 ```
 
-To use a custom `config.yaml` file, run the `matlab-agent` command with the `--config-file` or `-c` option followed by the path to your configuration file:
+To use a custom configuration file:
 
 ```bash
 poetry run matlab-agent --config-file <path_to_config.yaml>
 ```
 
-Alternatively, you can use the shorthand `-c` option:
+Or use the shorthand:
 
 ```bash
 poetry run matlab-agent -c <path_to_config.yaml>
@@ -223,8 +291,8 @@ Example output:
 
 ```bash
 dist/
-├── matlab_agent-0.1.0-py3-none-any.whl
-└── matlab_agent-0.1.0.tar.gz
+├── matlab_agent-0.2.0-py3-none-any.whl
+└── matlab_agent-0.2.0.tar.gz
 ```
 
 ### Verifying the Package (Optional but Recommended)
@@ -232,7 +300,7 @@ dist/
 You can verify that the package works by installing it locally:
 
 ```bash
-pip install dist/matlab_agent-0.1.0-py3-none-any.whl
+pip install dist/matlab_agent-0.2.0-py3-none-any.whl
 ```
 
 Then, run the command defined in the script:
@@ -246,7 +314,7 @@ matlab-agent
 When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
 
 ```toml
-version = "0.2.0"
+version = "0.3.0"
 ```
 
 Then rebuild the package:
@@ -259,18 +327,39 @@ poetry build
 
 For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](matlab_agent/tests/README.md).
 
-## Quick Start: Interacting with the Matlab agent
+## Quick Start: Interacting with the MATLAB Agent
 
-To quickly begin using the MATLAB Agent, a demonstration script (`resources/use_matlab_agent.py`) has been provided.
-
-The script requires a configuration file. You can copy the `matlab_agent/resources/use.yaml.template` into `matlab_agent/resources/use.yaml` and customize it.
+To quickly get started, generate the default project structure by running:
 
 ```bash
-cd matlab_agent/resources
+poetry run matlab-agent --generate-project
+```
+
+This will create a `client/` directory in the root of your project containing all necessary files for interaction.
+
+Next, move into the client directory:
+
+```bash
+cd client
+```
+
+Inside this folder, you'll find:
+
+- `use.yaml` — Configuration file for the communication protocol (e.g., RabbitMQ settings)
+- `simulation.yaml` — The simulation request payload that will be sent to the MATLAB Agent
+- `use_matlab_agent.py` — Python script to send the request and receive the results
+
+**Steps to Run**
+
+1. Open and configure `use.yaml` with the appropriate protocol settings.
+2. Open and configure `simulation.yaml` with the parameters of your simulation request.
+3. Run the script to send the request:
+
+```bash
 python use_matlab_agent.py
 ```
 
-This script demonstrates how to interact with the MATLAB Agent, providing a clear example of its functionality and integration process.
+4. The script will send the simulation request to the MATLAB Agent and display the response received.
 
 ## Workflow
 
