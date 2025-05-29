@@ -1,0 +1,34 @@
+simulation:
+  request_id: abcdef12345
+  # (RequestID) to identify each request.
+
+  client_id: dt
+  # Unique identifier of the sender of this simulation request
+
+  simulator: matlab
+  # Specifies the target system for the simulation.
+  # Use 'matlab' to route the request to the MATLAB simulator.
+
+  type: streaming
+  # Specifies the simulation execution mode.
+  # Options:
+  #   - 'batch': runs the simulation in batch mode, where results are returned only after the entire computation is complete.
+  #   - 'streaming': runs the simulation in streaming mode, providing real-time updates at each computation step.
+  
+  file: SimulationStreaming.m
+  # The name of the MATLAB script or function file to execute for this simulation.
+
+  inputs:
+    # Input variables to be passed to the simulation.
+    # Customize these key-value pairs as needed for your specific simulation.
+    i1: ..
+    i2: ..
+    i3: ..
+
+  outputs:
+    # Expected output variables from the simulation.
+    # Customize these keys based on what outputs your simulation provides.
+    o1: ..
+    o2: ..
+    o3: ..
+    o4: ..

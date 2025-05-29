@@ -89,6 +89,8 @@ def create_response(
     sim_file: str,
     sim_type: str,
     response_templates: Dict[str, Any],
+    bridge_meta: str,
+    request_id: str,
     **kwargs: Any
 ) -> Dict[str, Any]:
     """
@@ -115,7 +117,9 @@ def create_response(
         'status': (
             'completed' if template_type == 'success'
             else template.get('status', template_type)
-        )
+        ),
+        'bridge_meta': bridge_meta,
+        'request_id': request_id
     }
 
     # Add timestamp according to configured format
