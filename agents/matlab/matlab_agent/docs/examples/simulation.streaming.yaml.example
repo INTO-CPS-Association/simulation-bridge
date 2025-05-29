@@ -3,7 +3,7 @@ simulation:
   client_id: dt
   simulator: matlab
   type: streaming
-  file: simulation_streaming.m
+  file: SimulationStreaming.m
   inputs:
     time_step: 0.05 # Time step for the simulation
     num_agents: 8 # Number of agents

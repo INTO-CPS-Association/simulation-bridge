@@ -3,7 +3,7 @@ simulation:
   client_id: dt
   simulator: matlab
   type: batch # Type of simulation (batch,streaming)
-  file: simulation_batch_1.m # Name of the simulation file
+  file: SimulationBatch1.m # Name of the simulation file
   inputs:
     x0: 10 # Initial x position (m)
     y0: 5 # Initial y position (m)

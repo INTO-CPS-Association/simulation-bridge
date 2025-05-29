@@ -15,7 +15,7 @@ simulation:
   #   - 'batch': runs the simulation in batch mode, where results are returned only after the entire computation is complete.
   #   - 'streaming': runs the simulation in streaming mode, providing real-time updates at each computation step.
   
-  file: simulation_streaming.m
+  file: SimulationStreaming.m
   # The name of the MATLAB script or function file to execute for this simulation.
 
   inputs:

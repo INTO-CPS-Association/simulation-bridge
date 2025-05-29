@@ -1,9 +1,9 @@
 simulation:
-  request_id: 1dsanjkdsa
+  request_id: abcdef12345
   client_id: dt
   simulator: matlab
   type: batch # Type of simulation (batch,streaming)
-  file: simulation_batch.m # Name of the simulation file
+  file: SimulationBatch.m # Name of the simulation file
   inputs:
     x_i: 10
     y_i: 9

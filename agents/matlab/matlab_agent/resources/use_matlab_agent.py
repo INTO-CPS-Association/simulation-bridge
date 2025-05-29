@@ -15,7 +15,7 @@ class SimpleUsageMatlabAgent:
 
         # Load configuration from YAML file
         self.config = self.load_yaml(config_path)
-        self.simulation_request_path = self.config.get('simulation_request', '../api/simulation.yaml')
+        self.simulation_request_path = self.config.get('simulation_request', 'simulation.yaml')
         rabbitmq_cfg = self.config.get('rabbitmq', {})
 
         # Create RabbitMQ credentials
