@@ -15,6 +15,7 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
 
 - [MATLAB agent](#matlab-agent)
   - [Table of Contents](#table-of-contents)
+  - [Demo Video](#demo-video)
   - [Requirements](#requirements)
     - [Installation](#installation)
       - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
@@ -36,6 +37,20 @@ The MATLAB Agent is primarily built to integrate with the Simulation Bridge but 
   - [Workflow](#workflow)
   - [Package Development](#package-development)
   - [Author](#author)
+
+## Demo Video
+
+For a comprehensive demonstration of the MATLAB Agent in action, you can:
+
+- [Watch the full video (MOV format)](matlab_agent/images/demo_matlab_agent_v0-2-0.mov)
+
+Or view a quick preview below:
+
+<p align="center">
+  <img src="matlab_agent/images/demo_matlab_agent_v0-2-0.gif" alt="MATLAB Agent Demo Preview" width="800">
+</p>
+
+<p align="center"><i>A video demonstration of the MATLAB Agent v0.2.0 in action</i></p>
 
 ## Requirements
 
