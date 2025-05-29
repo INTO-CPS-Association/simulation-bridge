@@ -1,0 +1,18 @@
+simulation:
+  request_id: abcdef12345
+  client_id: dt
+  simulator: matlab
+  type: batch # Type of simulation (batch,streaming)
+  file: simulation_batch_1.m # Name of the simulation file
+  inputs:
+    x0: 10 # Initial x position (m)
+    y0: 5 # Initial y position (m)
+    speed0: 3 # Initial speed (m/s)
+    acceleration: 0.5 # Acceleration (m/s^2)
+    angle_deg: 45 # Initial direction (degrees, 0-360°)
+    simulation_time: 10 # Total simulation time (s)
+  outputs:
+    x_final: "Final x position (m)"
+    y_final: "Final y position (m)"
+    speed_final: "Final speed (m/s)"
+    time_elapsed: "Actual simulation time (s)"

@@ -1,0 +1,19 @@
+simulation:
+  request_id: abcdef12345
+  client_id: dt
+  simulator: matlab
+  type: streaming
+  file: simulation_streaming.m
+  inputs:
+    time_step: 0.05 # Time step for the simulation
+    num_agents: 8 # Number of agents
+    max_steps: 200 # Max steps for the simulation
+    avoidance_threshold: 1 # Minimum distance to avoid collision
+    show_agent_index: 1 # Index of the agent to show
+    use_gui: true # GUI flag
+  outputs:
+    time: float # execution time
+    current_step: int # current step of the simulation
+    positions: "[[float, float]]" # positions of the agents
+    velocities: "[[float, float]]" # velocities of the agents
+    running: bool # running flag

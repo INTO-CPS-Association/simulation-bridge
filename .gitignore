@@ -176,6 +176,7 @@ cython_debug/
 .DS_Store
 
 #MATLAB agent
+agents/matlab/client
 agents/matlab/logs
 agents/matlab/performance_log
 # Interactive simulation in progress

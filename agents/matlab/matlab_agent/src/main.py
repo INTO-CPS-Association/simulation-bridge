@@ -86,25 +86,31 @@ def generate_default_project():
     files_to_generate = {
         'config.yaml': ('matlab_agent.config', 'config.yaml.template'),
         'SimulationWrapper.m': ('matlab_agent.resources', 'SimulationWrapper.m'),
-        'simulation.yaml': ('matlab_agent.api', 'simulation.yaml.template'),
         'SimulationBatch.m': ('matlab_agent.docs.examples', 'simulation_batch.m.template'),
         'SimulationStreaming.m': ('matlab_agent.docs.examples', 'simulation_streaming.m.template'),
+        'client/use_matlab_agent.py': ('matlab_agent.resources', 'use_matlab_agent.py'),
+        'client/use.yaml': ('matlab_agent.resources', 'use.yaml.template'),
+        'client/simulation.yaml': ('matlab_agent.api', 'simulation.yaml.template'),
     }
 
     # Descriptions for each file
     file_descriptions = {
         'config.yaml': "Configuration file for the MATLAB agent",
         'SimulationWrapper.m': "Helper class for handling streaming simulations",
-        'simulation.yaml': "Example API payload to communicate with the MATLAB agent",
         'SimulationBatch.m': "Template for batch-mode simulations",
         'SimulationStreaming.m': "Template for streaming-mode simulations",
+        'client/use_matlab_agent.py': "Python script to use the MATLAB agent",
+        'client/use.yaml': "Client-side usage configuration (use.yaml)",
+        'client/simulation.yaml': "Example API payload to communicate with the MATLAB agent",
     }
 
     try:
+        # Ensure client directory exists
+        Path("client").mkdir(parents=True, exist_ok=True)
+
         try:
             from importlib.resources import files
-            for output_name, (package,
-                              resource_name) in files_to_generate.items():
+            for output_name, (package, resource_name) in files_to_generate.items():
                 output_path = Path(output_name)
                 if output_path.exists():
                     existing_files.append(output_name)
@@ -115,14 +121,12 @@ def generate_default_project():
                 created_files.append(output_name)
         except (ImportError, AttributeError):
             import pkg_resources
-            for output_name, (package,
-                              resource_name) in files_to_generate.items():
+            for output_name, (package, resource_name) in files_to_generate.items():
                 output_path = Path(output_name)
                 if output_path.exists():
                     existing_files.append(output_name)
                     continue
-                template_content = pkg_resources.resource_string(
-                    package, resource_name)
+                template_content = pkg_resources.resource_string(package, resource_name)
                 with open(output_path, 'wb') as dst:
                     dst.write(template_content)
                 created_files.append(output_name)
@@ -133,28 +137,24 @@ def generate_default_project():
         if created_files:
             print("🆕 Files created:")
             for f in created_files:
-                description = file_descriptions.get(
-                    f, "No description available")
-                print(f" - {f:<25} : {description}")
+                description = file_descriptions.get(f, "No description available")
+                print(f" - {f:<35} : {description}")
 
         if existing_files:
             print("\n📄 Files already present (skipped):")
             for f in existing_files:
-                description = file_descriptions.get(
-                    f, "No description available")
-                print(f" - {f:<25} : {description}")
+                description = file_descriptions.get(f, "No description available")
+                print(f" - {f:<35} : {description}")
 
         if not created_files:
             print("\nAll project files already exist. Nothing was created.")
         else:
-            print(
-                "\nYou can now customize these files as needed and start using the MATLAB agent.")
+            print("\nYou can now customize these files as needed and start using the MATLAB agent.")
 
     except FileNotFoundError:
         print("❌ Error: One or more template files were not found.")
     except Exception as e:
         print(f"❌ Error generating project files: {e}")
-
 
 def run_agent(config_file):
     """Initializes and starts a single MATLAB agent instance."""

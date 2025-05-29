@@ -5,3 +5,4 @@ rabbitmq:
   password: guest
   heartbeat: 600
   vhost: /
+simulation_request: ../api/simulation.yaml

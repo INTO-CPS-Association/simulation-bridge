@@ -15,6 +15,7 @@ class SimpleUsageMatlabAgent:
 
         # Load configuration from YAML file
         self.config = self.load_yaml(config_path)
+        self.simulation_request_path = self.config.get('simulation_request', '../api/simulation.yaml')
         rabbitmq_cfg = self.config.get('rabbitmq', {})
 
         # Create RabbitMQ credentials
@@ -138,7 +139,8 @@ if __name__ == "__main__":
 
     try:
         # Load simulation data and send request
-        simulation_data = agent.load_yaml("../../simulation.yaml")
+        simulation_request_path = agent.simulation_request_path
+        simulation_data = agent.load_yaml(simulation_request_path)
         agent.send_request(simulation_data)
 
         # Keep the main thread running to receive results
