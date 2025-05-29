@@ -55,7 +55,8 @@ class TestLoggerSetup(unittest.TestCase):
 
     def test_setup_logger_default_parameters(self):
         """Test logger setup with default parameters."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        temp_dir = tempfile.mkdtemp()
+        try:
             log_file = os.path.join(temp_dir, 'default.log')
             logger = setup_logger(
                 name=self.logger_name,
@@ -66,6 +67,13 @@ class TestLoggerSetup(unittest.TestCase):
             self.assertEqual(logger.name, self.logger_name)
             self.assertEqual(logger.level, DEFAULT_LOG_LEVEL)
             self.assertEqual(len(logger.handlers), 2)  # File + Console handlers
+            
+            # Close handlers before removing temp directory
+            for handler in logger.handlers[:]:
+                handler.close()
+                logger.removeHandler(handler)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     def test_setup_logger_custom_parameters(self):
         """Test logger setup with custom parameters."""
