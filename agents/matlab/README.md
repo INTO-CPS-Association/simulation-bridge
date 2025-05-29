@@ -113,6 +113,7 @@ Explanation on different fields of the yaml template is given below.
 ```yaml
 agent:
   agent_id: matlab # Specifies the unique identifier for the agent. This ID is used to distinguish the agent in the system.
+  simulator: matlab # Specifies the name of the simulator
 
 rabbitmq:
   host: localhost # The hostname or IP address of the RabbitMQ server.
