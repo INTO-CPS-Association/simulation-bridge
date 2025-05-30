@@ -1,0 +1,76 @@
+simulation_bridge:
+  bridge_id: simulation_bridge
+
+rabbitmq:
+  host: localhost
+  port: 5672
+  virtual_host: /
+  infrastructure:
+    exchanges:
+      - name: ex.input.bridge
+        type: topic
+        durable: true
+        auto_delete: false
+        internal: false
+
+      - name: ex.bridge.output
+        type: topic
+        durable: true
+        auto_delete: false
+        internal: false
+
+      - name: ex.sim.result
+        type: topic
+        durable: true
+        auto_delete: false
+        internal: false
+
+      - name: ex.bridge.result
+        type: topic
+        durable: true
+        auto_delete: false
+        internal: false
+
+    queues:
+      - name: Q.bridge.input
+        durable: true
+        exclusive: false
+        auto_delete: false
+
+      - name: Q.bridge.result
+        durable: true
+        exclusive: false
+        auto_delete: false
+
+    bindings:
+      - queue: Q.bridge.input
+        exchange: ex.input.bridge
+        routing_key: "#"
+
+      - queue: Q.bridge.result
+        exchange: ex.sim.result
+        routing_key: "#"
+
+mqtt:
+  host: localhost
+  port: 1883
+  keepalive: 60
+  input_topic: bridge/input
+  output_topic: bridge/output
+  qos: 0
+
+rest:
+  host: 0.0.0.0
+  port: 5000
+  input_endpoint: /message
+  debug: false
+  client:
+    host: localhost
+    port: 5001
+    base_url: http://localhost:5001
+    output_endpoint: /result
+
+logging:
+  level: INFO
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s' 
+  file: logs/sim_bridge.log
