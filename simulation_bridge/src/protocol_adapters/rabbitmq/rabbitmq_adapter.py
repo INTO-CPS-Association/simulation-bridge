@@ -1,23 +1,42 @@
-import pika
+"""RabbitMQ adapter for message transport between simulation components."""
 import json
-from blinker import signal
+import threading
+import functools
+from typing import Dict, Any
+
+import pika
 import yaml
+from blinker import signal
+
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
-import functools
 from ..base.protocol_adapter import ProtocolAdapter
-from typing import Dict, Any
 
 logger = get_logger()
 
+
 class RabbitMQAdapter(ProtocolAdapter):
+    """
+    Protocol adapter for RabbitMQ message broker.
+    
+    Handles connections to RabbitMQ, subscribes to configured queues,
+    and processes incoming/outgoing messages.
+    """
+
     def _get_config(self) -> Dict[str, Any]:
+        """Retrieve RabbitMQ configuration from config manager."""
         return self.config_manager.get_rabbitmq_config()
-        
+
     def __init__(self, config_manager: ConfigManager):
-        super().__init__(config_manager)
-        logger.debug(f"RabbitMQ adapter initialized")
+        """
+        Initialize RabbitMQ adapter with configuration.
         
+        Args:
+            config_manager: Configuration manager providing RabbitMQ settings
+        """
+        super().__init__(config_manager)
+        logger.debug("RabbitMQ adapter initialized")
+
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=self.config['host'],
@@ -26,22 +45,37 @@ class RabbitMQAdapter(ProtocolAdapter):
             )
         )
         self.channel = self.connection.channel()
+        self._consumer_thread = None
+        self._running = False
+        
         # Get all queues from config and register callback for each
         queues = self.config.get('infrastructure', {}).get('queues', [])
         for queue in queues:
             queue_name = queue.get('name')
             if queue_name:
-                cb = functools.partial(self._handle_message, queue_name=queue_name)
+                cb = functools.partial(
+                    self._process_message, queue_name=queue_name)
                 self.channel.basic_consume(
                     queue=queue_name,
                     on_message_callback=cb,
                     auto_ack=False
                 )
-                logger.debug(f"Subscribed to queue: {queue_name}")
-        logger.debug(f"RabbitMQ adapter initialized and subscribed to queues")
+                logger.debug("Subscribed to queue: %s", queue_name)
+        logger.debug("RabbitMQ adapter initialized and subscribed to queues")
 
-    def _handle_message(self, ch, method, properties, body, queue_name):
+    def _process_message(self, ch, method, properties, body, queue_name):
+        """
+        Process incoming RabbitMQ message.
+        
+        Args:
+            ch: Channel object
+            method: Method details
+            properties: Message properties
+            body: Message body
+            queue_name: Source queue name
+        """
         try:
+            # Try to parse message as YAML first, then JSON, or fall back to raw string
             try:
                 message = yaml.safe_load(body)
             except Exception:
@@ -52,8 +86,10 @@ class RabbitMQAdapter(ProtocolAdapter):
                         "content": body.decode('utf-8', errors='replace'),
                         "raw_message": True
                     }
+                    
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
+                
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
@@ -72,16 +108,69 @@ class RabbitMQAdapter(ProtocolAdapter):
                 producer=producer,
                 consumer=consumer
             )
-            
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-            logger.debug(f"Message processed from queue {queue_name}: {method.routing_key}")
-        except Exception as e:
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-            logger.error(f"Error processing message from {queue_name}: {e}")
 
-    def start(self):
-        logger.debug("RabbitMQ adapter started...")
-        self.channel.start_consuming()
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            logger.debug(
+                "Message processed from queue %s: %s", 
+                queue_name, method.routing_key
+            )
+        except Exception as exc:
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            logger.error("Error processing message from %s: %s", queue_name, exc)
+
+    def _run_consumer(self):
+        """Run the RabbitMQ consumer in a separate thread."""
+        logger.debug("RabbitMQ consumer thread started")
+        try:
+            self._running = True
+            self.channel.start_consuming()
+        except Exception as exc:
+            logger.error("RabbitMQ - Error in consumer thread: %s", exc)
+            self._running = False
+            raise
+
+    def start(self) -> None:
+        """Start the RabbitMQ consumer in a separate thread."""
+        logger.debug("RabbitMQ adapter starting...")
+        try:
+            self._consumer_thread = threading.Thread(
+                target=self._run_consumer, daemon=True)
+            self._consumer_thread.start()
+            logger.debug("RabbitMQ consumer thread started successfully")
+        except Exception as exc:
+            logger.error("RabbitMQ - Error starting consumer thread: %s", exc)
+            self.stop()
+            raise
+
+    def stop(self) -> None:
+        """Stop the RabbitMQ adapter and clean up resources."""
+        logger.info("RabbitMQ - Stopping adapter")
+        self._running = False
+        try:
+            if hasattr(self, 'channel') and self.channel and self.channel.is_open:
+                self.channel.stop_consuming()
+            if hasattr(self, 'connection') and self.connection and self.connection.is_open:
+                self.connection.close()
+            if self._consumer_thread and self._consumer_thread.is_alive():
+                self._consumer_thread.join(timeout=5)
+            logger.info("RabbitMQ - Successfully stopped adapter")
+        except Exception as exc:
+            logger.error("RabbitMQ - Error stopping adapter: %s", exc)
+
+    def _handle_message(self, message: Dict[str, Any]) -> None:
+        """
+        Handle incoming messages (required by ProtocolAdapter).
         
-    def stop(self):
-        self.connection.close() 
+        Args:
+            message: The message to process
+        """
+        self._process_message(None, None, None, message, 'Q.bridge.input')
+
+    def _start_adapter(self) -> None:
+        """Start the RabbitMQ consumer."""
+        logger.debug("RabbitMQ adapter started...")
+        try:
+            self.channel.start_consuming()
+        except Exception as exc:
+            logger.error("RabbitMQ - Error in consumer: %s", exc)
+            raise

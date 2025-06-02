@@ -9,6 +9,7 @@ import click
 
 import logging
 
+
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
               default=None, help='Path to custom configuration file')
@@ -41,6 +42,7 @@ simulation-bridge --config-file /path/to/your/config.yaml
         else:
             run_bridge('config.yaml')
 
+
 def run_bridge(config_file):
     """Initializes and starts a single MATLAB agent instance."""
     config = load_config(config_file)
@@ -52,7 +54,7 @@ def run_bridge(config_file):
         log_file=logging_file
     )
     simulation_bridge_id = config['simulation_bridge']['bridge_id']
-    bridge= BridgeOrchestrator(
+    bridge = BridgeOrchestrator(
         simulation_bridge_id,
         config_path=config_file)
     try:
@@ -65,6 +67,7 @@ def run_bridge(config_file):
     except Exception as e:
         logger.error("Critical error: %s", str(e), exc_info=True)
         bridge.stop()
+
 
 def generate_default_config():
     """Copy the template configuration file to the current directory if not already present."""
@@ -90,6 +93,7 @@ def generate_default_config():
         print("Error: Template configuration file not found.")
     except Exception as e:
         print(f"Error generating configuration file: {e}")
+
 
 if __name__ == "__main__":
     main()

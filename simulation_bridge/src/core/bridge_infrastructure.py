@@ -4,6 +4,7 @@ from ..utils.logger import get_logger
 
 logger = get_logger()
 
+
 class RabbitMQInfrastructure:
     def __init__(self, config_manager: ConfigManager):
         self.config = config_manager.get_rabbitmq_config()
@@ -22,9 +23,10 @@ class RabbitMQInfrastructure:
             self._setup_exchanges()
             self._setup_queues()
             self._setup_bindings()
-            logger.info("Simulation Bridge infrastructure setup completed successfully")
+            logger.info(
+                "Simulation Bridge infrastructure setup completed successfully")
         except Exception as e:
-            logger.error(f"Error setting up RabbitMQ infrastructure: {e}")
+            logger.error("Error setting up RabbitMQ infrastructure: %s", e)
             raise
         finally:
             self.connection.close()
@@ -40,9 +42,11 @@ class RabbitMQInfrastructure:
                     auto_delete=exchange['auto_delete'],
                     internal=exchange['internal']
                 )
-                logger.debug(f"Exchange declared: {exchange['name']}")
+                logger.debug("Exchange declared: %s", exchange['name'])
             except Exception as e:
-                logger.error(f"Error declaring exchange {exchange['name']}: {e}")
+                logger.error(
+                    "Error declaring exchange %s: %s",
+                    exchange['name'], e)
                 raise
 
     def _setup_queues(self):
@@ -55,9 +59,9 @@ class RabbitMQInfrastructure:
                     exclusive=queue['exclusive'],
                     auto_delete=queue['auto_delete']
                 )
-                logger.debug(f"Queue declared: {queue['name']}")
+                logger.debug("Queue declared: %s", queue['name'])
             except Exception as e:
-                logger.error(f"Error declaring queue {queue['name']}: {e}")
+                logger.error("Error declaring queue %s: %s", queue['name'], e)
                 raise
 
     def _setup_bindings(self):
@@ -69,8 +73,11 @@ class RabbitMQInfrastructure:
                     queue=binding['queue'],
                     routing_key=binding['routing_key']
                 )
-                logger.debug(f"Binding created: {binding['queue']} -> {binding['exchange']} ({binding['routing_key']})")
+                logger.debug(
+                    "Binding created: %s -> %s (%s)",
+                    binding['queue'], binding['exchange'], binding['routing_key'])
             except Exception as e:
-                logger.error(f"Error creating binding {binding['queue']} -> {binding['exchange']}: {e}")
+                logger.error(
+                    "Error creating binding %s -> %s: %s",
+                    binding['queue'], binding['exchange'], e)
                 raise
-

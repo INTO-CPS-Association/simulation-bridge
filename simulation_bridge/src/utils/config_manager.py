@@ -78,9 +78,10 @@ class RESTConfig(BaseModel):
     """Configuration for REST API."""
     host: str
     port: int
-    input_endpoint: str
+    endpoint: str
+    certfile: str
+    keyfile: str
     debug: bool
-    client: dict[str, str | int]  # This will contain host, port, base_url, and output_endpoint
 
 
 class LoggingConfig(BaseModel):
@@ -166,7 +167,8 @@ class ConfigManager:
     def get_default_config(self) -> Dict[str, Any]:
         """Get default configuration as dictionary."""
         return Config(
-            simulation_bridge=SimulationBridgeConfig(bridge_id="simulation_bridge"),
+            simulation_bridge=SimulationBridgeConfig(
+                bridge_id="simulation_bridge"),
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,
@@ -188,14 +190,10 @@ class ConfigManager:
             rest=RESTConfig(
                 host="0.0.0.0",
                 port=5000,
-                input_endpoint="/message",
-                debug=False,
-                client={
-                    "host": "localhost",
-                    "port": 5001,
-                    "base_url": "http://localhost:5001",
-                    "output_endpoint": "/result"
-                }
+                endpoint="/message",
+                certfile="./certs/cert.pem",
+                keyfile="./certs/key.pem",
+                debug=False
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,

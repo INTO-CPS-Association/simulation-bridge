@@ -15,6 +15,7 @@ from ..utils.logger import get_logger
 # Configure logger
 logger = get_logger()
 
+
 def load_config(
         config_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
     """
@@ -50,6 +51,7 @@ def load_config(
     config = _substitute_env_vars(config)
 
     return config
+
 
 def _substitute_env_vars(
     config: Union[Dict[str, Any], list, str]

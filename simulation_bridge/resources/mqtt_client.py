@@ -1,10 +1,11 @@
-import paho.mqtt.client as mqtt
+"""MQTT client for simulation bridge communication."""
+import os
 import json
 import time
 import yaml
-import os
+import paho.mqtt.client as mqtt
 
-# Configurazione MQTT
+# MQTT Configuration
 MQTT_HOST = "localhost"
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60
@@ -12,41 +13,51 @@ MQTT_INPUT_TOPIC = "bridge/input"
 MQTT_OUTPUT_TOPIC = "bridge/output"
 MQTT_QOS = 0
 
-# Callback per la ricezione dei messaggi
+
 def on_message(client, userdata, msg):
-    print("\n📥 Messaggio ricevuto:")
+    """Callback for received messages.
+    
+    Args:
+        client: MQTT client instance
+        userdata: User defined data
+        msg: Message object containing topic and payload
+    """
+    print("\n📥 Message received:")
     print(f"🔹 Topic: {msg.topic}")
     print(f"🔹 Payload: {msg.payload.decode()}")
 
+
 def send_message_and_listen():
-    # Carica il file YAML
+    """Load simulation configuration, send it to the input topic and listen for responses."""
+    # Load YAML file
     file_path = os.path.join(os.path.dirname(__file__), 'simulation.yaml')
     try:
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             payload = yaml.safe_load(file)
-            print("✅ Payload caricato:", payload)
+            print("✅ Payload loaded:", payload)
     except Exception as e:
-        print(f"❌ Errore nel caricamento di simulation.yaml: {e}")
+        print(f"❌ Error loading simulation.yaml: {e}")
         return
 
     client = mqtt.Client()
 
-    # Configura callback per i messaggi ricevuti
+    # Configure callback for received messages
     client.on_message = on_message
 
-    # Connessione al broker MQTT
+    # Connect to MQTT broker
     client.connect(MQTT_HOST, MQTT_PORT, MQTT_KEEPALIVE)
 
-    # Iscrizione al topic di output
+    # Subscribe to output topic
     client.subscribe(MQTT_OUTPUT_TOPIC, qos=MQTT_QOS)
 
-    # Pubblica il messaggio su bridge/input
+    # Publish message to bridge/input
     client.publish(MQTT_INPUT_TOPIC, json.dumps(payload), qos=MQTT_QOS)
-    print(f"📤 Messaggio pubblicato su {MQTT_INPUT_TOPIC}")
+    print(f"📤 Message published to {MQTT_INPUT_TOPIC}")
 
-    # Inizia il loop per ricevere messaggi
-    print(f"📡 In ascolto su {MQTT_OUTPUT_TOPIC}...\n(CTRL+C per terminare)")
+    # Start loop to receive messages
+    print(f"📡 Listening on {MQTT_OUTPUT_TOPIC}...\n(CTRL+C to terminate)")
     client.loop_forever()
+
 
 if __name__ == "__main__":
     send_message_and_listen()

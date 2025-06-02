@@ -1,84 +1,75 @@
-import requests
-import yaml
-import json
-import threading
-import logging
-import time
-import os
-from flask import Flask, request, jsonify
+"""REST client for sending YAML payloads and handling streaming responses."""
 
-# Config
-BRIDGE_URL = "http://localhost:5000/message"  # Send message here
-CLIENT_PORT = 5001                             # This client listens here
-RESULTS_ENDPOINT = "/result"                  # For receiving results
+import asyncio
+import sys
+from typing import NoReturn
+from pathlib import Path
 
-# Logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("RESTClient")
+import httpx
 
-# Flask app
-app = Flask(__name__)
-received_results = []
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    return jsonify({"status": "ok"})
+async def send_yaml_and_stream_response(yaml_path: str, url: str) -> None:
+    """Send YAML payload and handle streaming response.
 
-@app.route(RESULTS_ENDPOINT, methods=['POST'])
-def receive_result():
+    Args:
+        yaml_path: Path to the YAML file to send
+        url: Target URL for the POST request
+
+    Raises:
+        FileNotFoundError: If the YAML file cannot be found
+        httpx.RequestError: If there is an error during the HTTP request
+    """
+    headers = {
+        "Content-Type": "application/x-yaml",
+        "Accept": "application/x-ndjson"
+    }
+
+    # Load YAML file content
     try:
-        data = request.get_json(force=True)
-        received_results.append(data)
-        logger.info(f"✅ Received result: {json.dumps(data, indent=2)}")
-        return jsonify({"status": "received"}), 200
-    except Exception as e:
-        logger.error(f"Error parsing result: {e}")
-        return jsonify({"error": str(e)}), 400
+        yaml_data = Path(yaml_path).read_bytes()
+    except FileNotFoundError:
+        print(f"Error: YAML file not found at '{yaml_path}'")
+        sys.exit(1)
 
-def start_client_receiver():
-    """Start Flask server in a separate thread"""
-    logger.info(f"🚀 Starting result receiver on http://localhost:{CLIENT_PORT}{RESULTS_ENDPOINT}")
-    app.run(host="localhost", port=CLIENT_PORT, debug=False, use_reloader=False)
-
-def wait_until_ready(url, timeout=30):
-    for _ in range(timeout):
+    async with httpx.AsyncClient(verify=False) as client:
         try:
-            if requests.get(url).status_code == 200:
-                logger.info("🔗 Bridge is ready.")
-                return True
-        except requests.exceptions.ConnectionError:
-            pass
-        time.sleep(1)
-    logger.error("❌ Bridge did not respond in time.")
-    return False
+            # Send POST request with streaming response
+            async with client.stream(
+                "POST",
+                url,
+                headers=headers,
+                content=yaml_data,
+                timeout=30.0
+            ) as response:
+                print(f"Status: {response.status_code}")
+                
+                if response.status_code >= 400:
+                    print(f"Error: Server returned status code {response.status_code}")
+                    return
+                    
+                async for line in response.aiter_lines():
+                    if line.strip():
+                        print(f"Received: {line}")
+        except httpx.RequestError as error:
+            print(
+                f"An error occurred while requesting {error.request.url!r}.\n"
+                f"Error: {error}"
+            )
 
-def send_test_message():
-    """Send a test simulation message to the bridge"""
-    path = os.path.join(os.path.dirname(__file__), "simulation.yaml")
-    try:
-        with open(path, "r") as f:
-            payload = yaml.safe_load(f)
-    except Exception as e:
-        logger.error(f"❌ Failed to read simulation.yaml: {e}")
-        return
 
-    response = requests.post(
-        BRIDGE_URL,
-        data=yaml.dump(payload),
-        headers={"Content-Type": "application/x-yaml"}
+def main() -> NoReturn:
+    """Run the REST client with default configuration.
+    
+    This function sets up the REST client with default parameters
+    and executes the main functionality.
+    """
+    asyncio.run(
+        send_yaml_and_stream_response(
+            "simulation.yaml",
+            "https://localhost:5000/message"
+        )
     )
-    logger.info(f"📨 Sent message. Status: {response.status_code}")
-    logger.info(f"📝 Response: {response.text}")
+
 
 if __name__ == "__main__":
-    # Start result receiver
-    threading.Thread(target=start_client_receiver, daemon=True).start()
-
-    send_test_message()
-
-    # Keep alive to receive results
-    try:
-        while True:
-            time.sleep(2)
-    except KeyboardInterrupt:
-        logger.info("👋 Client stopped.")
+    main()

@@ -60,15 +60,12 @@ mqtt:
   qos: 0
 
 rest:
-  host: 0.0.0.0
+  host: localhost
   port: 5000
-  input_endpoint: /message
+  endpoint: /message
+  certfile: ./certs/cert.pem
+  keyfile: ./certs/key.pem
   debug: false
-  client:
-    host: localhost
-    port: 5001
-    base_url: http://localhost:5001
-    output_endpoint: /result
 
 logging:
   level: INFO

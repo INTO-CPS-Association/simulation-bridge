@@ -54,51 +54,60 @@ The `RabbitMQInfrastructure` class manages the RabbitMQ infrastructure setup:
 - Queue declarations
 - Binding configurations
 
-```python
+````python
 class RabbitMQInfrastructure:
     def setup(self):
         self._setup_exchanges()
         self._setup_queues()
         self._setup_bindings()
-```
+```python
+class RabbitMQInfrastructure:
+        def setup(self):
+                self._setup_exchanges()
+                self._setup_queues()
+                self._setup_bindings()
+````
 
 ## Message Flow
 
-### 1. Input Flow
-
-When a client sends a message to the bridge, it follows this flow:
-
 ```mermaid
 sequenceDiagram
-    participant Client
-    participant ProtocolAdapter
-    participant BridgeCore
-    participant OutputProtocol
+                participant DT as Digital Twin<br/>(REST)
+                participant MockPT as Mock Physical Twin<br/>(RabbitMQ)
+                participant PT as Physical Twin<br/>(MQTT)
+                participant Bridge as Simulation Bridge
+                participant SimA as Simulator A
+                participant SimB as Simulator B
 
-    Client->>ProtocolAdapter: Send Message
-    Note over ProtocolAdapter: Convert to internal format
-    ProtocolAdapter->>BridgeCore: Emit Signal
-    Note over BridgeCore: Process & Route
-    BridgeCore->>OutputProtocol: Publish Message
-    Note over OutputProtocol: Deliver to Simulator
-```
+                rect rgba(46, 64, 83, 0.1)
+                                Note over DT,Bridge: REST Flow Example
+                                DT->>+Bridge: Send Request (REST)
+                                Note right of Bridge: Parse & convert to internal format
+                                Bridge->>+SimA: Forward Request
+                                SimA-->>-Bridge: Return Response
+                                Note right of Bridge: Convert to REST format
+                                Bridge-->>-DT: Deliver Response (REST)
+                end
 
-### 2. Result Flow
+                rect rgba(39, 174, 96, 0.1)
+                                Note over MockPT,Bridge: RabbitMQ Flow Example
+                                MockPT->>+Bridge: Send Request (RabbitMQ)
+                                Note right of Bridge: Parse & convert to internal format
+                                Bridge->>+SimB: Forward Request
+                                SimB-->>-Bridge: Return Response
+                                Note right of Bridge: Convert to RabbitMQ format
+                                Bridge-->>-MockPT: Deliver Response (RabbitMQ)
+                end
 
-When a simulator sends results back, it follows this flow:
-
-```mermaid
-sequenceDiagram
-    participant Simulator
-    participant BridgeCore
-    participant ProtocolAdapter
-    participant Client
-
-    Simulator->>BridgeCore: Send Result
-    Note over BridgeCore: Process & Route
-    BridgeCore->>ProtocolAdapter: Emit Signal
-    Note over ProtocolAdapter: Convert to protocol format
-    ProtocolAdapter->>Client: Deliver Result
+                rect rgba(142, 68, 173, 0.1)
+                                Note over PT,Bridge: MQTT Flow Example
+                                PT->>+Bridge: Send Request (MQTT)
+                                Note right of Bridge: Parse & convert to internal format
+                                Bridge->>+SimA: Forward Request
+                                SimA-->>-Bridge: Return Response
+                                Note right of Bridge: Convert to MQTT format
+                                Bridge-->>-PT: Deliver Response (MQTT)
+                end
 ```
 
 ## Signal System
