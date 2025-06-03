@@ -1,3 +1,5 @@
+"""Bridge Orchestrator module for simulation bridge."""
+
 from .bridge_core import BridgeCore
 from ..protocol_adapters.rabbitmq.rabbitmq_adapter import RabbitMQAdapter
 from ..protocol_adapters.mqtt.mqtt_adapter import MQTTAdapter
@@ -10,9 +12,17 @@ logger = get_logger()
 
 
 class BridgeOrchestrator:
+    """Orchestrates the simulation bridge components and lifecycle."""
+
     def __init__(self, simulation_bridge_id: str, config_path: str = None):
+        """Initialize the bridge orchestrator.
+
+        Args:
+            simulation_bridge_id: Unique identifier for this bridge instance
+            config_path: Optional path to configuration file
+        """
         self.simulation_bridge_id = simulation_bridge_id
-        logger.info(f"Simulation bridge ID: {self.simulation_bridge_id}")
+        logger.info("Simulation bridge ID: %s", self.simulation_bridge_id)
 
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.get_config()
@@ -29,6 +39,7 @@ class BridgeOrchestrator:
         }
 
     def setup_interfaces(self):
+        """Set up all communication interfaces and the core bridge."""
         try:
             logger.debug("Setting up RabbitMQ infrastructure...")
             infrastructure = RabbitMQInfrastructure(self.config_manager)
@@ -37,49 +48,60 @@ class BridgeOrchestrator:
             for name, adapter_class in self.adapter_classes.items():
                 adapter = adapter_class(self.config_manager)
                 self.adapters[name] = adapter
-                logger.info(f"{name.upper()} Adapter initialized correctly")
+                logger.info("%s Adapter initialized correctly", name.upper())
 
             self.bridge = BridgeCore(self.config_manager, self.adapters)
             logger.info("Bridge core initialized")
 
-        except Exception as e:
-            logger.error(f"Error setting up interfaces: {e}")
+        except Exception as exc:
+            logger.error("Error setting up interfaces: %s", exc)
             raise
 
     def start(self):
+        """Start the bridge and all its components."""
+        # 1) Initial setup
+        self.setup_interfaces()
+
+        # 2) Start all adapters
+        for adapter in self.adapters.values():
+            adapter.start()
+        logger.info("Simulation Bridge Running")
+        self._running = True
+
+        import time
         try:
-            self.setup_interfaces()
-            # Start each adapter
-            for adapter in self.adapters.values():
-                adapter.start()
-            logger.debug("All adapters started")
-            logger.info("Simulation Bridge Running")
-
-            self._running = True
-
-            while self._running:
-                if not all(
-                        adapter.is_running for adapter in self.adapters.values()):
-                    logger.error("One or more adapters have stopped")
+            # 3) Polling loop
+            while True:
+                all_alive = all(adapter.is_running for adapter in self.adapters.values())
+                if not all_alive:
+                    logger.error("One or more adapters have stopped unexpectedly")
                     break
-                import time
                 time.sleep(1)
 
-        except Exception as e:
-            logger.error(f"Error in start: {e}")
+        except KeyboardInterrupt:
+            # 4) Handle user Ctrl+C
+            logger.info("Shutdown requested by user (Ctrl+C)")
+
+        finally:
+            # 5) In any case (adapter error or Ctrl+C), stop everything
             self.stop()
-            raise
 
     def stop(self):
-        self._running = False
+        """Stop all components of the bridge cleanly."""
+        logger.debug("Stopping all components...")
         try:
             for name, adapter in self.adapters.items():
                 try:
                     adapter.stop()
-                except Exception as e:
-                    logger.error(f"Error stopping {name} adapter: {e}")
+                    # Join thread only if the adapter has a thread attribute
+                    if hasattr(adapter, 'thread'):
+                        adapter.thread.join()
+                except Exception as exc:
+                    logger.error("Error stopping %s adapter: %s", name, exc)
+
             if self.bridge:
                 self.bridge.stop()
-            logger.info("All components stopped")
-        except Exception as e:
-            logger.error(f"Error during shutdown: {e}")
+            logger.info("Simulation Bridge Stopped")
+
+        except Exception as exc:
+            logger.error("Error during shutdown: %s", exc)

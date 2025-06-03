@@ -125,9 +125,11 @@ class RabbitMQAdapter(ProtocolAdapter):
             self._running = True
             self.channel.start_consuming()
         except Exception as exc:
-            logger.error("RabbitMQ - Error in consumer thread: %s", exc)
+            if self._running:
+                logger.error("RabbitMQ - Error in consumer thread: %s", exc)
+        finally:
+            logger.debug("RabbitMQ consumer thread exiting")
             self._running = False
-            raise
 
     def start(self) -> None:
         """Start the RabbitMQ consumer in a separate thread."""
@@ -144,18 +146,29 @@ class RabbitMQAdapter(ProtocolAdapter):
 
     def stop(self) -> None:
         """Stop the RabbitMQ adapter and clean up resources."""
-        logger.info("RabbitMQ - Stopping adapter")
+        logger.debug("RabbitMQ - Stopping adapter")
         self._running = False
         try:
-            if hasattr(self, 'channel') and self.channel and self.channel.is_open:
-                self.channel.stop_consuming()
-            if hasattr(self, 'connection') and self.connection and self.connection.is_open:
-                self.connection.close()
+            if self.channel and self.channel.is_open:
+                def stop_consuming_from_thread():
+                    try:
+                        self.channel.stop_consuming()
+                    except Exception as e:
+                        logger.warning("RabbitMQ - Error stopping consuming: %s", e)
+                self.connection.add_callback_threadsafe(stop_consuming_from_thread)
+        except Exception as e:
+            logger.error("RabbitMQ - Unexpected error while scheduling stop_consuming: %s", e)
+        try:
             if self._consumer_thread and self._consumer_thread.is_alive():
                 self._consumer_thread.join(timeout=5)
-            logger.info("RabbitMQ - Successfully stopped adapter")
-        except Exception as exc:
-            logger.error("RabbitMQ - Error stopping adapter: %s", exc)
+        except Exception as e:
+            logger.warning("RabbitMQ - Error joining consumer thread: %s", e)
+        try:
+            if self.connection and self.connection.is_open:
+                self.connection.close()
+        except Exception as e:
+            logger.warning("RabbitMQ - Error closing connection: %s", e)
+        logger.debug("RabbitMQ - Adapter stopped cleanly")
 
     def _handle_message(self, message: Dict[str, Any]) -> None:
         """

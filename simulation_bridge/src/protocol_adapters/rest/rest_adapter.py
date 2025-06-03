@@ -32,6 +32,7 @@ class RESTAdapter(ProtocolAdapter):
         self._active_streams = {}  # Store active streams by client_id
         # Main event loop
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+        self._running = False
 
         logger.debug("REST - Adapter initialized with config: host=%s, port=%s", 
                      self.config['host'], self.config['port'])
@@ -145,15 +146,11 @@ class RESTAdapter(ProtocolAdapter):
         try:
             # Send initial acknowledgment
             yield json.dumps({"status": "processing"}) + "\n"
-
             # Keep the connection open and wait for results
             while True:
                 try:
-                    # 5 minute timeout
-                    result = await asyncio.wait_for(queue.get(), timeout=300)
+                    result = await asyncio.wait_for(queue.get(),timeout=600)
                     yield json.dumps(result) + "\n"
-                    if result.get('status') == 'completed':
-                        break
                 except asyncio.TimeoutError:
                     yield json.dumps({"status": "timeout", "error": "No response received within timeout"}) + "\n"
                     break
@@ -203,6 +200,7 @@ class RESTAdapter(ProtocolAdapter):
             self.config['host'], self.config['port'])
         try:
             asyncio.run(self._start_server())
+            self._running = True
         except Exception as e:
             logger.error("REST - Error starting server: %s", e)
             raise
@@ -238,7 +236,8 @@ class RESTAdapter(ProtocolAdapter):
 
     def stop(self) -> None:
         """Stop the REST server."""
-        logger.info("REST - Stopping adapter")
+        logger.debug("REST - Stopping adapter")
+        self._running = False
         if self.server:
             self.server.close()
 

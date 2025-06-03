@@ -81,7 +81,7 @@ class MQTTAdapter(ProtocolAdapter):
             rc: Result code
         """
         if rc == 0:
-            logger.info("MQTT - Cleanly disconnected from broker")
+            logger.debug("MQTT - Cleanly disconnected from broker")
         else:
             logger.warning(
                 "MQTT - Unexpectedly disconnected from broker with code: %s", rc)
@@ -195,13 +195,13 @@ class MQTTAdapter(ProtocolAdapter):
         
         Disconnects from the MQTT broker and stops all processing threads.
         """
-        logger.info("MQTT - Stopping adapter")
+        logger.debug("MQTT - Stopping adapter")
         self._running = False
         try:
             self.client.disconnect()
             if self._process_thread and self._process_thread.is_alive():
                 self._process_thread.join(timeout=5)
-            logger.info("MQTT - Successfully disconnected from broker")
+            logger.debug("MQTT - Successfully disconnected from broker")
         except Exception as exc:
             logger.error("MQTT - Error during disconnection: %s", exc)
 

@@ -226,6 +226,6 @@ class BridgeCore:
         try:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
-            logger.info("Bridge core stopped")
+            logger.debug("Bridge core stopped")
         except Exception as e:
             logger.error(f"Error stopping bridge core: {e}")
