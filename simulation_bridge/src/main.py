@@ -15,6 +15,7 @@ CONFIG_TEMPLATE_FILENAME = 'config.yaml.template'
 CONFIG_PATH = 'simulation_bridge.config'
 CERTS_PATH = 'certs/'
 
+
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
               default=None, help='Path to custom configuration file')

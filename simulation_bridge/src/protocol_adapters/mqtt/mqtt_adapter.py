@@ -14,6 +14,7 @@ from blinker import signal
 
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
+from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
 
 logger = get_logger()
@@ -117,7 +118,7 @@ class MQTTAdapter(ProtocolAdapter):
             # Put message in queue for processing
             self._message_queue.put((message, producer, consumer))
 
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error processing message: %s", exc)
 
     def _process_messages(self):
@@ -129,6 +130,7 @@ class MQTTAdapter(ProtocolAdapter):
                 logger.debug(
                     "MQTT - Processing message from producer: %s, simulator: %s",
                     producer, consumer)
+                # Use SignalManager to send the signal
                 signal('message_received_input_mqtt').send(
                     message=message,
                     producer=producer,
@@ -136,7 +138,7 @@ class MQTTAdapter(ProtocolAdapter):
                 )
             except queue.Empty:
                 continue
-            except Exception as exc:
+            except Exception as exc:  # pylint: disable=broad-exception-caught
                 logger.error("MQTT - Error processing message: %s", exc)
 
     def _run_client(self):
@@ -155,7 +157,7 @@ class MQTTAdapter(ProtocolAdapter):
 
             logger.debug("MQTT - Starting client loop")
             self.client.loop_forever()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error in client thread: %s", exc)
             self._running = False
             raise
@@ -184,7 +186,7 @@ class MQTTAdapter(ProtocolAdapter):
                 target=self._run_client, daemon=True)
             self._client_thread.start()
             logger.debug("MQTT client thread started successfully")
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error(
                 "MQTT - Error connecting to broker at %s:%s: %s",
                 self.config['host'], self.config['port'], exc)
@@ -203,7 +205,7 @@ class MQTTAdapter(ProtocolAdapter):
             if self._process_thread and self._process_thread.is_alive():
                 self._process_thread.join(timeout=5)
             logger.debug("MQTT - Successfully disconnected from broker")
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error during disconnection: %s", exc)
 
     def _handle_message(self, message: Dict[str, Any]) -> None:

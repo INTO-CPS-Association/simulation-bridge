@@ -74,7 +74,7 @@ class MQTTClient:
                 payload = yaml.safe_load(file)
                 print("✅ Payload loaded:", payload)
                 return payload
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             print(f"❌ Error loading {self.payload_file}: {exc}")
             sys.exit(1)
 
@@ -101,8 +101,8 @@ class MQTTClient:
         print(f"📤 Message published to {self.config['input_topic']}")
 
         print(
-            f"📡 Listening on {
-                self.config['output_topic']}...\n(CTRL+C to terminate)")
+            f"""📡 Listening on {
+                self.config['output_topic']}...\n(CTRL+C to terminate)""")
         self.client.loop_forever()
 
 

@@ -4,11 +4,10 @@ config_manager.py - Configuration manager utility
 This module provides functionality to load and manage application configuration
 using Pydantic models for validation and nested structure.
 """
-import yaml
-from typing import Optional, Dict, Any, Literal, List
-from pathlib import Path
 from enum import Enum
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
+from typing import Optional, Dict, Any, List
+from pathlib import Path
+from pydantic import BaseModel, ValidationError, ConfigDict
 
 from .logger import get_logger
 from .config_loader import load_config
@@ -183,12 +182,12 @@ class ConfigManager:
             raw_config = load_config(self.config_path)
             self.config = self._validate_config(raw_config)
         except (FileNotFoundError, ValidationError) as e:
-            logger.warning("Using defaults value")
+            logger.warning("Using defaults value: %s", str(e))
             self.config = self.get_default_config()
         except (IOError, PermissionError) as e:
             logger.error("File access error: %s, using defaults.", str(e))
             self.config = self.get_default_config()
-        except Exception as e:
+        except Exception as e: # pylint: disable=broad-exception-caught
             logger.error("Unexpected error: %s, using defaults.", str(e))
             logger.exception("Full traceback:")
             self.config = self.get_default_config()

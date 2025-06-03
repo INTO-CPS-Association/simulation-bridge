@@ -53,7 +53,7 @@ class BridgeOrchestrator:
             self.bridge = BridgeCore(self.config_manager, self.adapters)
             logger.info("Bridge core initialized")
 
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error setting up interfaces: %s", exc)
             raise
 
@@ -98,12 +98,12 @@ class BridgeOrchestrator:
                     # Join thread only if the adapter has a thread attribute
                     if hasattr(adapter, 'thread'):
                         adapter.thread.join()
-                except Exception as exc:
+                except Exception as exc:  # pylint: disable=broad-exception-caught
                     logger.error("Error stopping %s adapter: %s", name, exc)
 
             if self.bridge:
                 self.bridge.stop()
             logger.info("Simulation Bridge Stopped")
 
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error during shutdown: %s", exc)

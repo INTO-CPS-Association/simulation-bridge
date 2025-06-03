@@ -7,6 +7,7 @@ import json
 from typing import Dict, Any, Optional, AsyncGenerator
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
+from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
 from blinker import signal
 
@@ -83,6 +84,7 @@ class RESTAdapter(ProtocolAdapter):
         logger.debug(
             "REST - Processing message from producer: %s, simulator: %s",
             producer, consumer)
+        # Use SignalManager to send the signal
         signal('message_received_input_rest').send(
             message=message,
             producer=producer,
@@ -134,7 +136,7 @@ class RESTAdapter(ProtocolAdapter):
                 }
 
     async def _generate_response(
-        self, producer: str, queue: asyncio.Queue) -> AsyncGenerator[str, None]:
+            self, producer: str, queue: asyncio.Queue) -> AsyncGenerator[str, None]:
         """Generate streaming response.
 
         Args:

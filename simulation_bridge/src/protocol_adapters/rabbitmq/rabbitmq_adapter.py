@@ -10,6 +10,7 @@ from blinker import signal
 
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
+from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
 
 logger = get_logger()
@@ -103,6 +104,7 @@ class RabbitMQAdapter(ProtocolAdapter):
             else:
                 signal_name = 'message_received_other_rabbitmq'
 
+            # Use SignalManager to send the signal
             signal(signal_name).send(
                 self,
                 message=message,
@@ -115,7 +117,7 @@ class RabbitMQAdapter(ProtocolAdapter):
                 "Message processed from queue %s: %s",
                 queue_name, method.routing_key
             )
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
             logger.error(
                 "Error processing message from %s: %s",
@@ -128,7 +130,7 @@ class RabbitMQAdapter(ProtocolAdapter):
         try:
             self._running = True
             self.channel.start_consuming()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             if self._running:
                 logger.error("RabbitMQ - Error in consumer thread: %s", exc)
         finally:
@@ -143,7 +145,7 @@ class RabbitMQAdapter(ProtocolAdapter):
                 target=self._run_consumer, daemon=True)
             self._consumer_thread.start()
             logger.debug("RabbitMQ consumer thread started successfully")
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("RabbitMQ - Error starting consumer thread: %s", exc)
             self.stop()
             raise
@@ -191,6 +193,6 @@ class RabbitMQAdapter(ProtocolAdapter):
         logger.debug("RabbitMQ adapter started...")
         try:
             self.channel.start_consuming()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("RabbitMQ - Error in consumer: %s", exc)
             raise

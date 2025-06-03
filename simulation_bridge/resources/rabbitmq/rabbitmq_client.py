@@ -102,7 +102,7 @@ class RabbitMQClient:
         except yaml.YAMLError as err:
             print(f"Error decoding YAML result: {err}")
             channel.basic_nack(method.delivery_tag)
-        except Exception as err:
+        except Exception as err:  # pylint: disable=broad-exception-caught
             print(f"Error processing the result: {err}")
             channel.basic_nack(method.delivery_tag)
 
@@ -158,7 +158,7 @@ def main():
 
     except KeyboardInterrupt:
         print("\nProgram terminated by the user.")
-    except Exception as err:
+    except Exception as err:  # pylint: disable=broad-exception-caught
         print(f"Error: {err}")
 
 
