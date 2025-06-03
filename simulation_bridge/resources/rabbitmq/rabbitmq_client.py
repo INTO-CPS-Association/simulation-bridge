@@ -87,7 +87,7 @@ class RabbitMQClient:
             )
         )
 
-    def handle_result(self, channel, method, properties, body):
+    def handle_result(self, channel, method, properties, body): # pylint: disable=unused-argument
         """Handle incoming simulation results."""
         try:
             source = method.routing_key.split('.')[0]

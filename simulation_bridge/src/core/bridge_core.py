@@ -7,7 +7,6 @@ providing a unified interface for cross-protocol communication.
 
 import json
 import pika
-import paho.mqtt.client as mqtt
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
@@ -88,7 +87,7 @@ class BridgeCore:
             logger.error("Failed to ensure RabbitMQ connection: %s", e)
             return False
 
-    def handle_input_rest_message(self, sender, **kwargs):
+    def handle_input_rest_message(self, sender, **kwargs): # pylint: disable=unused-argument
         """
         Handle incoming REST messages.
 
@@ -108,7 +107,7 @@ class BridgeCore:
             "[REST] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_input_mqtt_message(self, sender, **kwargs):
+    def handle_input_mqtt_message(self, sender, **kwargs): # pylint: disable=unused-argument
         """
         Handle incoming MQTT messages.
 
@@ -127,7 +126,7 @@ class BridgeCore:
             "[MQTT] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_input_rabbitmq_message(self, sender, **kwargs):
+    def handle_input_rabbitmq_message(self, sender, **kwargs): # pylint: disable=unused-argument
         """
         Handle incoming RabbitMQ messages.
 
@@ -147,7 +146,7 @@ class BridgeCore:
             "[RABBITMQ] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_result_rabbitmq_message(self,sender, **kwargs):
+    def handle_result_rabbitmq_message(self,sender, **kwargs): # pylint: disable=unused-argument
         """
         Handle RabbitMQ result messages.
 

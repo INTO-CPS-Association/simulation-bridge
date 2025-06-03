@@ -1,3 +1,8 @@
+"""
+Module for managing RabbitMQ infrastructure for the simulation bridge.
+Handles setup of exchanges, queues and bindings based on configuration.
+"""
+
 import pika
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
@@ -38,6 +43,20 @@ class RabbitMQInfrastructure:
             raise
         finally:
             self.connection.close()
+
+    def reconnect(self):
+        """Reconnect to RabbitMQ if connection was closed."""
+        if self.connection.is_closed:
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters(
+                    host=self.config['host'],
+                    port=self.config['port'],
+                    virtual_host=self.config['virtual_host']
+                )
+            )
+            self.channel = self.connection.channel()
+            logger.info("Reconnected to RabbitMQ")
+        return self.connection
 
     def _setup_exchanges(self):
         """Declare all exchanges defined in configuration."""

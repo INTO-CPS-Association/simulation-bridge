@@ -44,7 +44,7 @@ class MQTTClient:
         self.client = mqtt.Client()
         self.client.on_message = self.on_message
 
-    def on_message(self, client, userdata, msg):
+    def on_message(self, client, userdata, msg): # pylint: disable=unused-argument
         """Callback for received messages.
 
         Args:

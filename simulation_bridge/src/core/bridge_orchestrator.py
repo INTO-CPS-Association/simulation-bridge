@@ -1,5 +1,5 @@
 """Bridge Orchestrator module for simulation bridge."""
-
+import time
 from .bridge_core import BridgeCore
 from ..protocol_adapters.rabbitmq.rabbitmq_adapter import RabbitMQAdapter
 from ..protocol_adapters.mqtt.mqtt_adapter import MQTTAdapter
@@ -67,8 +67,6 @@ class BridgeOrchestrator:
             adapter.start()
         logger.info("Simulation Bridge Running")
         self._running = True
-
-        import time
         try:
             # 3) Polling loop
             while True:
