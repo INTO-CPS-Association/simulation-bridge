@@ -3,7 +3,7 @@ import os
 import sys
 import threading
 import uuid
-
+import time
 import pika
 import yaml
 
@@ -154,7 +154,7 @@ def main():
 
         print("\nPress Ctrl+C to terminate the program...")
         while True:
-            pass
+            time.sleep(1)
 
     except KeyboardInterrupt:
         print("\nProgram terminated by the user.")

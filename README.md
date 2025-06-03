@@ -1,5 +1,7 @@
 # Simulation Bridge
 
+[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=INTO-CPS-Association_simulation-bridge)
+
 The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts.
 It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
 The Simulation Bridge is a modular, reusable, and bidirectional middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated simulators. It provides a standardized interface to connect these entities, facilitating distributed execution and management of simulations across heterogeneous environments.

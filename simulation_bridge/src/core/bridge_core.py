@@ -128,8 +128,12 @@ class BridgeCore:
         percentage = progress.get('percentage')
         destination = message.get('destinations', [])[0]
 
-        msg = "completed successfully" if status == "completed" else \
-            "currently in progress" if status == "in_progress" else status
+        if status == "completed":
+            msg = "completed successfully"
+        elif status == "in_progress":
+            msg = "currently in progress"
+        else:
+            msg = status
 
         percent_info = " (%s%%)" % percentage if percentage is not None else ""
         logger.info("[STATUS] Simulation %s%s." % (msg, percent_info))

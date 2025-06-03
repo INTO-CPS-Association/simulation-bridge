@@ -4,7 +4,7 @@ from hypercorn.asyncio import serve
 import asyncio
 import yaml
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, AsyncGenerator
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
 from ..base.protocol_adapter import ProtocolAdapter
@@ -134,7 +134,7 @@ class RESTAdapter(ProtocolAdapter):
                 }
 
     async def _generate_response(
-            self, producer: str, queue: asyncio.Queue) -> str:
+        self, producer: str, queue: asyncio.Queue) -> AsyncGenerator[str, None]:
         """Generate streaming response.
 
         Args:
