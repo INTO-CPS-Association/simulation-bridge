@@ -54,19 +54,13 @@ The `RabbitMQInfrastructure` class manages the RabbitMQ infrastructure setup:
 - Queue declarations
 - Binding configurations
 
-````python
-class RabbitMQInfrastructure:
-    def setup(self):
-        self._setup_exchanges()
-        self._setup_queues()
-        self._setup_bindings()
 ```python
 class RabbitMQInfrastructure:
         def setup(self):
                 self._setup_exchanges()
                 self._setup_queues()
                 self._setup_bindings()
-````
+```
 
 ## Message Flow
 

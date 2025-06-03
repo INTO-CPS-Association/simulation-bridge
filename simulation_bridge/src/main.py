@@ -13,7 +13,7 @@ from .utils.logger import setup_logger
 CONFIG_FILENAME = 'config.yaml'
 CONFIG_TEMPLATE_FILENAME = 'config.yaml.template'
 CONFIG_PATH = 'simulation_bridge.config'
-
+CERTS_PATH = 'certs/'
 
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
@@ -144,7 +144,7 @@ def _get_files_to_generate():
     """Return the dictionary of files to generate."""
     return {
         CONFIG_FILENAME: (CONFIG_PATH, CONFIG_TEMPLATE_FILENAME),
-        'certs/': ('', 'certs/'),
+        CERTS_PATH: ('', CERTS_PATH),
         'client/simulation.yaml': ('simulation_bridge.resources',
                                    'simulation.yaml.template'),
         'client/mqtt/mqtt_client.py': ('simulation_bridge.resources.mqtt',
@@ -166,7 +166,7 @@ def _get_file_descriptions():
     """Return the dictionary of file descriptions."""
     return {
         CONFIG_FILENAME: "Main configuration file for the simulation bridge",
-        'certs/': "Directory for storing TLS certificates (create manually if needed)",
+        CERTS_PATH: "Directory for storing TLS certificates (create manually if needed)",
         'client/simulation.yaml': "Example payload for simulation requests",
         'client/mqtt/mqtt_client.py': "MQTT protocol client implementation",
         'client/mqtt/mqtt_use.yaml': "MQTT usage configuration (example)",

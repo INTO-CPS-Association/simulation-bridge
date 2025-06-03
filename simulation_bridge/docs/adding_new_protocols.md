@@ -5,6 +5,7 @@ This guide explains how to add new protocol adapters to the Simulation Bridge
 ## Overview
 
 The Simulation Bridge uses a modular architecture for protocol adapters. Each adapter is responsible for:
+
 - Handling communication with a specific protocol (e.g., MQTT, RabbitMQ, REST)
 - Converting messages between the protocol's format and the bridge's internal format
 - Managing protocol-specific connections and resources
@@ -12,6 +13,7 @@ The Simulation Bridge uses a modular architecture for protocol adapters. Each ad
 ## Directory Structure
 
 Protocol adapters are organized in the following structure:
+
 ```
 simulation_bridge/src/protocol_adapters/
 ├── base/
@@ -28,12 +30,14 @@ simulation_bridge/src/protocol_adapters/
 
 1. **Create a New Directory**
    Create a new directory under `protocol_adapters/` for your protocol:
+
    ```bash
    mkdir simulation_bridge/src/protocol_adapters/your_protocol
    ```
 
 2. **Create the Adapter Class**
    Create a new file `*_adapter.py` in your protocol's directory:
+
    ```python
    from ..base.protocol_adapter import ProtocolAdapter
    from ...utils.config_manager import ConfigManager
@@ -57,6 +61,7 @@ simulation_bridge/src/protocol_adapters/
    ```
 
 3. **Add Configuration**
+
    - Add your protocol's configuration section to `config.yaml.template`
    - Update the `ConfigManager` class to include your protocol's configuration
 
@@ -83,17 +88,21 @@ Your adapter must implement these methods from the `ProtocolAdapter` base class:
 ## Best Practices
 
 1. **Error Handling**
+
    - Implement proper error handling for network issues
    - Log errors appropriately
    - Handle reconnection scenarios
 
 2. **Resource Management**
+
    - Clean up resources in the `stop()` method
    - Handle connection timeouts
    - Implement proper connection pooling if needed
 
 3. **Message Format**
-   - Convert protocol-specific messages to the bridge's internal format
+
+   - Convert protocol-specific messages to the bridge's internal format (Rabbitmq), see [internal architecture](./internal_architecture.md)
+
    - Handle message validation
    - Implement proper error responses
 
