@@ -8,6 +8,11 @@ readme = "README.md"
 
 packages = [{ include = "simulation_bridge" }]
 
+include = [
+    "simulation_bridge/resources/**/*",
+    "simulation_bridge/config/**/*"
+]
+
 [tool.poetry.dependencies]
 python = "^3.12"
 paho-mqtt = ">=2.1.0,<3.0.0"
@@ -21,6 +26,7 @@ fastapi = "^0.115.12"
 uvicorn = "^0.34.2"
 quart = "^0.20.0"
 httpx = "^0.28.1"
+pylint = "^3.3.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"

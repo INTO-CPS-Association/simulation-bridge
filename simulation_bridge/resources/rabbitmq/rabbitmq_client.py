@@ -55,7 +55,9 @@ class RabbitMQClient:
         )
 
         # Declare and bind result queue
-        self.result_queue_name = f"{queue_cfg['result_queue_prefix']}.{self.dt_id}.result"
+        self.result_queue_name = f"{
+            queue_cfg['result_queue_prefix']}.{
+            self.dt_id}.result"
         self.channel.queue_declare(
             queue=self.result_queue_name, durable=queue_cfg['durable'])
         self.channel.queue_bind(

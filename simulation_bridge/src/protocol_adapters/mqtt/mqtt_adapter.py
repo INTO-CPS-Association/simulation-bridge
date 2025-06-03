@@ -21,14 +21,14 @@ logger = get_logger()
 
 class MQTTAdapter(ProtocolAdapter):
     """MQTT Protocol Adapter implementation.
-    
+
     This adapter handles MQTT protocol communication, including connecting
     to MQTT brokers, subscribing to topics, and processing incoming messages.
     """
 
     def _get_config(self) -> Dict[str, Any]:
         """Retrieve MQTT-specific configuration.
-        
+
         Returns:
             Dict[str, Any]: MQTT configuration dictionary
         """
@@ -36,7 +36,7 @@ class MQTTAdapter(ProtocolAdapter):
 
     def __init__(self, config_manager: ConfigManager):
         """Initialize the MQTT adapter.
-        
+
         Args:
             config_manager: Configuration manager instance
         """
@@ -50,14 +50,14 @@ class MQTTAdapter(ProtocolAdapter):
         self._process_thread = None
         self._client_thread = None
         self._running = False
-        
+
         logger.debug(
             "MQTT - Adapter initialized with config: host=%s, port=%s, topic=%s",
             self.config['host'], self.config['port'], self.topic)
 
     def on_connect(self, client, userdata, flags, rc):
         """Callback for when the client connects to the broker.
-        
+
         Args:
             client: MQTT client instance
             userdata: User data
@@ -74,7 +74,7 @@ class MQTTAdapter(ProtocolAdapter):
 
     def on_disconnect(self, client, userdata, rc):
         """Callback for when the client disconnects from the broker.
-        
+
         Args:
             client: MQTT client instance
             userdata: User data
@@ -88,7 +88,7 @@ class MQTTAdapter(ProtocolAdapter):
 
     def on_message(self, client, userdata, msg):
         """Callback for when a message is received from the broker.
-        
+
         Args:
             client: MQTT client instance
             userdata: User data
@@ -124,7 +124,8 @@ class MQTTAdapter(ProtocolAdapter):
         """Process messages in a separate thread."""
         while self._running:
             try:
-                message, producer, consumer = self._message_queue.get(timeout=1)
+                message, producer, consumer = self._message_queue.get(
+                    timeout=1)
                 logger.debug(
                     "MQTT - Processing message from producer: %s, simulator: %s",
                     producer, consumer)
@@ -146,12 +147,12 @@ class MQTTAdapter(ProtocolAdapter):
             logger.debug(
                 "MQTT - Attempting to connect to broker with keepalive: %s",
                 self.config['keepalive'])
-                
+
             self.client.connect(
                 self.config['host'],
                 self.config['port'],
                 self.config['keepalive'])
-                
+
             logger.debug("MQTT - Starting client loop")
             self.client.loop_forever()
         except Exception as exc:
@@ -161,16 +162,16 @@ class MQTTAdapter(ProtocolAdapter):
 
     def start(self) -> None:
         """Start the MQTT adapter.
-        
+
         Connects to the MQTT broker and starts processing messages.
-        
+
         Raises:
             Exception: If connection to the broker fails
         """
         logger.debug(
             "MQTT - Starting adapter connection to %s:%s",
             self.config['host'], self.config['port'])
-            
+
         try:
             # Start message processing thread
             self._running = True
@@ -192,7 +193,7 @@ class MQTTAdapter(ProtocolAdapter):
 
     def stop(self) -> None:
         """Stop the MQTT adapter.
-        
+
         Disconnects from the MQTT broker and stops all processing threads.
         """
         logger.debug("MQTT - Stopping adapter")
@@ -207,7 +208,7 @@ class MQTTAdapter(ProtocolAdapter):
 
     def _handle_message(self, message: Dict[str, Any]) -> None:
         """Handle incoming messages (required by ProtocolAdapter).
-        
+
         Args:
             message: The message to handle
         """

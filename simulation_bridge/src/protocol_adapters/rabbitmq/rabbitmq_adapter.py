@@ -18,7 +18,7 @@ logger = get_logger()
 class RabbitMQAdapter(ProtocolAdapter):
     """
     Protocol adapter for RabbitMQ message broker.
-    
+
     Handles connections to RabbitMQ, subscribes to configured queues,
     and processes incoming/outgoing messages.
     """
@@ -30,7 +30,7 @@ class RabbitMQAdapter(ProtocolAdapter):
     def __init__(self, config_manager: ConfigManager):
         """
         Initialize RabbitMQ adapter with configuration.
-        
+
         Args:
             config_manager: Configuration manager providing RabbitMQ settings
         """
@@ -47,7 +47,7 @@ class RabbitMQAdapter(ProtocolAdapter):
         self.channel = self.connection.channel()
         self._consumer_thread = None
         self._running = False
-        
+
         # Get all queues from config and register callback for each
         queues = self.config.get('infrastructure', {}).get('queues', [])
         for queue in queues:
@@ -66,7 +66,7 @@ class RabbitMQAdapter(ProtocolAdapter):
     def _process_message(self, ch, method, properties, body, queue_name):
         """
         Process incoming RabbitMQ message.
-        
+
         Args:
             ch: Channel object
             method: Method details
@@ -75,7 +75,8 @@ class RabbitMQAdapter(ProtocolAdapter):
             queue_name: Source queue name
         """
         try:
-            # Try to parse message as YAML first, then JSON, or fall back to raw string
+            # Try to parse message as YAML first, then JSON, or fall back to
+            # raw string
             try:
                 message = yaml.safe_load(body)
             except Exception:
@@ -86,10 +87,10 @@ class RabbitMQAdapter(ProtocolAdapter):
                         "content": body.decode('utf-8', errors='replace'),
                         "raw_message": True
                     }
-                    
+
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
-                
+
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
@@ -111,12 +112,15 @@ class RabbitMQAdapter(ProtocolAdapter):
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
             logger.debug(
-                "Message processed from queue %s: %s", 
+                "Message processed from queue %s: %s",
                 queue_name, method.routing_key
             )
         except Exception as exc:
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-            logger.error("Error processing message from %s: %s", queue_name, exc)
+            logger.error(
+                "Error processing message from %s: %s",
+                queue_name,
+                exc)
 
     def _run_consumer(self):
         """Run the RabbitMQ consumer in a separate thread."""
@@ -154,10 +158,13 @@ class RabbitMQAdapter(ProtocolAdapter):
                     try:
                         self.channel.stop_consuming()
                     except Exception as e:
-                        logger.warning("RabbitMQ - Error stopping consuming: %s", e)
-                self.connection.add_callback_threadsafe(stop_consuming_from_thread)
+                        logger.warning(
+                            "RabbitMQ - Error stopping consuming: %s", e)
+                self.connection.add_callback_threadsafe(
+                    stop_consuming_from_thread)
         except Exception as e:
-            logger.error("RabbitMQ - Unexpected error while scheduling stop_consuming: %s", e)
+            logger.error(
+                "RabbitMQ - Unexpected error while scheduling stop_consuming: %s", e)
         try:
             if self._consumer_thread and self._consumer_thread.is_alive():
                 self._consumer_thread.join(timeout=5)
@@ -173,7 +180,7 @@ class RabbitMQAdapter(ProtocolAdapter):
     def _handle_message(self, message: Dict[str, Any]) -> None:
         """
         Handle incoming messages (required by ProtocolAdapter).
-        
+
         Args:
             message: The message to process
         """

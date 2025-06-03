@@ -61,7 +61,7 @@ class BridgeCore:
             self.channel = self.connection.channel()
             logger.info("RabbitMQ connection established successfully")
         except Exception as e:
-            logger.error(f"Failed to initialize RabbitMQ connection: {e}")
+            logger.error("Failed to initialize RabbitMQ connection: %s" % e)
             raise
 
     def _ensure_connection(self):
@@ -73,7 +73,7 @@ class BridgeCore:
                 self._initialize_rabbitmq_connection()
             return True
         except Exception as e:
-            logger.error(f"Failed to ensure RabbitMQ connection: {e}")
+            logger.error("Failed to ensure RabbitMQ connection: %s" % e)
             return False
 
     def handle_input_rest_message(self, sender, **kwargs):
@@ -87,7 +87,7 @@ class BridgeCore:
         consumer = kwargs.get('consumer', 'unknown')
         protocol = "rest"
         logger.info(
-            f"[REST] Handling incoming simulation request with ID: {request_id}")
+            "[REST] Handling incoming simulation request with ID: %s" % request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
     def handle_input_mqtt_message(self, sender, **kwargs):
@@ -101,7 +101,7 @@ class BridgeCore:
         consumer = kwargs.get('consumer', 'unknown')
         protocol = "mqtt"
         logger.info(
-            f"[MQTT] Handling incoming simulation request with ID: {request_id}")
+            "[MQTT] Handling incoming simulation request with ID: %s" % request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
     def handle_input_rabbitmq_message(self, sender, **kwargs):
@@ -115,13 +115,13 @@ class BridgeCore:
         consumer = kwargs.get('consumer', 'unknown')
         protocol = "rabbitmq"
         logger.info(
-            f"[RABBITMQ] Handling incoming simulation request with ID: {request_id}")
+            "[RABBITMQ] Handling incoming simulation request with ID: %s" % request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
     def handle_result_rabbitmq_message(self, sender, **kwargs):
         message = kwargs.get('message', {})
         bridge_meta = message.get('bridge_meta', {}).get('protocol', 'unknown')
-        producer = message.get('source','unknown')
+        producer = message.get('source', 'unknown')
         consumer = "result"
         status = message.get('status', 'unknown')
         progress = message.get('progress', {})
@@ -131,8 +131,8 @@ class BridgeCore:
         msg = "completed successfully" if status == "completed" else \
             "currently in progress" if status == "in_progress" else status
 
-        percent_info = f" ({percentage}%)" if percentage is not None else ""
-        logger.info(f"[STATUS] Simulation {msg}{percent_info}.")
+        percent_info = " (%s%%)" % percentage if percentage is not None else ""
+        logger.info("[STATUS] Simulation %s%s." % (msg, percent_info))
 
         if bridge_meta == 'rabbitmq':
             self._publish_message(
@@ -151,7 +151,7 @@ class BridgeCore:
         producer = kwargs.get('producer', 'unknown')
         consumer = kwargs.get('consumer', 'unknown')
         queue = kwargs.get('queue', 'unknown')
-        logger.info(f"[RABBITMQ] Handling other message from queue {queue}")
+        logger.info("[RABBITMQ] Handling other message from queue %s" % queue)
         self._publish_message(producer, consumer, message)
 
     def _publish_message(self, producer, consumer, message,
@@ -161,7 +161,7 @@ class BridgeCore:
                 "Cannot publish message: RabbitMQ connection is not available")
             return
 
-        routing_key = f"{producer}.{consumer}"
+        routing_key = "%s.%s" % (producer, consumer)
         message['simulation']['bridge_meta'] = {
             'protocol': protocol
         }
@@ -175,9 +175,9 @@ class BridgeCore:
                 )
             )
             logger.debug(
-                f"Message routed to exchange '{exchange}': {producer} -> {consumer}, protocol={protocol}")
+                "Message routed to exchange '%s': %s -> %s, protocol=%s" % (exchange, producer, consumer, protocol))
         except (pika.exceptions.AMQPConnectionError, pika.exceptions.AMQPChannelError) as e:
-            logger.error(f"RabbitMQ connection error: {e}")
+            logger.error("RabbitMQ connection error: %s" % e)
             self._initialize_rabbitmq_connection()
             # Retry the publish operation once
             try:
@@ -190,12 +190,12 @@ class BridgeCore:
                     )
                 )
                 logger.debug(
-                    f"Message routed to exchange '{exchange}' after reconnection: {producer} -> {consumer}")
+                    "Message routed to exchange '%s' after reconnection: %s -> %s" % (exchange, producer, consumer))
             except Exception as retry_e:
                 logger.error(
-                    f"Failed to publish message after reconnection: {retry_e}")
+                    "Failed to publish message after reconnection: %s" % retry_e)
         except Exception as e:
-            logger.error(f"Error routing message: {e}")
+            logger.error("Error routing message: %s" % e)
 
     def _publish_result_message_mqtt(self, message):
         try:
@@ -206,9 +206,9 @@ class BridgeCore:
                 qos=self.mqtt_config['qos']
             )
             logger.debug(
-                f"Message published to MQTT topic '{output_topic}, {message}'")
+                "Message published to MQTT topic '%s, %s'" % (output_topic, message))
         except Exception as e:
-            logger.error(f"Error publishing MQTT message: {e}")
+            logger.error("Error publishing MQTT message: %s" % e)
 
     def _publish_result_message_rest(self, message, destination):
         try:
@@ -216,11 +216,11 @@ class BridgeCore:
             if rest_adapter:
                 rest_adapter.send_result_sync(destination, message)
                 logger.debug(
-                    f"Successfully scheduled result message for REST client: {destination}")
+                    "Successfully scheduled result message for REST client: %s" % destination)
             else:
                 logger.error("REST adapter not found")
         except Exception as e:
-            logger.error(f"Error sending result message to REST client: {e}")
+            logger.error("Error sending result message to REST client: %s" % e)
 
     def stop(self):
         try:
@@ -228,4 +228,4 @@ class BridgeCore:
                 self.connection.close()
             logger.debug("Bridge core stopped")
         except Exception as e:
-            logger.error(f"Error stopping bridge core: {e}")
+            logger.error("Error stopping bridge core: %s" % e)

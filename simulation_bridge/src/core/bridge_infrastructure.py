@@ -2,11 +2,19 @@ import pika
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 
+# Get a module-level logger using a factory function
 logger = get_logger()
 
 
 class RabbitMQInfrastructure:
+    """Class responsible for setting up and managing RabbitMQ infrastructure."""
+
     def __init__(self, config_manager: ConfigManager):
+        """Initialize RabbitMQ infrastructure.
+
+        Args:
+            config_manager: Configuration manager object to retrieve RabbitMQ settings
+        """
         self.config = config_manager.get_rabbitmq_config()
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
@@ -18,7 +26,7 @@ class RabbitMQInfrastructure:
         self.channel = self.connection.channel()
 
     def setup(self):
-        """Setup all exchanges, queues and bindings"""
+        """Setup all exchanges, queues and bindings."""
         try:
             self._setup_exchanges()
             self._setup_queues()
@@ -32,7 +40,7 @@ class RabbitMQInfrastructure:
             self.connection.close()
 
     def _setup_exchanges(self):
-        """Declare all exchanges"""
+        """Declare all exchanges defined in configuration."""
         for exchange in self.config['infrastructure']['exchanges']:
             try:
                 self.channel.exchange_declare(
@@ -50,7 +58,7 @@ class RabbitMQInfrastructure:
                 raise
 
     def _setup_queues(self):
-        """Declare all queues"""
+        """Declare all queues defined in configuration."""
         for queue in self.config['infrastructure']['queues']:
             try:
                 self.channel.queue_declare(
@@ -65,7 +73,7 @@ class RabbitMQInfrastructure:
                 raise
 
     def _setup_bindings(self):
-        """Setup all queue-exchange bindings"""
+        """Setup all queue-exchange bindings defined in configuration."""
         for binding in self.config['infrastructure']['bindings']:
             try:
                 self.channel.queue_bind(

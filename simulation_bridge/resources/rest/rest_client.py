@@ -10,13 +10,13 @@ import httpx
 
 def load_config(config_path: str = "rest_use.yaml") -> Dict[str, Any]:
     """Load configuration from YAML file.
-    
+
     Args:
         config_path: Path to the YAML configuration file
-        
+
     Returns:
         Dictionary containing configuration values
-        
+
     Exits:
         If file not found or YAML parsing error occurs
     """
@@ -33,16 +33,16 @@ def load_config(config_path: str = "rest_use.yaml") -> Dict[str, Any]:
 
 class RESTClient:
     """Client for sending YAML data to REST endpoints and streaming responses."""
-    
+
     def __init__(self, config: Dict[str, Any]):
         """Initialize the REST client with configuration.
-        
+
         Args:
             config: Dictionary containing client configuration
         """
         self.yaml_file = config["yaml_file"]
         self.url = config["url"]
-        self.timeout = config.get("timeout", 30)
+        self.timeout = config.get("timeout", 600)
         self.verify_ssl = config.get("verify_ssl", True)
 
     async def send_yaml_and_stream_response(self) -> None:
@@ -69,7 +69,9 @@ class RESTClient:
                     print(f"Status: {response.status_code}")
 
                     if response.status_code >= 400:
-                        print(f"Error: Server returned status code {response.status_code}")
+                        print(
+                            f"Error: Server returned status code {
+                                response.status_code}")
                         return
 
                     async for line in response.aiter_lines():
@@ -77,7 +79,8 @@ class RESTClient:
                             print(f"Received: {line}")
             except httpx.RequestError as error:
                 print(
-                    f"An error occurred while requesting {error.request.url!r}.\n"
+                    f"An error occurred while requesting {
+                        error.request.url!r}.\n"
                     f"Error: {error}"
                 )
 

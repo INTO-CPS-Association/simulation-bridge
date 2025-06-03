@@ -72,9 +72,11 @@ class BridgeOrchestrator:
         try:
             # 3) Polling loop
             while True:
-                all_alive = all(adapter.is_running for adapter in self.adapters.values())
+                all_alive = all(
+                    adapter.is_running for adapter in self.adapters.values())
                 if not all_alive:
-                    logger.error("One or more adapters have stopped unexpectedly")
+                    logger.error(
+                        "One or more adapters have stopped unexpectedly")
                     break
                 time.sleep(1)
 

@@ -12,6 +12,7 @@ from blinker import signal
 
 logger = get_logger()
 
+
 class RESTAdapter(ProtocolAdapter):
     """REST protocol adapter implementation using Quart and Hypercorn."""
 
@@ -34,7 +35,7 @@ class RESTAdapter(ProtocolAdapter):
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._running = False
 
-        logger.debug("REST - Adapter initialized with config: host=%s, port=%s", 
+        logger.debug("REST - Adapter initialized with config: host=%s, port=%s",
                      self.config['host'], self.config['port'])
 
     def _setup_routes(self) -> None:
@@ -80,7 +81,7 @@ class RESTAdapter(ProtocolAdapter):
         }
 
         logger.debug(
-            "REST - Processing message from producer: %s, simulator: %s", 
+            "REST - Processing message from producer: %s, simulator: %s",
             producer, consumer)
         signal('message_received_input_rest').send(
             message=message,
@@ -149,7 +150,7 @@ class RESTAdapter(ProtocolAdapter):
             # Keep the connection open and wait for results
             while True:
                 try:
-                    result = await asyncio.wait_for(queue.get(),timeout=600)
+                    result = await asyncio.wait_for(queue.get(), timeout=600)
                     yield json.dumps(result) + "\n"
                 except asyncio.TimeoutError:
                     yield json.dumps({"status": "timeout", "error": "No response received within timeout"}) + "\n"
@@ -196,7 +197,7 @@ class RESTAdapter(ProtocolAdapter):
     def start(self) -> None:
         """Start the REST server."""
         logger.debug(
-            "REST - Starting adapter on %s:%s", 
+            "REST - Starting adapter on %s:%s",
             self.config['host'], self.config['port'])
         try:
             asyncio.run(self._start_server())

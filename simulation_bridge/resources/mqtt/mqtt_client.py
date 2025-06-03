@@ -65,7 +65,10 @@ class MQTTClient:
         Raises:
             SystemExit: If the file cannot be loaded.
         """
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), self.payload_file)
+        file_path = os.path.join(
+            os.path.dirname(
+                os.path.abspath(__file__)),
+            self.payload_file)
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 payload = yaml.safe_load(file)
@@ -84,7 +87,9 @@ class MQTTClient:
         )
 
         # Subscribe to output topic
-        self.client.subscribe(self.config['output_topic'], qos=self.config['qos'])
+        self.client.subscribe(
+            self.config['output_topic'],
+            qos=self.config['qos'])
 
         # Publish payload to input topic
         payload = self.load_payload()
@@ -95,7 +100,9 @@ class MQTTClient:
         )
         print(f"📤 Message published to {self.config['input_topic']}")
 
-        print(f"📡 Listening on {self.config['output_topic']}...\n(CTRL+C to terminate)")
+        print(
+            f"📡 Listening on {
+                self.config['output_topic']}...\n(CTRL+C to terminate)")
         self.client.loop_forever()
 
 

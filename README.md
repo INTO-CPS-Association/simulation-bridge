@@ -279,6 +279,15 @@ poetry run simulation-bridge -c <path_to_config.yaml>
 - [🔗 **Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
 - [⚙️ **Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
+## Package Development
+
+The developer-specific commands are
+
+```bash
+pylint simulation_bridge
+autopep8 --in-place --aggressive --recursive 'simulation_bridge'
+```
+
 ## License
 
 This project is licensed under the **INTO-CPS Association Public License v1.0**.  
