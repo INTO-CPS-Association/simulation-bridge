@@ -110,13 +110,13 @@ rabbitmqctl status
 lsof -i :5672
 ```
 
+##### Option 2: Use a Remote RabbitMQ Server
+
+Alternatively, connect to an existing RabbitMQ instance hosted on a remote server (on-premise or cloud).
+
 #### 5. Generate HTTPS Certificate
 
-For secure communication, generate a self-signed SSL certificate:
-
-#### 5. Generate HTTPS Certificate
-
-For secure communication, generate a self-signed SSL certificate:
+To enable the REST Protocol Adapter and support HTTP/2.0, it is necessary to generate an HTTPS certificate.
 
 ```bash
 # 1. Create the certs/ directory if it doesn't exist
@@ -129,10 +129,6 @@ openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -da
 This creates a 2048-bit RSA key pair valid for 365 days with localhost as the Common Name (CN).
 
 > **Note:** For production environments, use certificates from a trusted Certificate Authority.
-
-##### Option 2: Use a Remote RabbitMQ Server
-
-Alternatively, connect to an existing RabbitMQ instance hosted on a remote server (on-premise or cloud).
 
 ### Configuration
 
