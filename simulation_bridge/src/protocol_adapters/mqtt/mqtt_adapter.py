@@ -52,6 +52,15 @@ class MQTTAdapter(ProtocolAdapter):
         self._client_thread = None
         self._running = False
 
+        self.mqtt_config = config_manager.get_mqtt_config()
+        self.mqtt_client = mqtt.Client()
+        self.mqtt_client.connect(
+            host=self.mqtt_config['host'],
+            port=self.mqtt_config['port'],
+            keepalive=self.mqtt_config['keepalive']
+        )
+        self.mqtt_client.loop_start()
+
         logger.debug(
             "MQTT - Adapter initialized with config: host=%s, port=%s, topic=%s",
             self.config['host'], self.config['port'], self.topic)
@@ -207,6 +216,19 @@ class MQTTAdapter(ProtocolAdapter):
             logger.debug("MQTT - Successfully disconnected from broker")
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error during disconnection: %s", exc)
+    
+    def send_result(self, message):
+        try:
+            output_topic = self.mqtt_config['output_topic']
+            self.mqtt_client.publish(
+                topic=output_topic,
+                payload=json.dumps(message),
+                qos=self.mqtt_config['qos']
+            )
+            logger.debug(
+                "Message published to MQTT topic '%s': %s", output_topic, message)
+        except (ConnectionError, TimeoutError) as e:
+            logger.error("Error publishing MQTT message: %s", e)
 
     def _handle_message(self, message: Dict[str, Any]) -> None:
         """Handle incoming messages (required by ProtocolAdapter).

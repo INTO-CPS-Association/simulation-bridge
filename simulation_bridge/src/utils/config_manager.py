@@ -182,7 +182,7 @@ class ConfigManager:
             raw_config = load_config(self.config_path)
             self.config = self._validate_config(raw_config)
         except (FileNotFoundError, ValidationError) as e:
-            logger.warning("Using defaults value: %s", str(e))
+            logger.warning("Using defaults value:  %s", str(e))
             self.config = self.get_default_config()
         except (IOError, PermissionError) as e:
             logger.error("File access error: %s, using defaults.", str(e))

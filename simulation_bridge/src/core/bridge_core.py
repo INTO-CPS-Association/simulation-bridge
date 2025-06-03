@@ -37,18 +37,6 @@ class BridgeCore:
         self._initialize_rabbitmq_connection()
         self.adapters = adapters
 
-        # Initialize MQTT client
-        self.mqtt_config = config_manager.get_mqtt_config()
-        self.mqtt_client = mqtt.Client()
-        self.mqtt_client.connect(
-            host=self.mqtt_config['host'],
-            port=self.mqtt_config['port'],
-            keepalive=self.mqtt_config['keepalive']
-        )
-        self.mqtt_client.loop_start()
-        # Get REST configuration
-        self.rest_config = config_manager.get_rest_config()
-
         # Connect different signals to different handlers using SignalManager
         SignalManager.connect_signal('rabbitmq', 'message_received_input_rabbitmq',
                                      self.handle_input_rabbitmq_message)
@@ -100,7 +88,7 @@ class BridgeCore:
             logger.error("Failed to ensure RabbitMQ connection: %s", e)
             return False
 
-    def handle_input_rest_message(self, **kwargs):
+    def handle_input_rest_message(self, sender, **kwargs):
         """
         Handle incoming REST messages.
 
@@ -120,17 +108,16 @@ class BridgeCore:
             "[REST] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_input_mqtt_message(self, **kwargs):
+    def handle_input_mqtt_message(self, sender, **kwargs):
         """
         Handle incoming MQTT messages.
 
         Args:
+            sender: The sender of the signal
             **kwargs: Keyword arguments containing message data
         """
         message = kwargs.get('message', {})
         request_id = message.get(
-            'simulation',
-            'unknown').get(
             'request_id',
             'unknown')
         producer = kwargs.get('producer', 'unknown')
@@ -140,7 +127,7 @@ class BridgeCore:
             "[MQTT] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_input_rabbitmq_message(self, **kwargs):
+    def handle_input_rabbitmq_message(self, sender, **kwargs):
         """
         Handle incoming RabbitMQ messages.
 
@@ -160,7 +147,7 @@ class BridgeCore:
             "[RABBITMQ] Handling incoming simulation request with ID: %s", request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_result_rabbitmq_message(self, **kwargs):
+    def handle_result_rabbitmq_message(self,sender, **kwargs):
         """
         Handle RabbitMQ result messages.
 
@@ -277,14 +264,12 @@ class BridgeCore:
             message: Message payload to publish
         """
         try:
-            output_topic = self.mqtt_config['output_topic']
-            self.mqtt_client.publish(
-                topic=output_topic,
-                payload=json.dumps(message),
-                qos=self.mqtt_config['qos']
-            )
-            logger.debug(
-                "Message published to MQTT topic '%s': %s", output_topic, message)
+            mqtt_adapter = self.adapters.get('mqtt')
+            if mqtt_adapter:
+                mqtt_adapter.send_result(message)
+                logger.debug("Succesfully scheduled result message for MQTT client")
+            else:
+                logger.error("MQTT adapter not found")
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)
 

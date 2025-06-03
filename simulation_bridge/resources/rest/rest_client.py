@@ -70,8 +70,8 @@ class RESTClient:
 
                     if response.status_code >= 400:
                         print(
-                            f"Error: Server returned status code {
-                                response.status_code}")
+                            f"""Error: Server returned status code {
+                                response.status_code}""")
                         return
 
                     async for line in response.aiter_lines():
@@ -79,8 +79,8 @@ class RESTClient:
                             print(f"Received: {line}")
             except httpx.RequestError as error:
                 print(
-                    f"An error occurred while requesting {
-                        error.request.url!r}.\n"
+                    f"""An error occurred while requesting {
+                        error.request.url!r}.\n"""
                     f"Error: {error}"
                 )
 
