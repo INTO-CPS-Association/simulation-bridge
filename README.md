@@ -44,7 +44,7 @@ git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
 ```
 
-### 2. Install Poetry and Create Virtual Environment
+#### 2. Install Poetry and Create Virtual Environment
 
 Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
 
@@ -109,6 +109,26 @@ brew services list
 rabbitmqctl status
 lsof -i :5672
 ```
+
+#### 5. Generate HTTPS Certificate
+
+For secure communication, generate a self-signed SSL certificate:
+
+#### 5. Generate HTTPS Certificate
+
+For secure communication, generate a self-signed SSL certificate:
+
+```bash
+# 1. Create the certs/ directory if it doesn't exist
+mkdir -p certs
+
+# 2. Generate self-signed certificates (cert.pem and key.pem) in the certs/ directory
+openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
+```
+
+This creates a 2048-bit RSA key pair valid for 365 days with localhost as the Common Name (CN).
+
+> **Note:** For production environments, use certificates from a trusted Certificate Authority.
 
 ##### Option 2: Use a Remote RabbitMQ Server
 

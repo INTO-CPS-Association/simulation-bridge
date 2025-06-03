@@ -118,8 +118,46 @@ class Config(BaseModel):
 
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> 'Config':
-        """Create a Config instance from a nested dictionary."""
-        return cls(**config_dict)
+        """Create a Config instance from a nested dictionary.
+        
+        This method correctly handles nested models by constructing each
+        sub-model separately before assembling the final Config object.
+        """
+        # Process nested dictionaries into their respective model types
+        sim_bridge_config = SimulationBridgeConfig(**config_dict.get('simulation_bridge', {}))
+        
+        # Process RabbitMQ configuration with its nested infrastructure
+        rabbitmq_dict = config_dict.get('rabbitmq', {})
+        infra_dict = rabbitmq_dict.get('infrastructure', {})
+        
+        # Create infrastructure objects
+        infrastructure = RabbitMQInfrastructure(
+            exchanges=[ExchangeConfig(**exc) for exc in infra_dict.get('exchanges', [])],
+            queues=[QueueConfig(**queue) for queue in infra_dict.get('queues', [])],
+            bindings=[BindingConfig(**binding) for binding in infra_dict.get('bindings', [])]
+        )
+        
+        # Create RabbitMQ config with the infrastructure
+        rabbit_config = RabbitMQConfig(
+            host=rabbitmq_dict.get('host', 'localhost'),
+            port=rabbitmq_dict.get('port', 5672),
+            virtual_host=rabbitmq_dict.get('virtual_host', '/'),
+            infrastructure=infrastructure
+        )
+        
+        # Create remaining configs
+        mqtt_config = MQTTConfig(**config_dict.get('mqtt', {}))
+        rest_config = RESTConfig(**config_dict.get('rest', {}))
+        logging_config = LoggingConfig(**config_dict.get('logging', {}))
+        
+        # Assemble and return the complete Config object
+        return cls(
+            simulation_bridge=sim_bridge_config,
+            rabbitmq=rabbit_config,
+            mqtt=mqtt_config,
+            rest=rest_config,
+            logging=logging_config
+        )
 
 
 class ConfigManager:
@@ -141,7 +179,7 @@ class ConfigManager:
             raw_config = load_config(self.config_path)
             self.config = self._validate_config(raw_config)
         except (FileNotFoundError, ValidationError) as e:
-            logger.warning("Configuration error: %s, using defaults.", str(e))
+            logger.warning("Using defaults value")
             self.config = self.get_default_config()
         except (IOError, PermissionError) as e:
             logger.error("File access error: %s, using defaults.", str(e))

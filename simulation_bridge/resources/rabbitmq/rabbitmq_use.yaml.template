@@ -1,0 +1,23 @@
+rabbitmq_host: "localhost"
+
+exchanges:
+  input_bridge:
+    name: "ex.input.bridge"
+    type: "topic"
+    durable: true
+
+  bridge_result:
+    name: "ex.bridge.result"
+    type: "topic"
+    durable: true
+
+queue:
+  result_queue_prefix: "Q"
+  durable: true
+  routing_key: "*.result"
+
+digital_twin:
+  dt_id: "dt"
+  routing_key_send: "dt"
+
+payload_file: "../simulation.yaml"

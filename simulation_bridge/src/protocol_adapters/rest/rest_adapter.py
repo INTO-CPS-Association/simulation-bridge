@@ -12,7 +12,6 @@ from blinker import signal
 
 logger = get_logger()
 
-
 class RESTAdapter(ProtocolAdapter):
     """REST protocol adapter implementation using Quart and Hypercorn."""
 
@@ -185,6 +184,8 @@ class RESTAdapter(ProtocolAdapter):
         self._loop = asyncio.get_running_loop()  # Save main event loop
 
         config = HyperConfig()
+        config.errorlog = logger  # Use the main logger for error logs
+        config.accesslog = logger  # Use the main logger for access logs
         config.bind = ["%s:%s" % (self.config['host'], self.config['port'])]
         config.use_reloader = False
         config.worker_class = "asyncio"

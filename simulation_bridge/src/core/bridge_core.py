@@ -15,18 +15,7 @@ class BridgeCore:
         self.connection = None
         self.channel = None
         self._initialize_rabbitmq_connection()
-        self._loop = asyncio.get_event_loop()
         self.adapters = adapters
-        # Get output exchange configuration
-        output_exchange = next(
-            (ex for ex in self.config['infrastructure']['exchanges']
-             if ex['name'] == 'ex.bridge.output'),
-            None
-        )
-
-        if not output_exchange:
-            raise ValueError(
-                "Output exchange 'ex.bridge.output' not found in configuration")
 
         # Initialize MQTT client
         self.mqtt_config = config_manager.get_mqtt_config()
