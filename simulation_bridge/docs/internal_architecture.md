@@ -30,21 +30,38 @@ class BridgeOrchestrator:
 
 ### 2. BridgeCore
 
-The `BridgeCore` is the central message router and processor. It:
+The `BridgeCore` is the central routing and processing hub that:
 
-- Maintains connections to all protocols
-- Routes messages between different protocols
-- Handles message transformation
-- Manages message metadata
+- Facilitates cross-protocol communication (RabbitMQ, MQTT, REST)
+- Manages message routing between Digital Twins, MockPTs, and Simulators
+- Handles signal processing from all protocol adapters
+- Transforms messages between protocol formats
+- Adds `bridge_meta` tracking information to all messages
+- Implements automatic reconnection and error recovery
+- Supports input, result, and generic message types
 
-```python
-class BridgeCore:
-    def __init__(self, config_manager: ConfigManager):
-        # Initialize connections and signal handlers
-signal('message_received_input_rabbitmq').connect(self.handle_input_rabbitmq_message)
-        signal('message_received_input_mqtt').connect(self.handle_input_mqtt_message)
-        signal('message_received_input_rest').connect(self.handle_input_rest_message)
+#### Message Metadata Management
+
+The `BridgeCore` enriches each message with metadata to facilitate routing and tracking:
+
+- Each message contains a `bridge_meta` section that enables return routing
+- Protocol information is preserved to ensure proper message format conversion
+- Unique request IDs allow for request-response correlation
+
+Example of message metadata:
+
+```json
+{
+  "simulation": {
+    "request_id": "abc123",
+    "bridge_meta": {
+      "protocol": "rabbitmq"
+    }
+  }
+}
 ```
+
+This metadata tracking system enables the Bridge to route responses back through the correct protocol adapter
 
 ### 3. Infrastructure
 
@@ -104,13 +121,37 @@ sequenceDiagram
                 end
 ```
 
-## Signal System
+### Signal System
 
-The bridge uses the Blinker signal system for internal communication:
+The bridge uses [Blinker](https://pythonhosted.org/blinker/) for internal message dispatching across protocols.  
+Signal routing is handled via the `SignalManager` class located in `utils/signal_manager.py`.
 
-- `message_received_input_*`: Signals for incoming messages
-- `message_received_result_*`: Signals for result messages
-- `message_received_other_*`: Signals for other message types
+#### Available Signals by Protocol
+
+| Protocol | Signals                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| RabbitMQ | `message_received_input_rabbitmq`<br>`message_received_result_rabbitmq`<br>`message_received_other_rabbitmq` |
+| MQTT     | `message_received_input_mqtt`                                                                                |
+| REST     | `message_received_input_rest`                                                                                |
+
+#### SignalManager Responsibilities
+
+- Centralizes signal definition and access control
+- Ensures only valid signals are connected or disconnected
+- Wraps Blinker’s native `signal().connect()` and `signal().disconnect()` methods
+- Provides logging for all operations
+
+#### Example: Connecting a Signal
+
+```python
+from utils.signal_manager import SignalManager
+
+SignalManager.connect_signal(
+    protocol='rabbitmq',
+    signal_name='message_received_input_rabbitmq',
+    callback=my_callback_function
+)
+```
 
 ## Configuration Management
 

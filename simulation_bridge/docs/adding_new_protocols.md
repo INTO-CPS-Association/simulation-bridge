@@ -85,6 +85,8 @@ Your adapter must implement these methods from the `ProtocolAdapter` base class:
 3. `stop()`: Handles protocol-specific shutdown
 4. `_handle_message()`: Processes incoming messages
 
+> Each protocol can only access signals (blinker) defined in the signal_manager located in the utils/ folder. These signals facilitate communication and event handling between different components of the system.
+
 ## Best Practices
 
 1. **Error Handling**
