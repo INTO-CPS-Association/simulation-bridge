@@ -201,3 +201,4 @@ simulation*.yaml
 *.pem
 *_use.yaml
 client/
+dist/
