@@ -187,7 +187,7 @@ class ConfigManager:
         except (IOError, PermissionError) as e:
             logger.error("File access error: %s, using defaults.", str(e))
             self.config = self.get_default_config()
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("Unexpected error: %s, using defaults.", str(e))
             logger.exception("Full traceback:")
             self.config = self.get_default_config()

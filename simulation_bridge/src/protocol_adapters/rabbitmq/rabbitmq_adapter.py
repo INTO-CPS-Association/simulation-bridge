@@ -96,21 +96,27 @@ class RabbitMQAdapter(ProtocolAdapter):
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
 
-            # Send different signal based on the queue
+            signal_name = None
+            kwargs = {
+                "message": message,
+                "producer": producer,
+                "consumer": consumer,
+            }
+
             if queue_name == 'Q.bridge.input':
                 signal_name = 'message_received_input_rabbitmq'
+                kwargs["protocol"] = 'rabbitmq'
             elif queue_name == 'Q.bridge.result':
-                signal_name = 'message_received_result_rabbitmq'
-            else:
-                signal_name = 'message_received_other_rabbitmq'
-
-            # Use SignalManager to send the signal
-            signal(signal_name).send(
-                self,
-                message=message,
-                producer=producer,
-                consumer=consumer
-            )
+                protocol = message.get(
+                    'bridge_meta', '{}').get(
+                    'protocol', 'unknown')
+                if protocol == 'rest':
+                    signal_name = 'message_received_result_rest'
+                elif protocol == 'mqtt':
+                    signal_name = 'message_received_result_mqtt'
+                elif protocol == 'rabbitmq':
+                    signal_name = 'message_received_result_rabbitmq'
+            signal(signal_name).send(self, **kwargs)
 
             ch.basic_ack(delivery_tag=method.delivery_tag)
             logger.debug(

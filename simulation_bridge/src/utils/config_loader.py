@@ -6,6 +6,7 @@ with support for environment variable substitution and validation.
 """
 
 import os
+import json
 from typing import Dict, Any, Optional, Union
 from pathlib import Path
 from importlib import resources
@@ -85,3 +86,13 @@ def _substitute_env_vars(
             return config[:start_idx] + env_value + config[end_idx + 1:]
 
     return config
+
+
+def load_protocol_config() -> Dict[str, list]:
+    """
+    Load the protocol configuration from a JSON file.
+    """
+    config_file = Path(__file__).parent.parent / \
+        "protocol_adapters/adapters_signal.json"
+    with open(config_file, 'r', encoding='utf-8') as f:
+        return json.load(f)["protocols"]

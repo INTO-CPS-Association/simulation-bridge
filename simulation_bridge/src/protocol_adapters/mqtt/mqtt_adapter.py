@@ -61,6 +61,11 @@ class MQTTAdapter(ProtocolAdapter):
         )
         self.mqtt_client.loop_start()
 
+        SignalManager.connect_signal(
+            'mqtt',
+            'message_received_result_mqtt',
+            self.publish_result_message_mqtt)
+
         logger.debug(
             "MQTT - Adapter initialized with config: host=%s, port=%s, topic=%s",
             self.config['host'], self.config['port'], self.topic)
@@ -137,13 +142,14 @@ class MQTTAdapter(ProtocolAdapter):
                 message, producer, consumer = self._message_queue.get(
                     timeout=1)
                 logger.debug(
-                    "MQTT - Processing message from producer: %s, simulator: %s",
-                    producer, consumer)
+                    "MQTT - Processing message %s, from producer: %s, simulator: %s",
+                    message, producer, consumer)
                 # Use SignalManager to send the signal
                 signal('message_received_input_mqtt').send(
                     message=message,
                     producer=producer,
-                    consumer=consumer
+                    consumer=consumer,
+                    protocol='mqtt'
                 )
             except queue.Empty:
                 continue
@@ -210,13 +216,15 @@ class MQTTAdapter(ProtocolAdapter):
         logger.debug("MQTT - Stopping adapter")
         self._running = False
         try:
+            SignalManager.disconnect_signal('mqtt', 'message_received_input_mqtt',
+                                            self._process_messages)
             self.client.disconnect()
             if self._process_thread and self._process_thread.is_alive():
                 self._process_thread.join(timeout=5)
             logger.debug("MQTT - Successfully disconnected from broker")
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error during disconnection: %s", exc)
-    
+
     def send_result(self, message):
         try:
             output_topic = self.mqtt_config['output_topic']
@@ -237,3 +245,18 @@ class MQTTAdapter(ProtocolAdapter):
             message: The message to handle
         """
         self.on_message(None, None, message)
+
+    def publish_result_message_mqtt(self, sender, **kwargs):  # pylint: disable=unused-argument
+        """
+        Publish result message to MQTT topic.
+
+        Args:
+            message: Message payload to publish
+        """
+        try:
+            message = kwargs.get('message', {})
+            self.send_result(message)
+            logger.debug(
+                "Succesfully scheduled result message for MQTT client")
+        except (ConnectionError, TimeoutError) as e:
+            logger.error("Error publishing MQTT message: %s", e)

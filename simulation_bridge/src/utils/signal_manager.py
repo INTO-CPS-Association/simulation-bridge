@@ -3,9 +3,7 @@
 from typing import List
 from blinker import signal
 from .logger import get_logger
-import json
-import os
-from pathlib import Path
+from .config_loader import load_protocol_config
 
 logger = get_logger()
 
@@ -13,23 +11,24 @@ logger = get_logger()
 class SignalManager:
     """Manages signal registration and subscription for different protocols."""
 
-    # Load protocol signals from JSON file
-    json_path = Path(__file__).parent.parent / 'protocol_adapters' / 'adapters.json'
-    with open(json_path, 'r') as f:
-        config = json.load(f)
-        PROTOCOL_SIGNALS = config['protocol_signals']
+    PROTOCOL_SIGNALS = load_protocol_config()
 
     @classmethod
     def get_available_signals(cls, protocol: str) -> List[str]:
-        """Get list of available signals for a specific protocol.
+        """Ritorna i segnali disponibili per un dato protocollo.
 
         Args:
-            protocol: Protocol name (rabbitmq, mqtt, rest)
+            protocol (str): Nome del protocollo (es. 'rabbitmq', 'mqtt', 'rest')
 
         Returns:
-            List of available signal names for the protocol
+            List[str]: Lista di nomi dei segnali per il protocollo
         """
-        return cls.PROTOCOL_SIGNALS.get(protocol, [])
+        protocols = cls.PROTOCOL_SIGNALS
+        protocol_data = protocols.get(protocol)
+
+        if protocol_data and "signals" in protocol_data:
+            return protocol_data["signals"]
+        return []
 
     @classmethod
     def connect_signal(cls, protocol: str, signal_name: str, callback) -> bool:

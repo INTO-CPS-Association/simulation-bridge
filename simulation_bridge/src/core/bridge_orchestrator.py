@@ -1,11 +1,10 @@
 """Bridge Orchestrator module for simulation bridge."""
 import time
+import importlib
 from .bridge_core import BridgeCore
-from ..protocol_adapters.rabbitmq.rabbitmq_adapter import RabbitMQAdapter
-from ..protocol_adapters.mqtt.mqtt_adapter import MQTTAdapter
-from ..protocol_adapters.rest.rest_adapter import RESTAdapter
 from .bridge_infrastructure import RabbitMQInfrastructure
 from ..utils.config_manager import ConfigManager
+from ..utils.config_loader import load_protocol_config
 from ..utils.logger import get_logger
 
 logger = get_logger()
@@ -31,12 +30,8 @@ class BridgeOrchestrator:
         self.adapters = {}
         self._running = False
 
-        # Adapter class registry
-        self.adapter_classes = {
-            'rabbitmq': RabbitMQAdapter,
-            'mqtt': MQTTAdapter,
-            'rest': RESTAdapter,
-        }
+        self.protocol_config = load_protocol_config()
+        self.adapter_classes = self._import_adapter_classes()
 
     def setup_interfaces(self):
         """Set up all communication interfaces and the core bridge."""
@@ -105,3 +100,21 @@ class BridgeOrchestrator:
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error during shutdown: %s", exc)
+
+    def _import_adapter_classes(self):
+        """
+        For each protocol specified in the loaded protocol configuration,
+        it extracts the full class path, imports the module relative to the
+        protocol_adapters package, retrieves the class object,
+        and stores it keyed by the protocol name.
+        """
+        classes = {}
+        for protocol, data in self.protocol_config.items():
+            class_path = data.get("class")
+            module_name, class_name = class_path.rsplit(".", 1)
+            module = importlib.import_module(
+                module_name,
+                package="simulation_bridge.src.protocol_adapters")
+            adapter_class = getattr(module, class_name)
+            classes[protocol] = adapter_class
+        return classes

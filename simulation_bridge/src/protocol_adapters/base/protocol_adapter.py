@@ -10,8 +10,11 @@ logger = get_logger()
 
 class ProtocolAdapter(ABC):
     """
-    Abstract base class that defines the interface for all protocol adapters.
-    All protocol adapters must implement these methods.
+    Abstract base class that defines the interface and common behavior
+    for all protocol adapters.
+
+    Subclasses must implement configuration loading, start/stop lifecycle,
+    and message handling methods.
     """
 
     def __init__(self, config_manager: ConfigManager):
@@ -24,23 +27,25 @@ class ProtocolAdapter(ABC):
         self.config_manager = config_manager
         self.config = self._get_config()
         self._running = False
-        logger.debug("%s - Adapter initialized", self.__class__.__name__)
+        logger.debug(
+            "%s - Adapter initialized with config: %s",
+            self.__class__.__name__,
+            self.config)
 
     @property
     def is_running(self) -> bool:
         """
-        Check if the adapter is running.
+        Indicates whether the adapter is currently running.
 
         Returns:
-            bool: True if the adapter is running, False otherwise
+            bool: True if running, False otherwise
         """
         return self._running
 
     @abstractmethod
     def _get_config(self) -> Dict[str, Any]:
         """
-        Get the specific configuration for this adapter.
-        Must be implemented by each adapter.
+        Retrieve protocol-specific configuration.
 
         Returns:
             Dict[str, Any]: Configuration dictionary
@@ -50,21 +55,20 @@ class ProtocolAdapter(ABC):
     def start(self) -> None:
         """
         Start the protocol adapter.
-        Must be implemented by each adapter.
+        Should initiate connections, threads, or other resources.
         """
 
     @abstractmethod
     def stop(self) -> None:
         """
         Stop the protocol adapter.
-        Must be implemented by each adapter.
+        Should cleanly release resources and stop threads.
         """
 
     @abstractmethod
     def _handle_message(self, message: Dict[str, Any]) -> None:
         """
-        Handle incoming messages.
-        Must be implemented by each adapter.
+        Handle an incoming message according to the protocol logic.
 
         Args:
             message (Dict[str, Any]): The message to handle

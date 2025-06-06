@@ -36,6 +36,8 @@ class RESTAdapter(ProtocolAdapter):
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._running = False
 
+        SignalManager.connect_signal('rest', 'message_received_result_rest',
+                                     self.publish_result_message_rest)
         logger.debug("REST - Adapter initialized with config: host=%s, port=%s",
                      self.config['host'], self.config['port'])
 
@@ -88,7 +90,8 @@ class RESTAdapter(ProtocolAdapter):
         signal('message_received_input_rest').send(
             message=message,
             producer=producer,
-            consumer=consumer
+            consumer=consumer,
+            protocol='rest'
         )
 
         # Create a queue for this client's messages
@@ -240,6 +243,8 @@ class RESTAdapter(ProtocolAdapter):
     def stop(self) -> None:
         """Stop the REST server."""
         logger.debug("REST - Stopping adapter")
+        SignalManager.disconnect_signal('rest', 'message_received_input_rest',
+                                        self._handle_streaming_message)
         self._running = False
         if self.server:
             self.server.close()
@@ -252,3 +257,21 @@ class RESTAdapter(ProtocolAdapter):
         """
         # For REST, this is handled by the Quart endpoint
         pass
+
+    def publish_result_message_rest(self, sender, **kwargs):  # pylint: disable=unused-argument
+        """
+        Publish result message via REST adapter.
+
+        Args:
+            message: Message payload to send
+            destination: REST endpoint destination
+        """
+        try:
+            message = kwargs.get('message', {})
+            destination = message.get('destinations', [])[0]
+            self.send_result_sync(destination, message)
+            logger.debug(
+                "Successfully scheduled result message for REST client: %s",
+                destination)
+        except (ConnectionError, TimeoutError) as e:
+            logger.error("Error sending result message to REST client: %s", e)

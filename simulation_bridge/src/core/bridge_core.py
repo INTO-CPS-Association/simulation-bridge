@@ -38,15 +38,13 @@ class BridgeCore:
 
         # Connect different signals to different handlers using SignalManager
         SignalManager.connect_signal('rabbitmq', 'message_received_input_rabbitmq',
-                                     self.handle_input_rabbitmq_message)
+                                     self.handle_input_message)
+        SignalManager.connect_signal('rest', 'message_received_input_rest',
+                                     self.handle_input_message)
+        SignalManager.connect_signal('mqtt', 'message_received_input_mqtt',
+                                     self.handle_input_message)
         SignalManager.connect_signal('rabbitmq', 'message_received_result_rabbitmq',
                                      self.handle_result_rabbitmq_message)
-        SignalManager.connect_signal('rabbitmq', 'message_received_other_rabbitmq',
-                                     self.handle_other_rabbitmq_message)
-        SignalManager.connect_signal('rest', 'message_received_input_rest',
-                                     self.handle_input_rest_message)
-        SignalManager.connect_signal('mqtt', 'message_received_input_mqtt',
-                                     self.handle_input_mqtt_message)
         logger.debug("Signals connected and bridge core initialized")
 
     def _initialize_rabbitmq_connection(self):
@@ -87,9 +85,9 @@ class BridgeCore:
             logger.error("Failed to ensure RabbitMQ connection: %s", e)
             return False
 
-    def handle_input_rest_message(self, sender, **kwargs): # pylint: disable=unused-argument
+    def handle_input_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
-        Handle incoming REST messages.
+        Handle incoming messages.
 
         Args:
             **kwargs: Keyword arguments containing message data
@@ -102,51 +100,12 @@ class BridgeCore:
             'unknown')
         producer = kwargs.get('producer', 'unknown')
         consumer = kwargs.get('consumer', 'unknown')
-        protocol = "rest"
+        protocol = kwargs.get('protocol', 'unknown')
         logger.info(
-            "[REST] Handling incoming simulation request with ID: %s", request_id)
+            "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
         self._publish_message(producer, consumer, message, protocol=protocol)
 
-    def handle_input_mqtt_message(self, sender, **kwargs): # pylint: disable=unused-argument
-        """
-        Handle incoming MQTT messages.
-
-        Args:
-            sender: The sender of the signal
-            **kwargs: Keyword arguments containing message data
-        """
-        message = kwargs.get('message', {})
-        request_id = message.get(
-            'request_id',
-            'unknown')
-        producer = kwargs.get('producer', 'unknown')
-        consumer = kwargs.get('consumer', 'unknown')
-        protocol = "mqtt"
-        logger.info(
-            "[MQTT] Handling incoming simulation request with ID: %s", request_id)
-        self._publish_message(producer, consumer, message, protocol=protocol)
-
-    def handle_input_rabbitmq_message(self, sender, **kwargs): # pylint: disable=unused-argument
-        """
-        Handle incoming RabbitMQ messages.
-
-        Args:
-            **kwargs: Keyword arguments containing message data
-        """
-        message = kwargs.get('message', {})
-        request_id = message.get(
-            'simulation',
-            'unknown').get(
-            'request_id',
-            'unknown')
-        producer = kwargs.get('producer', 'unknown')
-        consumer = kwargs.get('consumer', 'unknown')
-        protocol = "rabbitmq"
-        logger.info(
-            "[RABBITMQ] Handling incoming simulation request with ID: %s", request_id)
-        self._publish_message(producer, consumer, message, protocol=protocol)
-
-    def handle_result_rabbitmq_message(self,sender, **kwargs): # pylint: disable=unused-argument
+    def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
         Handle RabbitMQ result messages.
 
@@ -154,54 +113,17 @@ class BridgeCore:
             **kwargs: Keyword arguments containing message data
         """
         message = kwargs.get('message', {})
-        bridge_meta = message.get('bridge_meta', {}).get('protocol', 'unknown')
         producer = message.get('source', 'unknown')
         consumer = "result"
-        status = message.get('status', 'unknown')
-        progress = message.get('progress', {})
-        percentage = progress.get('percentage')
-        destination = message.get('destinations', [])[0]
-
-        if status == "completed":
-            msg = "completed successfully"
-        elif status == "in_progress":
-            msg = "currently in progress"
-        else:
-            msg = status
-
-        if percentage is not None:
-            logger.info("[STATUS] Simulation %s (%s%%).", msg, percentage)
-        else:
-            logger.info("[STATUS] Simulation %s.", msg)
-
-        if bridge_meta == 'rabbitmq':
-            self._publish_message(
-                producer,
-                consumer,
-                message,
-                exchange='ex.bridge.result',
-                protocol='rabbitmq')
-        if bridge_meta == 'mqtt':
-            self._publish_result_message_mqtt(message)
-        if bridge_meta == 'rest':
-            self._publish_result_message_rest(message, destination)
-
-    def handle_other_rabbitmq_message(self, **kwargs):
-        """
-        Handle other RabbitMQ messages.
-
-        Args:
-            **kwargs: Keyword arguments containing message data
-        """
-        message = kwargs.get('message', {})
-        producer = kwargs.get('producer', 'unknown')
-        consumer = kwargs.get('consumer', 'unknown')
-        queue = kwargs.get('queue', 'unknown')
-        logger.info("[RABBITMQ] Handling other message from queue %s", queue)
-        self._publish_message(producer, consumer, message)
+        self._publish_message(
+            producer,
+            consumer,
+            message,
+            exchange='ex.bridge.result',
+            protocol='rabbitmq')
 
     def _publish_message(self, producer, consumer, message,
-                         exchange='ex.bridge.output', protocol='rabbitmq'):
+                         exchange='ex.bridge.output', protocol='unknown'):
         """
         Publish message to RabbitMQ exchange.
 
@@ -255,57 +177,11 @@ class BridgeCore:
                 logger.error(
                     "Failed to publish message after reconnection: %s", retry_e)
 
-    def _publish_result_message_mqtt(self, message):
-        """
-        Publish result message to MQTT topic.
-
-        Args:
-            message: Message payload to publish
-        """
-        try:
-            mqtt_adapter = self.adapters.get('mqtt')
-            if mqtt_adapter:
-                mqtt_adapter.send_result(message)
-                logger.debug("Succesfully scheduled result message for MQTT client")
-            else:
-                logger.error("MQTT adapter not found")
-        except (ConnectionError, TimeoutError) as e:
-            logger.error("Error publishing MQTT message: %s", e)
-
-    def _publish_result_message_rest(self, message, destination):
-        """
-        Publish result message via REST adapter.
-
-        Args:
-            message: Message payload to send
-            destination: REST endpoint destination
-        """
-        try:
-            rest_adapter = self.adapters.get('rest')
-            if rest_adapter:
-                rest_adapter.send_result_sync(destination, message)
-                logger.debug(
-                    "Successfully scheduled result message for REST client: %s",
-                    destination)
-            else:
-                logger.error("REST adapter not found")
-        except (ConnectionError, TimeoutError) as e:
-            logger.error("Error sending result message to REST client: %s", e)
-
     def stop(self):
         """Stop the bridge core and clean up resources."""
         try:
-            SignalManager.disconnect_signal('rabbitmq', 'message_received_input_rabbitmq',
-                                            self.handle_input_rabbitmq_message)
             SignalManager.disconnect_signal('rabbitmq', 'message_received_result_rabbitmq',
                                             self.handle_result_rabbitmq_message)
-            SignalManager.disconnect_signal('rabbitmq', 'message_received_other_rabbitmq',
-                                            self.handle_other_rabbitmq_message)
-            SignalManager.disconnect_signal('rest', 'message_received_input_rest',
-                                            self.handle_input_rest_message)
-            SignalManager.disconnect_signal('mqtt', 'message_received_input_mqtt',
-                                            self.handle_input_mqtt_message)
-
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
             logger.debug("Bridge core stopped")
