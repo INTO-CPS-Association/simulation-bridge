@@ -1,0 +1,15 @@
+{
+    "protocol_signals": {
+        "rabbitmq": [
+            "message_received_input_rabbitmq",
+            "message_received_result_rabbitmq",
+            "message_received_other_rabbitmq"
+        ],
+        "mqtt": [
+            "message_received_input_mqtt"
+        ],
+        "rest": [
+            "message_received_input_rest"
+        ]
+    }
+} 
