@@ -1,0 +1,4 @@
+url: https://localhost:5000/message # URL of the REST endpoint
+yaml_file: ../simulation.yaml # Path to the YAML file with simulation data
+timeout: 600 # Timeout for the request in seconds
+verify_ssl: false # Verify SSL certificate
