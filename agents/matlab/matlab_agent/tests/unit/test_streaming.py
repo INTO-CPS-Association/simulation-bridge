@@ -185,7 +185,8 @@ def test_streaming_connection_lifecycle(streaming_connection):
 
 
 @patch('src.core.streaming.subprocess.Popen')
-def test_controller_start_failure(mock_popen, matlab_controller, performance_monitor):
+def test_controller_start_failure(
+        mock_popen, matlab_controller, performance_monitor):
     """
     Test that controller.start raises MatlabStreamingError when Popen fails.
     """
@@ -243,7 +244,8 @@ def test_controller_start_success(
 def test_controller_run_success(
         mock_accept,
         matlab_controller,
-        mock_rabbit_client):
+        mock_rabbit_client,
+        performance_monitor):
     """
     Test controller.run processes JSON lines correctly.
     """
@@ -261,12 +263,11 @@ def test_controller_run_success(
     # Attach mock connection to controller
     matlab_controller.connection = conn
 
-    # Run the controller with test input
-    matlab_controller.run({'param': 'value'})
+    # Pass performance_monitor as arg
+    matlab_controller.run({'param': 'value'}, performance_monitor=performance_monitor)
 
     # Verify result was sent
     assert mock_rabbit_client.send_result.call_count >= 1
-
 
 def test_get_metadata(matlab_controller, monkeypatch):
     """

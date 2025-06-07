@@ -67,7 +67,7 @@ class TestLoggerSetup(unittest.TestCase):
             self.assertEqual(logger.name, self.logger_name)
             self.assertEqual(logger.level, DEFAULT_LOG_LEVEL)
             self.assertEqual(len(logger.handlers), 2)  # File + Console handlers
-            
+
             # Close handlers before removing temp directory
             for handler in logger.handlers[:]:
                 handler.close()

@@ -110,7 +110,8 @@ def generate_default_project():
 
         try:
             from importlib.resources import files
-            for output_name, (package, resource_name) in files_to_generate.items():
+            for output_name, (package,
+                              resource_name) in files_to_generate.items():
                 output_path = Path(output_name)
                 if output_path.exists():
                     existing_files.append(output_name)
@@ -121,12 +122,14 @@ def generate_default_project():
                 created_files.append(output_name)
         except (ImportError, AttributeError):
             import pkg_resources
-            for output_name, (package, resource_name) in files_to_generate.items():
+            for output_name, (package,
+                              resource_name) in files_to_generate.items():
                 output_path = Path(output_name)
                 if output_path.exists():
                     existing_files.append(output_name)
                     continue
-                template_content = pkg_resources.resource_string(package, resource_name)
+                template_content = pkg_resources.resource_string(
+                    package, resource_name)
                 with open(output_path, 'wb') as dst:
                     dst.write(template_content)
                 created_files.append(output_name)
@@ -137,24 +140,28 @@ def generate_default_project():
         if created_files:
             print("🆕 Files created:")
             for f in created_files:
-                description = file_descriptions.get(f, "No description available")
+                description = file_descriptions.get(
+                    f, "No description available")
                 print(f" - {f:<35} : {description}")
 
         if existing_files:
             print("\n📄 Files already present (skipped):")
             for f in existing_files:
-                description = file_descriptions.get(f, "No description available")
+                description = file_descriptions.get(
+                    f, "No description available")
                 print(f" - {f:<35} : {description}")
 
         if not created_files:
             print("\nAll project files already exist. Nothing was created.")
         else:
-            print("\nYou can now customize these files as needed and start using the MATLAB agent.")
+            print(
+                "\nYou can now customize these files as needed and start using the MATLAB agent.")
 
     except FileNotFoundError:
         print("❌ Error: One or more template files were not found.")
     except Exception as e:
         print(f"❌ Error generating project files: {e}")
+
 
 def run_agent(config_file):
     """Initializes and starts a single MATLAB agent instance."""
