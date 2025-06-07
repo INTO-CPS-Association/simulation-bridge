@@ -6,6 +6,7 @@ from .bridge_infrastructure import RabbitMQInfrastructure
 from ..utils.config_manager import ConfigManager
 from ..utils.config_loader import load_protocol_config
 from ..utils.logger import get_logger
+from ..utils.signal_manager import SignalManager
 
 logger = get_logger()
 
@@ -34,23 +35,41 @@ class BridgeOrchestrator:
         self.adapter_classes = self._import_adapter_classes()
 
     def setup_interfaces(self):
-        """Set up all communication interfaces and the core bridge."""
+        """Set up all communication interfaces and the core bridge.
+
+        This method initializes infrastructure (e.g., RabbitMQ), creates adapter
+        instances for each protocol (e.g., MQTT, REST), registers them with the
+        SignalManager, and connects all defined signals to their respective
+        callbacks.
+        """
         try:
+            # Set up RabbitMQ infrastructure
             logger.debug("Setting up RabbitMQ infrastructure...")
             infrastructure = RabbitMQInfrastructure(self.config_manager)
             infrastructure.setup()
 
+            # Instantiate and register each adapter
             for name, adapter_class in self.adapter_classes.items():
                 adapter = adapter_class(self.config_manager)
                 self.adapters[name] = adapter
+
+                # Register the adapter instance with SignalManager
+                SignalManager.register_adapter_instance(name, adapter)
                 logger.info("%s Adapter initialized correctly", name.upper())
 
+            # Create and register the core bridge component
             self.bridge = BridgeCore(self.config_manager, self.adapters)
-            logger.info("Bridge core initialized")
+            SignalManager.set_bridge_core(self.bridge)
 
-        except Exception as exc:  # pylint: disable=broad-exception-caught
+            # Connect all signals defined in protocol config
+            SignalManager.connect_all_signals()
+
+            logger.info("Bridge core initialized and signals connected")
+
+        except Exception as exc: # pylint: disable=broad-exception-caught
             logger.error("Error setting up interfaces: %s", exc)
             raise
+
 
     def start(self):
         """Start the bridge and all its components."""

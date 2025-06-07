@@ -9,6 +9,7 @@ from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
 from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
+from ...core.bridge_core import BridgeCore
 from blinker import signal
 
 logger = get_logger()
@@ -35,9 +36,6 @@ class RESTAdapter(ProtocolAdapter):
         # Main event loop
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._running = False
-
-        SignalManager.connect_signal('rest', 'message_received_result_rest',
-                                     self.publish_result_message_rest)
         logger.debug("REST - Adapter initialized with config: host=%s, port=%s",
                      self.config['host'], self.config['port'])
 
@@ -243,8 +241,6 @@ class RESTAdapter(ProtocolAdapter):
     def stop(self) -> None:
         """Stop the REST server."""
         logger.debug("REST - Stopping adapter")
-        SignalManager.disconnect_signal('rest', 'message_received_input_rest',
-                                        self._handle_streaming_message)
         self._running = False
         if self.server:
             self.server.close()

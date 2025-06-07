@@ -35,16 +35,6 @@ class BridgeCore:
         self.channel = None
         self._initialize_rabbitmq_connection()
         self.adapters = adapters
-
-        # Connect different signals to different handlers using SignalManager
-        SignalManager.connect_signal('rabbitmq', 'message_received_input_rabbitmq',
-                                     self.handle_input_message)
-        SignalManager.connect_signal('rest', 'message_received_input_rest',
-                                     self.handle_input_message)
-        SignalManager.connect_signal('mqtt', 'message_received_input_mqtt',
-                                     self.handle_input_message)
-        SignalManager.connect_signal('rabbitmq', 'message_received_result_rabbitmq',
-                                     self.handle_result_rabbitmq_message)
         logger.debug("Signals connected and bridge core initialized")
 
     def _initialize_rabbitmq_connection(self):
@@ -65,7 +55,7 @@ class BridgeCore:
                 )
             )
             self.channel = self.connection.channel()
-            logger.info("RabbitMQ connection established successfully")
+            logger.debug("RabbitMQ connection established successfully")
         except pika.exceptions.AMQPConnectionError as e:
             logger.error("Failed to initialize RabbitMQ connection: %s", e)
             raise
@@ -180,8 +170,7 @@ class BridgeCore:
     def stop(self):
         """Stop the bridge core and clean up resources."""
         try:
-            SignalManager.disconnect_signal('rabbitmq', 'message_received_result_rabbitmq',
-                                            self.handle_result_rabbitmq_message)
+            SignalManager.disconnect_all_signals()
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
             logger.debug("Bridge core stopped")

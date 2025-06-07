@@ -16,6 +16,7 @@ from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
 from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
+from ...core.bridge_core import BridgeCore
 
 logger = get_logger()
 
@@ -60,12 +61,6 @@ class MQTTAdapter(ProtocolAdapter):
             keepalive=self.mqtt_config['keepalive']
         )
         self.mqtt_client.loop_start()
-
-        SignalManager.connect_signal(
-            'mqtt',
-            'message_received_result_mqtt',
-            self.publish_result_message_mqtt)
-
         logger.debug(
             "MQTT - Adapter initialized with config: host=%s, port=%s, topic=%s",
             self.config['host'], self.config['port'], self.topic)
@@ -216,8 +211,6 @@ class MQTTAdapter(ProtocolAdapter):
         logger.debug("MQTT - Stopping adapter")
         self._running = False
         try:
-            SignalManager.disconnect_signal('mqtt', 'message_received_input_mqtt',
-                                            self._process_messages)
             self.client.disconnect()
             if self._process_thread and self._process_thread.is_alive():
                 self._process_thread.join(timeout=5)

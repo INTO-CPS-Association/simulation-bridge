@@ -1,24 +1,24 @@
 {
   "protocols": {
     "rabbitmq": {
-      "signals": [
-        "message_received_input_rabbitmq",
-        "message_received_result_rabbitmq"
-      ],
+      "signals": {
+        "message_received_input_rabbitmq": "BridgeCore.handle_input_message",
+        "message_received_result_rabbitmq": "BridgeCore.handle_result_rabbitmq_message"
+      },
       "class": ".rabbitmq.rabbitmq_adapter.RabbitMQAdapter"
     },
     "mqtt": {
-      "signals": [
-        "message_received_input_mqtt",
-        "message_received_result_mqtt"
-      ],
+      "signals": {
+        "message_received_input_mqtt": "BridgeCore.handle_input_message",
+        "message_received_result_mqtt": "MQTTAdapter.publish_result_message_mqtt"
+      },
       "class": ".mqtt.mqtt_adapter.MQTTAdapter"
     },
     "rest": {
-      "signals": [
-        "message_received_input_rest",
-        "message_received_result_rest"
-      ],
+      "signals": {
+        "message_received_input_rest": "BridgeCore.handle_input_message",
+        "message_received_result_rest": "RESTAdapter.publish_result_message_rest"
+      },
       "class": ".rest.rest_adapter.RESTAdapter"
     }
   }
