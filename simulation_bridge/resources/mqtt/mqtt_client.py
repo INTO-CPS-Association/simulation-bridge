@@ -56,7 +56,7 @@ class MQTTClient:
         print(f"🔹 Topic: {msg.topic}")
         print(f"🔹 Payload: {msg.payload.decode()}")
 
-    def load_payload(self):
+    def create_request(self):
         """Load payload from YAML file.
 
         Returns:
@@ -92,7 +92,7 @@ class MQTTClient:
             qos=self.config['qos'])
 
         # Publish payload to input topic
-        payload = self.load_payload()
+        payload = self.create_request()
         self.client.publish(
             self.config['input_topic'],
             json.dumps(payload),
