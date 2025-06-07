@@ -86,7 +86,11 @@ def handle_streaming_simulation(
         )
         controller.start(performance_monitor)
         logger.debug("Simulation inputs: %s", data.get('inputs', {}))
-        controller.run(data.get('inputs', {}))
+        controller.run(
+            data.get(
+                'inputs',
+                {}),
+            performance_monitor=performance_monitor)
         # Record MATLAB stop
         performance_monitor.record_matlab_stop()
         # Create and send success response
@@ -283,7 +287,7 @@ class MatlabStreamingController:
         )
         self.message_broker.send_result(self.source, response)
 
-    def run(self, inputs: Dict[str, Any]) -> None:
+    def run(self, inputs: Dict[str, Any], performance_monitor) -> None:
         """Run simulation and handle streaming data."""
         try:
             logger.debug("Waiting for MATLAB connection...")
@@ -310,7 +314,7 @@ class MatlabStreamingController:
                             sequence += 1
                         except json.JSONDecodeError as e:
                             logger.warning("Invalid JSON: %s", str(e))
-
+            performance_monitor.record_simulation_complete()
         except socket.timeout as e:
             logger.error("Connection timeout: %s", str(e))
             raise MatlabStreamingError("Connection timeout") from e
