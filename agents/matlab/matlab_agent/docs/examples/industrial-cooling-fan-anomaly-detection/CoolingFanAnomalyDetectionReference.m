@@ -1,3 +1,9 @@
+%% CoolingFanAnomalyDetectionExample
+% This is the original example simulation that has been copied and modified to
+% support batch constraints inside simulation.m. The current file serves as a reference
+% for the original implementation before the modifications were made to handle
+% batch processing constraints.
+
 addpath('Data_Generator/', 'Data_Generator/VaryingConvectionLib/');
 mdl = "CoolingFanWithFaults";
 open_system(mdl)

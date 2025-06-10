@@ -38,7 +38,7 @@ DefaultModelParameters.ExternalTempNumAnomalies = 10;
 DefaultModelParameters.DragNumAnomalies = 10;
 
 %% Create Simulation Inputs
-addpath(fullfile(pwd, 'industrial-cooling-fan-anomaly-detection', 'Data_Generator'));
+addpath(fullfile(pwd, 'matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection', 'Data_Generator'));
 mdl = 'CoolingFanWithFaults';
 load_system(mdl)
 simInp = Simulink.SimulationInput(mdl);
@@ -99,7 +99,7 @@ for ctS = 1:numSim
 end
 
 % If Data folder exists
-folderPath = fullfile(pwd, 'industrial-cooling-fan-anomaly-detection', 'Data');
+folderPath = fullfile(pwd, 'matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection', 'Data');
 if isfolder(folderPath)
     % Delete all files
     delete(fullfile(folderPath, '*.mat'))
@@ -107,7 +107,7 @@ else
     mkdir(folderPath);
 end
 
-location = fullfile(pwd,'industrial-cooling-fan-anomaly-detection','Data');
+location = fullfile(pwd,'matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection','Data');
 [status,E] = generateSimulationEnsemble(allSimInp,location, 'useparallel', true, 'ShowProgress', false);
 end
 
