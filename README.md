@@ -1,21 +1,47 @@
 # Simulation Bridge
 
-[![SonarQube Cloud](https://sonarcloud.io/images/project_badges/sonarcloud-highlight.svg)](https://sonarcloud.io/summary/new_code?id=INTO-CPS-Association_simulation-bridge)
-
 The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts.
 It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
 
 This framework supports multiple protocols and interaction modes, allowing for flexible integration and real-time control, monitoring, and data exchange in distributed simulation systems. By abstracting the communication layer, the Simulation Bridge simplifies running simulations remotely.
 
-![Project](images/project.png)
+![Simulation Bridge Architecture](images/software_architecture.png)
+
+## Table of Contents
+
+- [Simulation Bridge](#simulation-bridge)
+  - [Table of Contents](#table-of-contents)
+  - [Key Features](#key-features)
+    - [Multi-Protocol Support](#multi-protocol-support)
+    - [Flexible Interaction Modes](#flexible-interaction-modes)
+    - [Discoverability and Capability Registration](#discoverability-and-capability-registration)
+    - [Data Transformation and Format Handling](#data-transformation-and-format-handling)
+  - [Requirements](#requirements)
+    - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
+    - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
+    - [3. Install Project Dependencies](#3-install-project-dependencies)
+    - [4. Install RabbitMQ](#4-install-rabbitmq)
+      - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
+      - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
+    - [5. Generate HTTPS Certificate](#5-generate-https-certificate)
+  - [Usage](#usage)
+    - [Getting Started](#getting-started)
+      - [Running with the Default Configuration](#running-with-the-default-configuration)
+      - [Running with a Custom Configuration File](#running-with-a-custom-configuration-file)
+  - [Documentation](#documentation)
+    - [Simulation Bridge](#simulation-bridge-1)
+    - [Matlab Agent](#matlab-agent)
+  - [Package Development](#package-development)
+  - [License](#license)
+  - [Author](#author)
 
 ## Key Features
 
-### 🌐 Multi-Protocol Support
+### Multi-Protocol Support
 
 The Simulation Bridge supports multiple communication protocols to ensure broad interoperability. RabbitMQ is provided as the default messaging layer, with support also available for MQTT and RESTful APIs. The architecture is extensible, allowing the integration of custom protocol adapters through a plugin interface.
 
-### ⚙️ Flexible Interaction Modes
+### Flexible Interaction Modes
 
 The system supports two primary modes of interaction, allowing for both discrete and continuous simulation workflows:
 
@@ -24,17 +50,13 @@ The system supports two primary modes of interaction, allowing for both discrete
 | Batch     | Executes simulations in isolated runs, without the need for live feedback. |
 | Streaming | Enables continuous data exchange for real-time monitoring and control.     |
 
-### 🔍 Discoverability and Capability Registration
+### Discoverability and Capability Registration
 
 Simulator capabilities are detected and registered automatically via a built-in agent system. This mechanism enables dynamic integration and reduces the need for manual configuration, improving scalability and adaptability across simulation environments.
 
-### 🔄 Data Transformation and Format Handling
+### Data Transformation and Format Handling
 
 Data exchanged between components can be automatically transformed across common formats including JSON, XML, and CSV. This transformation is handled in a protocol-agnostic manner, ensuring compatibility regardless of the source or target communication interface.
-
-## Overview
-
-![Simulation Bridge Architecture](images/software_architecture.png)
 
 ## Requirements
 
@@ -119,23 +141,7 @@ Alternatively, connect to an existing RabbitMQ instance hosted on a remote serve
 
 To enable the REST Protocol Adapter and support HTTP/2.0, it is necessary to generate an HTTPS certificate.
 
-```bash
-# 1. Create the certs/ directory if it doesn't exist
-mkdir -p certs
-
-# 2. Generate self-signed certificates (cert.pem and key.pem) in the certs/ directory
-openssl req -x509 -newkey rsa:2048 -keyout certs/key.pem -out certs/cert.pem -days 365 -nodes -subj "/CN=localhost"
-```
-
-This creates a 2048-bit RSA key pair valid for 365 days with localhost as the Common Name (CN).
-
-> **Note:** For production environments, use certificates from a trusted Certificate Authority.
-
-### Configuration
-
-The configuration is specified in yaml format. A template file (`simulation_bridge/config/config.yaml.template`) has been provided. It can be customized further.
-
-Explanation on different fields of the yaml template is given below.
+````bash
 
 ```yaml
 # Unique identifier for this simulation bridge instance
@@ -224,7 +230,7 @@ logging:
   level: INFO # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Log format
   file: logs/sim_bridge.log # File path to store logs
-```
+````
 
 ## Usage
 
@@ -240,7 +246,7 @@ poetry run simulation-bridge --generate-config
 
 This command creates a `config.yaml` file in your current directory. If the file already exists, it will not be overwritten. It will create a copy of `simulation_bridge/config/config.yaml.template`, which you can modify according to your environment.
 
-### Running with the Default Configuration
+#### Running with the Default Configuration
 
 Once the configuration file is in place, start the Simulation Bridge with:
 
@@ -250,7 +256,7 @@ poetry run simulation-bridge
 
 By default, the application looks for the configuration file at `simulation_bridge/config/config.yaml.template`.
 
-### Running with a Custom Configuration File
+#### Running with a Custom Configuration File
 
 If you want to use a custom `config.yaml` file, run the `simulation-bridge` command with the `--config-file` or `-c` option followed by the path to your configuration file:
 
