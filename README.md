@@ -24,6 +24,7 @@ This framework supports multiple protocols and interaction modes, allowing for f
       - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
       - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
     - [5. Generate HTTPS Certificate](#5-generate-https-certificate)
+  - [Configuration](#configuration)
   - [Usage](#usage)
     - [Getting Started](#getting-started)
       - [Running with the Default Configuration](#running-with-the-default-configuration)
@@ -139,9 +140,9 @@ Alternatively, connect to an existing RabbitMQ instance hosted on a remote serve
 
 #### 5. Generate HTTPS Certificate
 
-To enable the REST Protocol Adapter and support HTTP/2.0, it is necessary to generate an HTTPS certificate.
+To enable the REST Protocol Adapter and support HTTP/2.0, it is necessary to generate an HTTPS Certificate.
 
-````bash
+## Configuration
 
 ```yaml
 # Unique identifier for this simulation bridge instance
@@ -230,7 +231,7 @@ logging:
   level: INFO # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Log format
   file: logs/sim_bridge.log # File path to store logs
-````
+```
 
 ## Usage
 
