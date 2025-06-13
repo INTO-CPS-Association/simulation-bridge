@@ -1,0 +1,18 @@
+simulation:
+  request_id: abcdef12345              # Unique identifier for the simulation request
+  client_id: dt                        # ID of the client making the request (e.g., Digital Twin)
+  simulator: matlab                    # Specifies MATLAB as the simulation engine
+  type: batch                         # Simulation type: 'batch' means a one-time execution, not continuous/streaming
+  file: SimulationBatch.m              # Name of the MATLAB file to run for the simulation
+  inputs:
+    x_i: 10                          # Initial x-coordinate of the ball
+    y_i: 9                           # Initial y-coordinate of the ball
+    z_i: 0                           # Initial z-coordinate of the ball
+    v_x: 1                           # Velocity along the x-axis
+    v_y: 14                          # Velocity along the y-axis
+    v_z: 3                           # Velocity along the z-axis
+    t: 10                           # Duration of motion (time)
+  outputs:
+    x_f: Final x position             # Output field name for the final x-coordinate
+    y_f: Final y position             # Output field name for the final y-coordinate
+    z_f: Final z position             # Output field name for the final z-coordinate

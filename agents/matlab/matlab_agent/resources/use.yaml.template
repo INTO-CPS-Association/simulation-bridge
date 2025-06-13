@@ -1,8 +1,8 @@
 rabbitmq:
-  host: localhost
-  port: 5672
-  username: guest
-  password: guest
-  heartbeat: 600
-  vhost: /
-simulation_request: simulation.yaml
+  host: localhost # RabbitMQ server hostname or IP address
+  port: 5672 # RabbitMQ server port
+  username: guest # RabbitMQ username
+  password: guest # RabbitMQ password
+  heartbeat: 600 # Heartbeat interval in seconds
+  vhost: / # RabbitMQ virtual host
+simulation_request: simulation.yaml # Default path to the simulation YAML payload

@@ -349,17 +349,7 @@ Inside this folder, you'll find:
 - `simulation.yaml` — The simulation request payload that will be sent to the MATLAB Agent
 - `use_matlab_agent.py` — Python script to send the request and receive the results
 
-**Steps to Run**
-
-1. Open and configure `use.yaml` with the appropriate protocol settings.
-2. Open and configure `simulation.yaml` with the parameters of your simulation request.
-3. Run the script to send the request:
-
-```bash
-python use_matlab_agent.py
-```
-
-4. The script will send the simulation request to the MATLAB Agent and display the response received.
+For detailed instructions on how to configure and use the client, refer to the [Use Matlab Agent](./matlab_agent/resources/README.md) in the `agents/matlab/matlab_agent/resources/` folder.
 
 ## Workflow
 

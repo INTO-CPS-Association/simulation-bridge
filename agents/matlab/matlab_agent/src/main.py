@@ -91,6 +91,7 @@ def generate_default_project():
         'client/use_matlab_agent.py': ('matlab_agent.resources', 'use_matlab_agent.py'),
         'client/use.yaml': ('matlab_agent.resources', 'use.yaml.template'),
         'client/simulation.yaml': ('matlab_agent.api', 'simulation.yaml.template'),
+        'client/README.md': ('matlab_agent.resources', 'README.md'),
     }
 
     # Descriptions for each file
@@ -102,6 +103,7 @@ def generate_default_project():
         'client/use_matlab_agent.py': "Python script to use the MATLAB agent",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
         'client/simulation.yaml': "Example API payload to communicate with the MATLAB agent",
+        'client/README.md': "README file for the client directory",
     }
 
     try:
