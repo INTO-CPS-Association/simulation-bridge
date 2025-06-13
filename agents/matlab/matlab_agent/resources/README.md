@@ -62,9 +62,9 @@ In the directory
 `/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples`  
 you will find several folders containing practical examples. Each example folder includes a `README.md` with detailed instructions:
 
-- [Streaming Simulation](agents/matlab/matlab_agent/docs/examples/streaming-simulation/README.md)
-- [Batch Simulation](agents/matlab/matlab_agent/docs/examples/batch-simulation/README.md)
-- [Industrial Cooling Fan Anomaly Detection](agents/matlab/matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/README.md)
+- [Streaming Simulation](../docs/examples/streaming-simulation/README.md)
+- [Batch Simulation](../docs/examples/batch-simulation/README.md)
+- [Industrial Cooling Fan Anomaly Detection](../docs/examples/industrial-cooling-fan-anomaly-detection/README.md)
 
 ### Steps to run an example
 
