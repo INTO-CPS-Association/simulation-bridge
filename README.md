@@ -1,21 +1,23 @@
 # Simulation Bridge
 
-The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts.
-It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
+Simulation Bridge (_sim-bridge_) is a middleware solution designed to run distributed simulation systems of Digital Twins (DT), Mock Physical Twin (MockPT) and/or Physical Twin (PT).
 
-This framework supports multiple protocols and interaction modes, allowing for flexible integration and real-time control, monitoring, and data exchange in distributed simulation systems. By abstracting the communication layer, the Simulation Bridge simplifies running simulations remotely.
+It serves as a _modular_, _reusable_, and _bidirectional_ communication bridge, purpose-built to manage, control and monitor simulations over different simulators.
 
-![Simulation Bridge Architecture](images/software_architecture.png)
+<p align="center">
+  <img src="images/software_architecture.png" alt="Simulation Bridge Architecture">
+  <br>
+  <em>Figure 1: Simulation Bridge Architecture </em>
+</p>
 
 ## Table of Contents
 
 - [Simulation Bridge](#simulation-bridge)
   - [Table of Contents](#table-of-contents)
   - [Key Features](#key-features)
-    - [Multi-Protocol Support](#multi-protocol-support)
-    - [Flexible Interaction Modes](#flexible-interaction-modes)
-    - [Discoverability and Capability Registration](#discoverability-and-capability-registration)
-    - [Data Transformation and Format Handling](#data-transformation-and-format-handling)
+    - [Agents](#agents)
+    - [Modes of Simulation](#modes-of-simulation)
+    - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
   - [Requirements](#requirements)
     - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
     - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
@@ -38,26 +40,31 @@ This framework supports multiple protocols and interaction modes, allowing for f
 
 ## Key Features
 
-### Multi-Protocol Support
+#### Agents
 
-The Simulation Bridge supports multiple communication protocols to ensure broad interoperability. RabbitMQ is provided as the default messaging layer, with support also available for MQTT and RESTful APIs. The architecture is extensible, allowing the integration of custom protocol adapters through a plugin interface.
+Agent is a software connector that acts as an interpreter between _sim-bridge_ and the specific simulator. Each simulator requires its own Agent, which must be designed to be reusable across diverse simulation scenarios for that simulator.
 
-### Flexible Interaction Modes
+> Refer to the [Matlab Agent](agents/matlab/README.md) for an implementation example.
 
-The system supports two primary modes of interaction, allowing for both discrete and continuous simulation workflows:
+#### Modes of Simulation
 
-| Mode      | Description                                                                |
-| --------- | -------------------------------------------------------------------------- |
-| Batch     | Executes simulations in isolated runs, without the need for live feedback. |
-| Streaming | Enables continuous data exchange for real-time monitoring and control.     |
+_sim-bridge_ supports Batch and Streaming simulation modes, allowing for both discrete and real-time streaming simulation workflows:
 
-### Discoverability and Capability Registration
+| Mode      | Description                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch     | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
+| Streaming | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
 
-Simulator capabilities are detected and registered automatically via a built-in agent system. This mechanism enables dynamic integration and reduces the need for manual configuration, improving scalability and adaptability across simulation environments.
+#### Plug-in Protocol Adapters
 
-### Data Transformation and Format Handling
+The system follows a _plug-in-based protocol adapter architecture_, enabling seamless future integration of additional protocols.
+It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external clients to communicate with the Simulation Bridge through these channels.
 
-Data exchanged between components can be automatically transformed across common formats including JSON, XML, and CSV. This transformation is handled in a protocol-agnostic manner, ensuring compatibility regardless of the source or target communication interface.
+<p align="center">
+  <img src="images/plug-in-protocol-adapter.png" alt="Plug-in Protocol Adapter Architecture">
+  <br>
+  <em>Figure 2: Plug-in Protocol Adapter Architecture </em>
+</p>
 
 ## Requirements
 
@@ -276,7 +283,6 @@ poetry run simulation-bridge -c <path_to_config.yaml>
 ### Simulation Bridge
 
 - [🏗️ **Internal Architecture** ↗](simulation_bridge/docs/internal_architecture.md): Overview of the system's architecture, key modules, and their interactions.
-- [🔌 **Extending with New Protocols** ↗](simulation_bridge/docs/adding_new_protocols.md): Instructions for integrating custom protocol adapters into the Simulation Bridge.
 
 ### Matlab Agent
 
