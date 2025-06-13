@@ -5,7 +5,7 @@ Simulation Bridge (_sim-bridge_) is a middleware solution designed to run distri
 It serves as a _modular_, _reusable_, and _bidirectional_ communication bridge, purpose-built to manage, control and monitor simulations over different simulators.
 
 <p align="center">
-  <img src="images/software_architecture.png" alt="Simulation Bridge Architecture">
+  <img src="images/software_architecture.png" alt="Simulation Bridge Architecture" width="90%">
   <br>
   <em>Figure 1: Simulation Bridge Architecture </em>
 </p>
@@ -58,10 +58,10 @@ _sim-bridge_ supports Batch and Streaming simulation modes, allowing for both di
 #### Plug-in Protocol Adapters
 
 The system follows a _plug-in-based protocol adapter architecture_, enabling seamless future integration of additional protocols.
-It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external clients to communicate with the Simulation Bridge through these channels.
+It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external clients to communicate with the _sim-bridge_ through these channels.
 
 <p align="center">
-  <img src="images/plug-in-protocol-adapter.png" alt="Plug-in Protocol Adapter Architecture">
+  <img src="images/plug-in-protocol-adapter.png" alt="Plug-in Protocol Adapter Architecture" width="70%">
   <br>
   <em>Figure 2: Plug-in Protocol Adapter Architecture </em>
 </p>
@@ -121,7 +121,7 @@ poetry install
 
 #### 4. Install RabbitMQ
 
-The Simulation Bridge requires an active RabbitMQ server. You can choose one of the following options:
+The _sim-bridge_ requires an active RabbitMQ server. You can choose one of the following options:
 
 ##### Option 1: Install RabbitMQ Locally
 
@@ -242,7 +242,7 @@ logging:
 
 ## Usage
 
-The Simulation Bridge requires a configuration file to run.
+The _sim-bridge_ requires a configuration file to run.
 
 ### Getting Started
 
@@ -256,7 +256,7 @@ This command creates a `config.yaml` file in your current directory. If the file
 
 #### Running with the Default Configuration
 
-Once the configuration file is in place, start the Simulation Bridge with:
+Once the configuration file is in place, start the _sim-bridge_ with:
 
 ```bash
 poetry run simulation-bridge
