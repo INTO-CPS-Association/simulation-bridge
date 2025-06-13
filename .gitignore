@@ -197,5 +197,8 @@ simulation*.yaml
 *.csv
 #SIMULATION BRIDGE 
 /logs
-
-
+/certs
+*.pem
+*_use.yaml
+client/
+dist/

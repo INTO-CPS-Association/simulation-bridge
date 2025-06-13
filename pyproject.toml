@@ -6,8 +6,11 @@ authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 license = "ICAPL"
 readme = "README.md"
 
-packages = [
-    { include = "simulation_bridge", from = "src" } 
+packages = [{ include = "simulation_bridge" }]
+
+include = [
+    "simulation_bridge/resources/**/*",
+    "simulation_bridge/config/**/*"
 ]
 
 [tool.poetry.dependencies]
@@ -15,11 +18,15 @@ python = "^3.12"
 paho-mqtt = ">=2.1.0,<3.0.0"
 pyyaml = ">=6.0.2,<7.0.0"
 pika = "^1.3.2"
-scipy = "^1.15.2"
-matplotlib = "^3.10.1"
-python-json-logger = "^3.3.0"
-pydantic = "^2.11.3"
-psutil = "^7.0.0"
+blinker = "^1.9.0"
+requests = "^2.32.3"
+colorlog = "^6.9.0"
+pydantic = "^2.11.5"
+fastapi = "^0.115.12"
+uvicorn = "^0.34.2"
+quart = "^0.20.0"
+httpx = "^0.28.1"
+pylint = "^3.3.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
@@ -34,4 +41,4 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-simulation-bridge = "src.simulation_bridge.main:main"
+simulation-bridge = "simulation_bridge.src.main:main"
