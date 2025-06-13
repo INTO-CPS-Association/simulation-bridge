@@ -112,6 +112,17 @@ class BridgeCore:
             exchange='ex.bridge.result',
             protocol='rabbitmq')
 
+    def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
+        """
+        Handle RabbitMQ result messages.
+
+        Args:
+            **kwargs: Keyword arguments containing message data
+        """
+        message = kwargs.get('message', {})
+        logger.error(
+            "Received error result message with unknown protocol: %s", message['error'])
+
     def _publish_message(self, producer, consumer, message,
                          exchange='ex.bridge.output', protocol='unknown'):
         """

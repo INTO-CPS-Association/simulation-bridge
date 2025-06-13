@@ -92,6 +92,8 @@ class RabbitMQAdapter(ProtocolAdapter):
 
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
+            
+            print(f"Received message from {queue_name}: {message}")
 
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')
@@ -108,17 +110,29 @@ class RabbitMQAdapter(ProtocolAdapter):
                 signal_name = 'message_received_input_rabbitmq'
                 kwargs["protocol"] = 'rabbitmq'
             elif queue_name == 'Q.bridge.result':
-                protocol = message.get(
-                    'bridge_meta', '{}').get(
-                    'protocol', 'unknown')
+                bridge_meta = message.get('bridge_meta', {})
+                if isinstance(bridge_meta, str):
+                    if bridge_meta.strip().startswith('{'):
+                        try:
+                            bridge_meta = json.loads(bridge_meta)
+                        except Exception:
+                            logger.warning("Malformed JSON in bridge_meta: %s",
+                                           bridge_meta)
+                            bridge_meta = {}
+                    else:
+                        logger.debug("bridge_meta is a non-JSON string: %s",
+                                     bridge_meta)
+                        bridge_meta = {}
+                protocol = bridge_meta.get('protocol', 'unknown')
                 if protocol == 'rest':
                     signal_name = 'message_received_result_rest'
                 elif protocol == 'mqtt':
                     signal_name = 'message_received_result_mqtt'
                 elif protocol == 'rabbitmq':
                     signal_name = 'message_received_result_rabbitmq'
+                elif protocol == 'unknown':
+                    signal_name = 'message_received_result_unknown'
             signal(signal_name).send(self, **kwargs)
-
             ch.basic_ack(delivery_tag=method.delivery_tag)
             logger.debug(
                 "Message processed from queue %s: %s",
