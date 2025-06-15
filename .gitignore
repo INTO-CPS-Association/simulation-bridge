@@ -179,10 +179,13 @@ cython_debug/
 agents/matlab/client
 agents/matlab/logs
 agents/matlab/performance_log
+agents/matlab/matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/Data/
 # Interactive simulation in progress
 agents/matlab/matlab_agent/src/interactive/ 
 agents/matlab/matlab_agent/docs/examples/InteractiveSimulation.m
 agents/matlab/matlab_agent/docs/examples/InteractiveSimulationWrapper.m
+# Simulink
+slprj/
 # Distribution files
 agents/matlab/dist/
 # Config files
@@ -198,4 +201,5 @@ simulation*.yaml
 #SIMULATION BRIDGE 
 /logs
 
-
+.venv*
+certs

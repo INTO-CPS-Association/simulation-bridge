@@ -1,3 +1,11 @@
+"""
+use_matlab_agent.py
+
+A simple RabbitMQ client to send simulation requests to a MATLAB agent,
+and listen asynchronously for the simulation results.
+"""
+
+import argparse
 import threading
 import uuid
 from typing import Any, Dict, NoReturn
@@ -6,32 +14,48 @@ import yaml
 
 
 class SimpleUsageMatlabAgent:
-    def __init__(self, agent_identifier: str = "dt",
-                 destination_identifier: str = "matlab",
-                 config_path: str = "use.yaml") -> None:
-        # Store identifiers for the agent and destination
+    """
+    Simple client class to interact with MATLAB simulation agent via RabbitMQ.
+
+    It loads configuration from YAML, connects to RabbitMQ, sends simulation
+    payload requests, and listens for results asynchronously.
+    """
+
+    def __init__(
+        self,
+        agent_identifier: str = "dt",
+        destination_identifier: str = "matlab",
+        config_path: str = "use.yaml"
+    ) -> None:
+        """
+        Initialize the agent with identifiers and load configuration.
+
+        Args:
+            agent_identifier (str): Identifier for this client agent.
+            destination_identifier (str): Identifier for the target agent.
+            config_path (str): Path to the YAML config file.
+        """
         self.agent_id: str = agent_identifier
         self.destination_id: str = destination_identifier
 
-        # Load configuration from YAML file
         self.config = self.load_yaml(config_path)
-        self.simulation_request_path = self.config.get('simulation_request', 'simulation.yaml')
-        rabbitmq_cfg = self.config.get('rabbitmq', {})
+        self.simulation_request_path = self.config.get(
+            "simulation_request", "simulation.yaml"
+        )
+        rabbitmq_cfg = self.config.get("rabbitmq", {})
 
-        # Create RabbitMQ credentials
         credentials = pika.PlainCredentials(
-            rabbitmq_cfg.get('username', 'guest'),
-            rabbitmq_cfg.get('password', 'guest')
+            rabbitmq_cfg.get("username", "guest"),
+            rabbitmq_cfg.get("password", "guest"),
         )
 
-        # Establish connection to RabbitMQ server
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
-                host=rabbitmq_cfg.get('host', 'localhost'),
-                port=rabbitmq_cfg.get('port', 5672),
-                virtual_host=rabbitmq_cfg.get('vhost', '/'),
+                host=rabbitmq_cfg.get("host", "localhost"),
+                port=rabbitmq_cfg.get("port", 5672),
+                virtual_host=rabbitmq_cfg.get("vhost", "/"),
                 credentials=credentials,
-                heartbeat=rabbitmq_cfg.get('heartbeat', 600)
+                heartbeat=rabbitmq_cfg.get("heartbeat", 600),
             )
         )
         self.channel = self.connection.channel()
@@ -39,116 +63,172 @@ class SimpleUsageMatlabAgent:
         self.setup_channels()
 
     def setup_channels(self) -> None:
-        # Declare exchanges for communication
+        """
+        Declare exchanges and queues, and bind them for message routing.
+        """
         self.channel.exchange_declare(
-            exchange='ex.bridge.output',
-            exchange_type='topic',
-            durable=True
+            exchange="ex.bridge.output", exchange_type="topic", durable=True
         )
         self.channel.exchange_declare(
-            exchange='ex.sim.result',
-            exchange_type='topic',
-            durable=True
+            exchange="ex.sim.result", exchange_type="topic", durable=True
         )
 
-        # Create and configure result queue for this agent
-        self.result_queue = f'Q.{self.agent_id}.matlab.result'
+        self.result_queue = f"Q.{self.agent_id}.matlab.result"
         self.channel.queue_declare(queue=self.result_queue, durable=True)
 
-        # Bind the queue to the exchange with appropriate routing key
         self.channel.queue_bind(
-            exchange='ex.sim.result',
+            exchange="ex.sim.result",
             queue=self.result_queue,
-            routing_key=f"{self.destination_id}.result.{self.agent_id}"
+            routing_key=f"{self.destination_id}.result.{self.agent_id}",
         )
 
         print(f"[{self.agent_id.upper()}] Infrastructure configured successfully.")
 
     def send_request(self, payload_data: Dict[str, Any]) -> None:
-        # Prepare payload with unique request ID
+        """
+        Send a simulation request message with the given payload.
+
+        Args:
+            payload_data (Dict[str, Any]): Simulation payload to send.
+        """
         payload: Dict[str, Any] = {
             **payload_data,
-            'request_id': str(uuid.uuid4())
+            "request_id": str(uuid.uuid4()),
         }
 
-        # Add bridge metadata to the simulation data
-        payload.setdefault('simulation', {})['bridge_meta'] = {
-            'protocol': 'rabbitmq'
+        payload.setdefault("simulation", {})["bridge_meta"] = {
+            "protocol": "rabbitmq"
         }
         payload_yaml: str = yaml.dump(payload, default_flow_style=False)
         routing_key: str = f"{self.agent_id}.{self.destination_id}"
 
-        # Publish message to RabbitMQ
         self.channel.basic_publish(
-            exchange='ex.bridge.output',
+            exchange="ex.bridge.output",
             routing_key=routing_key,
             body=payload_yaml,
             properties=pika.BasicProperties(
                 delivery_mode=2,  # Make message persistent
-                content_type='application/x-yaml',
-                message_id=str(uuid.uuid4())
-            )
+                content_type="application/x-yaml",
+                message_id=str(uuid.uuid4()),
+            ),
         )
         print(f"[{self.agent_id.upper()}] Message sent to matlab: {payload}")
 
-    def handle_result(self, ch, method, properties, body) -> None:
-        # Callback function to process incoming results from MATLAB
+    def handle_result(
+        self, ch, method, _properties, body
+    ) -> None:
+        """
+        Callback to process incoming results from MATLAB.
+
+        Args:
+            ch: Channel object.
+            method: Delivery method.
+            _properties: Message properties (unused).
+            body: Message body.
+        """
         try:
             result: Dict[str, Any] = yaml.safe_load(body)
             print(f"\n[{self.agent_id.upper()}] Result received from MATLAB:")
             print(f"Result: {result}")
             print("-" * 40)
             ch.basic_ack(method.delivery_tag)
-        except Exception as e:
-            print(f"Error processing result: {e}")
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f"Error processing result: {exc}")
 
-    def start_listening(self) -> NoReturn:
-        # Start consuming messages from the result queue
+    def start_listening(self) -> None:
+        """
+        Start consuming messages from the result queue indefinitely.
+        """
         self.channel.basic_consume(
-            queue=self.result_queue,
-            on_message_callback=self.handle_result
+            queue=self.result_queue, on_message_callback=self.handle_result
         )
-        print(f"[{self.agent_id.upper()}] Listening for results on routing key "
-              f"'matlab.result.{self.agent_id}'...")
+        print(
+            f"[{self.agent_id.upper()}] Listening for results on routing key "
+            f"'matlab.result.{self.agent_id}'..."
+        )
         self.channel.start_consuming()
 
     def load_yaml(self, file_path: str) -> Dict[str, Any]:
-        # Helper function to load YAML configuration files
-        with open(file_path, 'r', encoding='utf-8') as file:
+        """
+        Load YAML file and return its content as a dictionary.
+
+        Args:
+            file_path (str): Path to the YAML file.
+
+        Returns:
+            Dict[str, Any]: Parsed YAML content.
+        """
+        with open(file_path, "r", encoding="utf-8") as file:
             return yaml.safe_load(file)
 
 
 def start_listener(agent_identifier: str) -> None:
-    # Function to initialize and run a listener agent in a separate thread
+    """
+    Initialize and start the Matlab agent listener in a separate thread.
+
+    Args:
+        agent_identifier (str): Agent identifier for the listener.
+    """
     matlab_agent = SimpleUsageMatlabAgent(agent_identifier)
     matlab_agent.start_listening()
 
 
 if __name__ == "__main__":
-    # Define agent identifiers
+    parser = argparse.ArgumentParser(
+        description="Simple Matlab Agent Client"
+    )
+    parser.add_argument(
+        "--api-payload",
+        type=str,
+        default=None,
+        help=(
+            "Path to the YAML file containing the simulation payload "
+            "(simulation.yaml). If omitted, the default path from the "
+            "configuration file will be used."
+        ),
+    )
+    args = parser.parse_args()
+
     AGENT_ID = "dt"
     DESTINATION = "matlab"
 
-    # Start a listener thread to receive results
-    listener_thread = threading.Thread(target=start_listener, args=(AGENT_ID,))
+    # Start the listener thread to receive simulation results asynchronously.
+    listener_thread = threading.Thread(
+        target=start_listener,
+        args=(AGENT_ID,),
+    )
     listener_thread.daemon = True
     listener_thread.start()
 
-    # Create the main agent
-    agent = SimpleUsageMatlabAgent(AGENT_ID, DESTINATION)
+    # Instantiate the client with the default configuration file.
+    client = SimpleUsageMatlabAgent(
+        AGENT_ID,
+        DESTINATION,
+        config_path="use.yaml",
+    )
 
     try:
-        # Load simulation data and send request
-        simulation_request_path = agent.simulation_request_path
-        simulation_data = agent.load_yaml(simulation_request_path)
-        agent.send_request(simulation_data)
+        # Determine the simulation payload file to load.
+        # Use CLI-specified payload path if provided, otherwise use default from config.
+        simulation_file_path = (
+            args.api_payload
+            if args.api_payload
+            else client.simulation_request_path
+        )
 
-        # Keep the main thread running to receive results
+        # Load the simulation request data from the specified YAML file.
+        simulation_data = client.load_yaml(simulation_file_path)
+
+        # Send the simulation request to the Matlab agent via RabbitMQ.
+        client.send_request(simulation_data)
+
+        # Keep the main thread alive to continue receiving asynchronous results.
         print("\nPress Ctrl+C to terminate the program...")
         while True:
             pass
 
     except KeyboardInterrupt:
         print("\nProgram terminated by user.")
-    except Exception as e:
-        print(f"Error: {e}")
+
+    except Exception as exc:  # pylint: disable=broad-except
+        print(f"Unexpected error: {exc}")

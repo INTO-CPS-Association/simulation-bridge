@@ -1,0 +1,25 @@
+component convection_with_heat_coeff_input < foundation.thermal.branch
+% Convective Heat Transfer
+% This block models heat transfer in a thermal network by convection due to
+% fluid motion. The rate of heat transfer is proportional to the
+% temperature difference, heat transfer coefficient, and surface area in
+% contact with the fluid.
+
+% Copyright 2005-2023 The MathWorks, Inc.
+
+inputs
+    heat_tr_coeff = {20,   'W/(m^2*K)'}; % Heat transfer coefficient
+end
+
+parameters
+    area          = {1e-4, 'm^2'      }; % Area
+    
+end
+
+equations
+    assert(area > 0)
+    assert(heat_tr_coeff > 0)
+    Q == area * heat_tr_coeff * T;
+end
+
+end

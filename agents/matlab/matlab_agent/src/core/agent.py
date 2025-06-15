@@ -108,39 +108,3 @@ class MatlabAgent:
         if success:
             self.performance_monitor.record_result_sent()
         return success
-
-    def handle_request(self, request: Dict[str, Any]) -> None:
-        """
-        Handle an incoming request and track its performance.
-
-        Args:
-            request (Dict[str, Any]): The incoming request data
-        """
-        operation_id = str(uuid.uuid4())
-        self.performance_monitor.start_operation(operation_id)
-
-        try:
-            # Record MATLAB start
-            self.performance_monitor.record_matlab_start()
-
-            # Your existing request handling logic here
-            # ...
-
-            # Record MATLAB startup complete
-            self.performance_monitor.record_matlab_startup_complete()
-
-            # Your simulation logic here
-            # ...
-
-            # Record simulation complete
-            self.performance_monitor.record_simulation_complete()
-
-            # Record MATLAB stop
-            self.performance_monitor.record_matlab_stop()
-
-        except Exception as e:
-            logger.error(f"Error processing request {operation_id}: {e}")
-            raise
-        finally:
-            # Always complete the operation to record metrics
-            self.performance_monitor.complete_operation()
