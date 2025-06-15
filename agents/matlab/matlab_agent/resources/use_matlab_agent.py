@@ -135,7 +135,7 @@ class SimpleUsageMatlabAgent:
         except Exception as exc:  # pylint: disable=broad-except
             print(f"Error processing result: {exc}")
 
-    def start_listening(self) -> NoReturn:
+    def start_listening(self) -> None:
         """
         Start consuming messages from the result queue indefinitely.
         """
@@ -200,8 +200,8 @@ if __name__ == "__main__":
     listener_thread.daemon = True
     listener_thread.start()
 
-    # Instantiate the Matlab agent with the default configuration file.
-    agent = SimpleUsageMatlabAgent(
+    # Instantiate the client with the default configuration file.
+    client = SimpleUsageMatlabAgent(
         AGENT_ID,
         DESTINATION,
         config_path="use.yaml",
@@ -213,14 +213,14 @@ if __name__ == "__main__":
         simulation_file_path = (
             args.api_payload
             if args.api_payload
-            else agent.simulation_request_path
+            else client.simulation_request_path
         )
 
         # Load the simulation request data from the specified YAML file.
-        simulation_data = agent.load_yaml(simulation_file_path)
+        simulation_data = client.load_yaml(simulation_file_path)
 
         # Send the simulation request to the Matlab agent via RabbitMQ.
-        agent.send_request(simulation_data)
+        client.send_request(simulation_data)
 
         # Keep the main thread alive to continue receiving asynchronous results.
         print("\nPress Ctrl+C to terminate the program...")

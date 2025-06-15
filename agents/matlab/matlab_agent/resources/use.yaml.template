@@ -5,4 +5,7 @@ rabbitmq:
   password: guest # RabbitMQ password
   heartbeat: 600 # Heartbeat interval in seconds
   vhost: / # RabbitMQ virtual host
-simulation_request: simulation.yaml # Default path to the simulation YAML payload
+
+# Default path to the simulation YAML payload
+# Pbsolute or relative path of the file in single quotes
+simulation_request: simulation.yaml

@@ -201,4 +201,5 @@ simulation*.yaml
 #SIMULATION BRIDGE 
 /logs
 
-
+.venv*
+certs

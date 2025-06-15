@@ -78,7 +78,7 @@ you will find several folders containing practical examples. Each example folder
     Execute the Python client with the appropriate API payload file:  
    python use_matlab_agent.py --api-payload "path_to_api_payload"
 
-> **Note:** It is recommended to use absolute paths when specifying the `--api-payload` argument to avoid path resolution issues.
+> **Note:** It is recommended to use absolute paths when specifying the `--api-payload` argument to avoid path resolution issues. It is a good practice to place the path in single quotes.
 
 ### Where to find the API payload files
 
