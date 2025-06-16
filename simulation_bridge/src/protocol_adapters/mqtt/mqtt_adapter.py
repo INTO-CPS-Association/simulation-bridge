@@ -14,9 +14,7 @@ from blinker import signal
 
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
-from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
-from ...core.bridge_core import BridgeCore
 
 logger = get_logger()
 

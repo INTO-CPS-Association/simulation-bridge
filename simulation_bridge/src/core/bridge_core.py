@@ -7,12 +7,33 @@ providing a unified interface for cross-protocol communication.
 
 import json
 import pika
+from pydantic import BaseModel
+from typing import Dict, Any
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
 
+# Constants for RabbitMQ connection parameters
+RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
+RABBITMQ_BLOCKED_CONNECTION_TIMEOUT = 300  # 5 minutes timeout
+RABBITMQ_CONNECTION_ATTEMPTS = 3  # Number of connection attempts
+RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
+
+
 logger = get_logger()
 
+# Pydantic models for message validation
+class SimulationModel(BaseModel):
+    request_id: str
+    client_id: str
+    simulator: str
+    type: str
+    file: str
+    inputs: Dict[str, Any]
+    outputs: Dict[str, Any]
+
+class MessageModel(BaseModel):
+    simulation: SimulationModel
 
 class BridgeCore:
     """
@@ -42,16 +63,21 @@ class BridgeCore:
         try:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
-
+                
+            credentials = pika.PlainCredentials(
+                self.config['username'],
+                self.config['password']
+            )
             self.connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=self.config['host'],
                     port=self.config['port'],
                     virtual_host=self.config['virtual_host'],
-                    heartbeat=600,  # 10 minutes heartbeat
-                    blocked_connection_timeout=300,  # 5 minutes timeout
-                    connection_attempts=3,  # Number of connection attempts
-                    retry_delay=5  # Delay between retries in seconds
+                    credentials=credentials,
+                    heartbeat=RABBITMQ_HEARTBEAT,
+                    blocked_connection_timeout=RABBITMQ_BLOCKED_CONNECTION_TIMEOUT,
+                    connection_attempts=RABBITMQ_CONNECTION_ATTEMPTS,
+                    retry_delay=RABBITMQ_RETRY_DELAY
                 )
             )
             self.channel = self.connection.channel()
@@ -82,18 +108,23 @@ class BridgeCore:
         Args:
             **kwargs: Keyword arguments containing message data
         """
-        message = kwargs.get('message', {})
-        request_id = message.get(
-            'simulation',
-            'unknown').get(
-            'request_id',
-            'unknown')
+        message_dict = kwargs.get('message', {})
+        try:
+            message = MessageModel.model_validate(message_dict)
+        except Exception as e:
+            logger.error(f"Invalid message format: {e}")
+            return
+        simulation = message.simulation
+        if simulation is None:
+            request_id = 'unknown'
+        else:
+            request_id = simulation.request_id if simulation.request_id else 'unknown'
         producer = kwargs.get('producer', 'unknown')
         consumer = kwargs.get('consumer', 'unknown')
         protocol = kwargs.get('protocol', 'unknown')
         logger.info(
             "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
-        self._publish_message(producer, consumer, message, protocol=protocol)
+        self._publish_message(producer, consumer, message.model_dump(), protocol=protocol)
 
     def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """

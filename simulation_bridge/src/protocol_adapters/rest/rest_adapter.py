@@ -7,9 +7,7 @@ import json
 from typing import Dict, Any, Optional, AsyncGenerator
 from ...utils.config_manager import ConfigManager
 from ...utils.logger import get_logger
-from ...utils.signal_manager import SignalManager
 from ..base.protocol_adapter import ProtocolAdapter
-from ...core.bridge_core import BridgeCore
 from blinker import signal
 
 logger = get_logger()
