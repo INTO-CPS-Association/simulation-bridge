@@ -92,8 +92,6 @@ class RabbitMQAdapter(ProtocolAdapter):
 
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
-            
-            print(f"Received message from {queue_name}: {message}")
 
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')

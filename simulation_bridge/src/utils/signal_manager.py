@@ -24,7 +24,8 @@ class SignalManager:
         cls._bridge_core_instance = bridge_core_instance
 
     @classmethod
-    def register_adapter_instance(cls, protocol: str, adapter_instance: object):
+    def register_adapter_instance(
+            cls, protocol: str, adapter_instance: object):
         """Store adapter instances to bind their methods to signals."""
         cls._adapter_instances[protocol] = adapter_instance
 
@@ -32,22 +33,29 @@ class SignalManager:
     def get_available_signals(cls, protocol: str) -> List[str]:
         """Return the list of signals available for a given protocol."""
         protocol_data = cls.PROTOCOL_CONFIG.get(protocol)
-        return list(protocol_data.get("signals", {}).keys()) if protocol_data else []
+        return list(protocol_data.get("signals", {}).keys()
+                    ) if protocol_data else []
 
     @classmethod
     def connect_all_signals(cls):
         """Auto-connect all signals to the appropriate functions."""
         for protocol, protocol_data in cls.PROTOCOL_CONFIG.items():
-            for sig_name, func_path in protocol_data.get("signals", {}).items():
+            for sig_name, func_path in protocol_data.get(
+                    "signals", {}).items():
                 callback = cls._resolve_callback(func_path, protocol)
                 if not callback:
-                    logger.warning("Skipping signal '%s': callback not found", sig_name)
+                    logger.warning(
+                        "Skipping signal '%s': callback not found", sig_name)
                     continue
                 try:
                     signal(sig_name).connect(callback)
-                    logger.debug("Connected signal '%s' to '%s'", sig_name, func_path)
-                except Exception as e: # pylint: disable=broad-exception-caught
-                    logger.error("Failed to connect signal '%s': %s", sig_name, e)
+                    logger.debug(
+                        "Connected signal '%s' to '%s'",
+                        sig_name,
+                        func_path)
+                except Exception as e:  # pylint: disable=broad-exception-caught
+                    logger.error(
+                        "Failed to connect signal '%s': %s", sig_name, e)
 
     @classmethod
     def _resolve_callback(cls, func_path: str, protocol: str) -> Callable:
@@ -59,7 +67,8 @@ class SignalManager:
 
         if class_or_module == "BridgeCore":
             if not cls._bridge_core_instance:
-                logger.error("BridgeCore instance not set but required for signal binding")
+                logger.error(
+                    "BridgeCore instance not set but required for signal binding")
                 return None
             return getattr(cls._bridge_core_instance, func_name, None)
 
@@ -67,14 +76,17 @@ class SignalManager:
         if adapter_instance:
             return getattr(adapter_instance, func_name, None)
 
-        logger.warning("No adapter instance registered for protocol '%s'", protocol)
+        logger.warning(
+            "No adapter instance registered for protocol '%s'",
+            protocol)
         return None
 
     @classmethod
     def disconnect_all_signals(cls):
         """Disconnect all signals from their connected callbacks."""
         for protocol, protocol_data in cls.PROTOCOL_CONFIG.items():
-            for sig_name, func_path in protocol_data.get("signals", {}).items():
+            for sig_name, func_path in protocol_data.get(
+                    "signals", {}).items():
                 callback = cls._resolve_callback(func_path, protocol)
                 if not callback:
                     logger.warning(
@@ -85,6 +97,6 @@ class SignalManager:
                     signal(sig_name).disconnect(callback)
                     logger.debug("Disconnected signal '%s' from '%s'", sig_name,
                                  func_path)
-                except Exception as e: # pylint: disable=broad-exception-caught
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     logger.error("Failed to disconnect signal '%s': %s", sig_name,
                                  e)

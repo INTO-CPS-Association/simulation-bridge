@@ -7,6 +7,7 @@ from ..utils.config_manager import ConfigManager
 from ..utils.config_loader import load_protocol_config
 from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
+from ..utils.certs import ensure_certificates
 
 logger = get_logger()
 
@@ -23,6 +24,8 @@ class BridgeOrchestrator:
         """
         self.simulation_bridge_id = simulation_bridge_id
         logger.info("Simulation bridge ID: %s", self.simulation_bridge_id)
+        # Validate and ensure SSL certificates are present
+        ensure_certificates(validity_days=365)
 
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.get_config()
@@ -66,10 +69,9 @@ class BridgeOrchestrator:
 
             logger.info("Bridge core initialized and signals connected")
 
-        except Exception as exc: # pylint: disable=broad-exception-caught
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error setting up interfaces: %s", exc)
             raise
-
 
     def start(self):
         """Start the bridge and all its components."""

@@ -78,8 +78,6 @@ class RESTConfig(BaseModel):
     host: str
     port: int
     endpoint: str
-    certfile: str
-    keyfile: str
     debug: bool
 
 
@@ -232,8 +230,6 @@ class ConfigManager:
                 host="0.0.0.0",
                 port=5000,
                 endpoint="/message",
-                certfile="./certs/cert.pem",
-                keyfile="./certs/key.pem",
                 debug=False
             ),
             logging=LoggingConfig(
