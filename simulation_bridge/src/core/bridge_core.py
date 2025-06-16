@@ -5,10 +5,10 @@ This module handles message routing between RabbitMQ, MQTT, and REST protocols,
 providing a unified interface for cross-protocol communication.
 """
 
+from typing import Dict, Any
 import json
 import pika
 from pydantic import BaseModel
-from typing import Dict, Any
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
@@ -24,6 +24,7 @@ logger = get_logger()
 
 # Pydantic models for message validation
 class SimulationModel(BaseModel):
+    "Represents the details of a simulation request."
     request_id: str
     client_id: str
     simulator: str
@@ -33,6 +34,7 @@ class SimulationModel(BaseModel):
     outputs: Dict[str, Any]
 
 class MessageModel(BaseModel):
+    "Represents a message structure for simulation requests."
     simulation: SimulationModel
 
 class BridgeCore:
@@ -63,7 +65,7 @@ class BridgeCore:
         try:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
-                
+
             credentials = pika.PlainCredentials(
                 self.config['username'],
                 self.config['password']
@@ -111,8 +113,8 @@ class BridgeCore:
         message_dict = kwargs.get('message', {})
         try:
             message = MessageModel.model_validate(message_dict)
-        except Exception as e:
-            logger.error(f"Invalid message format: {e}")
+        except Exception as e: # pylint: disable=broad-exception-caught
+            logger.error("Invalid message format: %s", e)
             return
         simulation = message.simulation
         if simulation is None:
@@ -154,7 +156,7 @@ class BridgeCore:
         logger.error(
             "Received error result message with unknown protocol: %s", message['error'])
 
-    def _publish_message(self, producer, consumer, message,
+    def _publish_message(self, producer, consumer, message, # pylint: disable=too-many-arguments
                          exchange='ex.bridge.output', protocol='unknown'):
         """
         Publish message to RabbitMQ exchange.

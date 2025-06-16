@@ -51,8 +51,20 @@ class BridgeOrchestrator:
             infrastructure = RabbitMQInfrastructure(self.config_manager)
             infrastructure.setup()
 
-            # Instantiate and register each adapter
+            # Get list of enabled protocols
+            enabled_protocols = SignalManager.get_enabled_protocols()
+            if not enabled_protocols:
+                logger.warning("No protocol adapters are enabled — no messages will be received.")
+            else:
+                protocols_str = ", ".join(proto.upper() for proto in enabled_protocols)
+                logger.info("Enabled protocols: %s", protocols_str)
+
+            # Instantiate and register each adapter only for enabled protocols
             for name, adapter_class in self.adapter_classes.items():
+                if name not in enabled_protocols:
+                    logger.debug("Skipping initialization of disabled protocol: %s", name.upper())
+                    continue
+
                 adapter = adapter_class(self.config_manager)
                 self.adapters[name] = adapter
 
@@ -64,10 +76,9 @@ class BridgeOrchestrator:
             self.bridge = BridgeCore(self.config_manager, self.adapters)
             SignalManager.set_bridge_core(self.bridge)
 
-            # Connect all signals defined in protocol config
+            # Connect all signals defined in protocol config (only for enabled protocols)
             SignalManager.connect_all_signals()
-
-            logger.info("Bridge core initialized and signals connected")
+            logger.info("Bridge core initialized and signals connected for enabled protocols")
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error setting up interfaces: %s", exc)

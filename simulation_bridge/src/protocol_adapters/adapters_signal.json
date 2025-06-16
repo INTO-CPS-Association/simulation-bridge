@@ -1,6 +1,7 @@
 {
   "protocols": {
     "rabbitmq": {
+      "enabled": true,
       "signals": {
         "message_received_input_rabbitmq": "BridgeCore.handle_input_message",
         "message_received_result_rabbitmq": "BridgeCore.handle_result_rabbitmq_message",
@@ -9,6 +10,7 @@
       "class": ".rabbitmq.rabbitmq_adapter.RabbitMQAdapter"
     },
     "mqtt": {
+      "enabled": true,
       "signals": {
         "message_received_input_mqtt": "BridgeCore.handle_input_message",
         "message_received_result_mqtt": "MQTTAdapter.publish_result_message_mqtt"
@@ -16,6 +18,7 @@
       "class": ".mqtt.mqtt_adapter.MQTTAdapter"
     },
     "rest": {
+      "enabled": true,
       "signals": {
         "message_received_input_rest": "BridgeCore.handle_input_message",
         "message_received_result_rest": "RESTAdapter.publish_result_message_rest"
