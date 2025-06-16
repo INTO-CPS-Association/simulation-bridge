@@ -62,7 +62,8 @@ class PerformanceMonitor:
                 perf_config = config.get('performance', {})
                 self.enabled = perf_config.get('enabled', False)
                 log_dir = perf_config.get('log_dir', 'performance_logs')
-                log_filename = perf_config.get('log_filename', 'performance_metrics.csv')
+                log_filename = perf_config.get(
+                    'log_filename', 'performance_metrics.csv')
 
                 if os.path.isabs(log_dir):
                     self.output_dir = Path(log_dir)
@@ -72,19 +73,23 @@ class PerformanceMonitor:
             if self.enabled:
                 try:
                     self.output_dir.mkdir(parents=True, exist_ok=True)
-                    logger.debug("Created performance log directory: %s", self.output_dir)
+                    logger.debug(
+                        "Created performance log directory: %s",
+                        self.output_dir)
 
                     self.process = psutil.Process()
                     self.csv_path = self.output_dir / log_filename
 
                     if not self.csv_path.exists():
                         self._write_csv_headers()
-                        logger.debug("Created performance metrics file: %s", self.csv_path)
+                        logger.debug(
+                            "Created performance metrics file: %s", self.csv_path)
 
-                    logger.debug("Performance monitoring enabled. Logs will be saved to %s", 
-                               self.output_dir)
+                    logger.debug("Performance monitoring enabled. Logs will be saved to %s",
+                                 self.output_dir)
                 except Exception as e:
-                    logger.error("Failed to initialize performance monitoring: %s", e)
+                    logger.error(
+                        "Failed to initialize performance monitoring: %s", e)
                     self.enabled = False
             else:
                 logger.debug("Performance monitoring is disabled")
@@ -165,7 +170,8 @@ class PerformanceMonitor:
             return
 
         self.current_metrics.simulation_duration = (
-            time.time() - self.current_metrics.matlab_start_time
+            time.time() - self.current_metrics.matlab_start_time -
+            self.current_metrics.matlab_startup_duration
         )
         self._update_system_metrics()
 
@@ -248,7 +254,8 @@ class PerformanceMonitor:
         if not self.enabled or not self.metrics_history:
             return {}
 
-        startup_times = [m.matlab_startup_duration for m in self.metrics_history]
+        startup_times = [
+            m.matlab_startup_duration for m in self.metrics_history]
         simulation_times = [m.simulation_duration for m in self.metrics_history]
         total_times = [m.total_duration for m in self.metrics_history]
 

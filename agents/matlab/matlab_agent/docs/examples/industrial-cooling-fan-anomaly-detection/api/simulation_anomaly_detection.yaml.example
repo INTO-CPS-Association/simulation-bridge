@@ -1,0 +1,12 @@
+simulation:
+  request_id: abcdef12345 # Unique identifier for the request
+  client_id: dt # Client identifier
+  simulator: matlab # Specifies MATLAB as the simulation engine
+  type: batch # simulation type
+  file: simulation.m # Target simulation file
+  inputs:
+    input1: "placeholder" # Required input parameter (can be any value)
+  outputs:
+    o1: confMatrixOverall # Overall confusion matrix results
+    o2: confMatrixAnomaly1 # Confusion matrix for first anomaly type
+    o3: confMatrixAnomaly2 # Confusion matrix for second anomaly type

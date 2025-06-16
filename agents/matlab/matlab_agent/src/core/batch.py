@@ -97,10 +97,10 @@ def handle_batch_simulation(
     except Exception as e:  # pylint: disable=broad-except
         _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
     finally:
-        if 'sim' in locals():
-            sim.close()
         # Always complete the operation to record metrics
         performance_monitor.complete_operation()
+        if 'sim' in locals():
+            sim.close()
 
 
 def _validate_simulation_data(
