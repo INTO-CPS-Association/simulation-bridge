@@ -5,6 +5,8 @@ rabbitmq:
   host: localhost
   port: 5672
   virtual_host: /
+  username: guest
+  password: guest
   infrastructure:
     exchanges:
       - name: ex.input.bridge
@@ -58,6 +60,8 @@ mqtt:
   input_topic: bridge/input
   output_topic: bridge/output
   qos: 0
+  username: guest
+  password: guest
 
 rest:
   host: localhost

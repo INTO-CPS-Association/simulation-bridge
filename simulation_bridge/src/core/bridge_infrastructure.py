@@ -21,11 +21,17 @@ class RabbitMQInfrastructure:
             config_manager: Configuration manager object to retrieve RabbitMQ settings
         """
         self.config = config_manager.get_rabbitmq_config()
+        credentials = pika.PlainCredentials(
+            self.config['username'],
+            self.config['password']
+        )
+
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=self.config['host'],
                 port=self.config['port'],
-                virtual_host=self.config['virtual_host']
+                virtual_host=self.config['virtual_host'],
+                credentials=credentials
             )
         )
         self.channel = self.connection.channel()

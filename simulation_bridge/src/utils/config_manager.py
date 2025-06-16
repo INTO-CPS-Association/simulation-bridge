@@ -60,6 +60,8 @@ class RabbitMQConfig(BaseModel):
     host: str
     port: int
     virtual_host: str
+    username: str
+    password: str
     infrastructure: RabbitMQInfrastructure
 
 
@@ -71,6 +73,8 @@ class MQTTConfig(BaseModel):
     input_topic: str
     output_topic: str
     qos: int
+    username: str
+    password: str
 
 
 class RESTConfig(BaseModel):
@@ -143,6 +147,8 @@ class Config(BaseModel):
             host=rabbitmq_dict.get('host', 'localhost'),
             port=rabbitmq_dict.get('port', 5672),
             virtual_host=rabbitmq_dict.get('virtual_host', '/'),
+            username=rabbitmq_dict.get('username', 'guest'),
+            password=rabbitmq_dict.get('password', 'guest'),
             infrastructure=infrastructure
         )
 
@@ -212,6 +218,8 @@ class ConfigManager:
                 host="localhost",
                 port=5672,
                 virtual_host="/",
+                username="guest",
+                password="guest",
                 infrastructure=RabbitMQInfrastructure(
                     exchanges=[],
                     queues=[],
@@ -224,7 +232,9 @@ class ConfigManager:
                 keepalive=60,
                 input_topic="bridge/input",
                 output_topic="bridge/output",
-                qos=0
+                qos=0,
+                username="guest",
+                password="guest"
             ),
             rest=RESTConfig(
                 host="0.0.0.0",

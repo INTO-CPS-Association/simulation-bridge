@@ -43,7 +43,12 @@ class MQTTAdapter(ProtocolAdapter):
             config_manager: Configuration manager instance
         """
         super().__init__(config_manager)
+        self.mqtt_config = config_manager.get_mqtt_config()
         self.client = mqtt.Client()
+        if 'username' in self.mqtt_config and 'password' in self.mqtt_config:
+            self.client.username_pw_set(
+                self.mqtt_config['username'], self.mqtt_config['password']
+            )
         self.topic = self.config['input_topic']
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
@@ -52,14 +57,18 @@ class MQTTAdapter(ProtocolAdapter):
         self._process_thread = None
         self._client_thread = None
         self._running = False
-
-        self.mqtt_config = config_manager.get_mqtt_config()
         self.mqtt_client = mqtt.Client()
+
+        if 'username' in self.mqtt_config and 'password' in self.mqtt_config:
+            self.mqtt_client.username_pw_set(
+                self.mqtt_config['username'], self.mqtt_config['password']
+            )
         self.mqtt_client.connect(
             host=self.mqtt_config['host'],
             port=self.mqtt_config['port'],
             keepalive=self.mqtt_config['keepalive']
         )
+
         self.mqtt_client.loop_start()
         logger.debug(
             "MQTT - Adapter initialized with config: host=%s, port=%s, topic=%s",

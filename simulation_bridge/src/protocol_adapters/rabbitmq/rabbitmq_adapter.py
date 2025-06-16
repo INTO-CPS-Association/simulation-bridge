@@ -39,13 +39,20 @@ class RabbitMQAdapter(ProtocolAdapter):
         super().__init__(config_manager)
         logger.debug("RabbitMQ adapter initialized")
 
+        credentials = pika.PlainCredentials(
+            self.config['username'],
+            self.config['password']
+        )
+
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(
                 host=self.config['host'],
                 port=self.config['port'],
-                virtual_host=self.config['virtual_host']
+                virtual_host=self.config['virtual_host'],
+                credentials=credentials
             )
         )
+
         self.channel = self.connection.channel()
         self._consumer_thread = None
         self._running = False
