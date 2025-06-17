@@ -25,7 +25,6 @@ It serves as a _modular_, _reusable_, and _bidirectional_ communication bridge, 
     - [4. Install RabbitMQ](#4-install-rabbitmq)
       - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
       - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
-    - [5. Generate HTTPS Certificate](#5-generate-https-certificate)
   - [Configuration](#configuration)
   - [Usage](#usage)
     - [Getting Started](#getting-started)
@@ -144,10 +143,6 @@ lsof -i :5672
 ##### Option 2: Use a Remote RabbitMQ Server
 
 Alternatively, connect to an existing RabbitMQ instance hosted on a remote server (on-premise or cloud).
-
-#### 5. Generate HTTPS Certificate
-
-To enable the REST Protocol Adapter and support HTTP/2.0, it is necessary to generate an HTTPS Certificate.
 
 ## Configuration
 
@@ -296,6 +291,8 @@ The developer-specific commands are
 ```bash
 pylint simulation_bridge
 autopep8 --in-place --aggressive --recursive 'simulation_bridge'
+pytest --cov=simulation_bridge --cov-report=term --cov-report=html simulation_bridge/test/unit/
+open htmlcov/index.html
 ```
 
 ## License
