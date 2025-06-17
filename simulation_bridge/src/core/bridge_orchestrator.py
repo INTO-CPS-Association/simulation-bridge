@@ -9,26 +9,28 @@ from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
 from ..utils.certs import ensure_certificates
 
-logger = get_logger()
+# Constants for RabbitMQ connection parameters
+POLL_INTERVAL_SECONDS = 60 # Continuously check adapter status every 60 seconds
 
+logger = get_logger()
 
 class BridgeOrchestrator:
     """Orchestrates the simulation bridge components and lifecycle."""
 
-    def __init__(self, simulation_bridge_id: str, config_path: str = None):
+    def __init__(self, config_path: str = None):
         """Initialize the bridge orchestrator.
 
         Args:
             simulation_bridge_id: Unique identifier for this bridge instance
             config_path: Optional path to configuration file
         """
-        self.simulation_bridge_id = simulation_bridge_id
+        self.config_manager = ConfigManager(config_path)
+        self.config = self.config_manager.get_config()
+
+        self.simulation_bridge_id = self.config['simulation_bridge']['bridge_id']
         logger.info("Simulation bridge ID: %s", self.simulation_bridge_id)
         # Validate and ensure SSL certificates are present
         ensure_certificates(validity_days=365)
-
-        self.config_manager = ConfigManager(config_path)
-        self.config = self.config_manager.get_config()
 
         self.bridge = None
         self.adapters = {}
@@ -103,7 +105,7 @@ class BridgeOrchestrator:
                     logger.error(
                         "One or more adapters have stopped unexpectedly")
                     break
-                time.sleep(1)
+                time.sleep(POLL_INTERVAL_SECONDS)
 
         except KeyboardInterrupt:
             # 4) Handle user Ctrl+C
@@ -125,9 +127,7 @@ class BridgeOrchestrator:
                         adapter.thread.join()
                 except Exception as exc:  # pylint: disable=broad-exception-caught
                     logger.error("Error stopping %s adapter: %s", name, exc)
-
-            if self.bridge:
-                self.bridge.stop()
+            SignalManager.disconnect_all_signals()
             logger.info("Simulation Bridge Stopped")
 
         except Exception as exc:  # pylint: disable=broad-exception-caught

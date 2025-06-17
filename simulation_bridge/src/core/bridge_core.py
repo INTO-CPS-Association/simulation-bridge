@@ -11,7 +11,6 @@ import pika
 from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
-from ..utils.signal_manager import SignalManager
 
 # Constants for RabbitMQ connection parameters
 RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
@@ -210,14 +209,3 @@ class BridgeCore:
                     pika.exceptions.AMQPChannelError) as retry_e:
                 logger.error(
                     "Failed to publish message after reconnection: %s", retry_e)
-
-    def stop(self):
-        """Stop the bridge core and clean up resources."""
-        try:
-            SignalManager.disconnect_all_signals()
-            if self.connection and not self.connection.is_closed:
-                self.connection.close()
-            logger.debug("Bridge core stopped")
-        except (pika.exceptions.AMQPConnectionError,
-                pika.exceptions.AMQPChannelError) as e:
-            logger.error("Error stopping bridge core: %s", e)

@@ -28,7 +28,6 @@ classDiagram
         +handle_result_rabbitmq_message(sender, **kwargs)
         +handle_result_unknown_message(sender, **kwargs)
         +_publish_message(producer, consumer, message, exchange='ex.bridge.output', protocol='unknown')
-        +stop()
     }
 
     class RabbitMQInfrastructure {
@@ -118,7 +117,6 @@ classDiagram
     BridgeOrchestrator --> BridgeCore : creates & controls core bridge logic
     BridgeOrchestrator --> RabbitMQInfrastructure : sets up RabbitMQ infrastructure
     BridgeCore --> ConfigManager : accesses configuration
-    BridgeCore --> SignalManager : disconnects protocols before shutdown to cleanup
     RabbitMQInfrastructure --> ConfigManager : uses configuration for connection settings
     SignalManager "1" o-- "1..*" BridgeCore : manages signals for BridgeCore communication
     SignalManager "1" o-- "1..*" RabbitMQAdapter : manages signals for RabbitMQ event handling

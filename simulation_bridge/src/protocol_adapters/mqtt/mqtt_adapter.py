@@ -5,7 +5,6 @@ This module implements an adapter for MQTT communication protocol.
 
 import json
 import threading
-import queue
 from typing import Dict, Any
 
 import paho.mqtt.client as mqtt
@@ -51,8 +50,6 @@ class MQTTAdapter(ProtocolAdapter):
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.on_disconnect = self.on_disconnect
-        self._message_queue = queue.Queue()
-        self._process_thread = None
         self._client_thread = None
         self._running = False
         self.mqtt_client = mqtt.Client()
@@ -131,32 +128,21 @@ class MQTTAdapter(ProtocolAdapter):
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
 
-            # Put message in queue for processing
-            self._message_queue.put((message, producer, consumer))
+            # Process message directly - no need for queuing
+            logger.debug(
+                "MQTT - Processing message %s, from producer: %s, simulator: %s",
+                message, producer, consumer)
+            
+            # Send signal directly
+            signal('message_received_input_mqtt').send(
+                message=message,
+                producer=producer,
+                consumer=consumer,
+                protocol='mqtt'
+            )
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error processing message: %s", exc)
-
-    def _process_messages(self):
-        """Process messages in a separate thread."""
-        while self._running:
-            try:
-                message, producer, consumer = self._message_queue.get(
-                    timeout=1)
-                logger.debug(
-                    "MQTT - Processing message %s, from producer: %s, simulator: %s",
-                    message, producer, consumer)
-                # Use SignalManager to send the signal
-                signal('message_received_input_mqtt').send(
-                    message=message,
-                    producer=producer,
-                    consumer=consumer,
-                    protocol='mqtt'
-                )
-            except queue.Empty:
-                continue
-            except Exception as exc:  # pylint: disable=broad-exception-caught
-                logger.error("MQTT - Error processing message: %s", exc)
 
     def _run_client(self):
         """Run the MQTT client in a separate thread."""
@@ -192,12 +178,7 @@ class MQTTAdapter(ProtocolAdapter):
             self.config['host'], self.config['port'])
 
         try:
-            # Start message processing thread
             self._running = True
-            self._process_thread = threading.Thread(
-                target=self._process_messages, daemon=True)
-            self._process_thread.start()
-
             # Start client thread
             self._client_thread = threading.Thread(
                 target=self._run_client, daemon=True)
@@ -219,8 +200,6 @@ class MQTTAdapter(ProtocolAdapter):
         self._running = False
         try:
             self.client.disconnect()
-            if self._process_thread and self._process_thread.is_alive():
-                self._process_thread.join(timeout=5)
             logger.debug("MQTT - Successfully disconnected from broker")
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("MQTT - Error during disconnection: %s", exc)

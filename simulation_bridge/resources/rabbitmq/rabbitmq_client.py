@@ -132,10 +132,6 @@ def main():
     """Main program entry point."""
     config = load_config()
 
-    # Override dt_id if provided as command line argument
-    if len(sys.argv) > 1:
-        config['digital_twin']['dt_id'] = sys.argv[1]
-
     # Start listener thread
     listener_thread = threading.Thread(
         target=start_dt_listener, args=(config,))
