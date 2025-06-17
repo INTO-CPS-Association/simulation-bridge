@@ -277,12 +277,13 @@ poetry run simulation-bridge -c <path_to_config.yaml>
 
 ### Simulation Bridge
 
-- [🏗️ **Internal Architecture** ↗](simulation_bridge/docs/internal_architecture.md): Overview of the system's architecture, key modules, and their interactions.
+- [**Internal Architecture** ↗](simulation_bridge/docs/internal_architecture.md): Overview of the system's architecture, key modules, and their interactions.
+- [**Class Diagram** ↗](simulation_bridge/docs/class_diagram.md): UML Class Diagram of the Simulation Bridge Architecture
 
 ### Matlab Agent
 
-- [🔗 **Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
-- [⚙️ **Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
+- [**Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
+- [**Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
 ## Package Development
 
