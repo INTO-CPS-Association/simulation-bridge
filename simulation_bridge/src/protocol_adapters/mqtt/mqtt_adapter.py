@@ -132,7 +132,7 @@ class MQTTAdapter(ProtocolAdapter):
             logger.debug(
                 "MQTT - Processing message %s, from producer: %s, simulator: %s",
                 message, producer, consumer)
-            
+
             # Send signal directly
             signal('message_received_input_mqtt').send(
                 message=message,

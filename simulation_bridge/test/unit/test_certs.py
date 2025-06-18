@@ -67,17 +67,22 @@ class TestValidateCertificates:
         mock_private_key = mock.Mock()
         mock_private_public_key = mock.Mock()
         mock_private_public_key.key_size = 2048
-        mock_private_public_key.public_numbers.return_value = mock.Mock(n=123, e=65537)
+        mock_private_public_key.public_numbers.return_value = mock.Mock(
+            n=123, e=65537)
         mock_private_key.public_key.return_value = mock_private_public_key
 
         monkeypatch.setattr("builtins.open", mock.mock_open(read_data=b"data"))
-        monkeypatch.setattr(certs.x509, "load_pem_x509_certificate", lambda data: mock_cert)
+        monkeypatch.setattr(
+            certs.x509,
+            "load_pem_x509_certificate",
+            lambda data: mock_cert)
         monkeypatch.setattr(
             certs.serialization, "load_pem_private_key", lambda data,
             password=None: mock_private_key
         )
 
-        valid, msg = cert_generator._validate_certificates("cert.pem", "key.pem")
+        valid, msg = cert_generator._validate_certificates(
+            "cert.pem", "key.pem")
         assert valid is True, f"Expected True but got False with msg: {msg}"
 
     def test_validate_certificates_expired(self, monkeypatch, cert_generator):
@@ -93,7 +98,8 @@ class TestValidateCertificates:
         monkeypatch.setattr(certs.serialization, "load_pem_private_key",
                             lambda data, password=None: mock.Mock())
 
-        valid, msg = cert_generator._validate_certificates("cert.pem", "key.pem")
+        valid, msg = cert_generator._validate_certificates(
+            "cert.pem", "key.pem")
         assert valid is False
         assert "expired" in msg
 
@@ -104,31 +110,41 @@ class TestValidateCertificates:
             raise FileNotFoundError("No such file")
 
         with mock.patch("builtins.open", side_effect=open_side_effect):
-            valid, msg = cert_generator._validate_certificates("cert.pem", "key.pem")
+            valid, msg = cert_generator._validate_certificates(
+                "cert.pem", "key.pem")
 
         assert valid is False
         assert "not found" in msg
 
-    def test_validate_certificates_key_mismatch(self, monkeypatch, cert_generator):
+    def test_validate_certificates_key_mismatch(
+            self, monkeypatch, cert_generator):
         """Return False if certificate and private key do not match."""
         now = datetime.datetime.now(datetime.timezone.utc)
         mock_cert = mock.Mock()
         mock_cert.not_valid_after_utc = now + datetime.timedelta(days=60)
         mock_cert.not_valid_before_utc = now - datetime.timedelta(days=1)
 
-        cert_pub_key = mock.Mock(key_size=2048, public_numbers=mock.Mock(n=123, e=65537))
-        priv_pub_key = mock.Mock(key_size=2048, public_numbers=mock.Mock(n=999, e=65537))
+        cert_pub_key = mock.Mock(
+            key_size=2048, public_numbers=mock.Mock(
+                n=123, e=65537))
+        priv_pub_key = mock.Mock(
+            key_size=2048, public_numbers=mock.Mock(
+                n=999, e=65537))
 
         mock_cert.public_key.return_value = cert_pub_key
         mock_private_key = mock.Mock()
         mock_private_key.public_key.return_value = priv_pub_key
 
         monkeypatch.setattr("builtins.open", mock.mock_open(read_data=b"data"))
-        monkeypatch.setattr(certs.x509, "load_pem_x509_certificate", lambda data: mock_cert)
+        monkeypatch.setattr(
+            certs.x509,
+            "load_pem_x509_certificate",
+            lambda data: mock_cert)
         monkeypatch.setattr(certs.serialization, "load_pem_private_key",
                             lambda data, password=None: mock_private_key)
 
-        valid, msg = cert_generator._validate_certificates("cert.pem", "key.pem")
+        valid, msg = cert_generator._validate_certificates(
+            "cert.pem", "key.pem")
         assert valid is False
         assert "do not match" in msg
 
@@ -139,23 +155,37 @@ class TestGenerateCertificatePair:
     def test_generate_success(self, monkeypatch, cert_generator):
         """Generate cert/key successfully when no existing files or forced."""
         monkeypatch.setattr(cert_generator, "files_exist", lambda c, k: False)
-        monkeypatch.setattr(cert_generator, "files_exist", mock.Mock(return_value=False))
+        monkeypatch.setattr(
+            cert_generator,
+            "files_exist",
+            mock.Mock(
+                return_value=False))
         monkeypatch.setattr(cert_generator, "_build_certificate_name",
                             lambda **kwargs: mock.Mock())
         monkeypatch.setattr(cert_generator, "_create_certificate",
                             lambda key, name, dns=None: mock.Mock())
-        monkeypatch.setattr(cert_generator, "_write_private_key", lambda key, path: None)
-        monkeypatch.setattr(cert_generator, "_write_certificate", lambda cert, path: None)
+        monkeypatch.setattr(
+            cert_generator,
+            "_write_private_key",
+            lambda key,
+            path: None)
+        monkeypatch.setattr(
+            cert_generator,
+            "_write_certificate",
+            lambda cert,
+            path: None)
 
         success, msg = cert_generator.generate_certificate_pair()
         assert success is True
         assert "successfully" in msg
 
-    def test_generate_existing_files_no_force(self, monkeypatch, cert_generator):
+    def test_generate_existing_files_no_force(
+            self, monkeypatch, cert_generator):
         """Return False and message if files exist and no force overwrite."""
         monkeypatch.setattr(cert_generator, "files_exist", lambda c, k: True)
 
-        success, msg = cert_generator.generate_certificate_pair(force_overwrite=False)
+        success, msg = cert_generator.generate_certificate_pair(
+            force_overwrite=False)
         assert success is False
         assert "already exist" in msg
 
@@ -178,7 +208,10 @@ class TestEnsureCertificates:
         gen_mock = mock.Mock()
         gen_mock.files_exist.return_value = True
         gen_mock._validate_certificates.return_value = (True, "valid")
-        monkeypatch.setattr(certs, "CertificateGenerator", lambda **kwargs: gen_mock)
+        monkeypatch.setattr(
+            certs,
+            "CertificateGenerator",
+            lambda **kwargs: gen_mock)
 
         certs.ensure_certificates(force_overwrite=False)
 
@@ -186,13 +219,17 @@ class TestEnsureCertificates:
         gen_mock._validate_certificates.assert_called_once()
         mock_logger.info.assert_called_with("SSL certificates are valid")
 
-    def test_ensure_certificates_invalid_existing_force(self, monkeypatch, mock_logger):
+    def test_ensure_certificates_invalid_existing_force(
+            self, monkeypatch, mock_logger):
         """Regenerates certs if existing certs are invalid."""
         gen_mock = mock.Mock()
         gen_mock.files_exist.return_value = True
         gen_mock._validate_certificates.return_value = (False, "expired")
         gen_mock.generate_certificate_pair.return_value = (True, "generated")
-        monkeypatch.setattr(certs, "CertificateGenerator", lambda **kwargs: gen_mock)
+        monkeypatch.setattr(
+            certs,
+            "CertificateGenerator",
+            lambda **kwargs: gen_mock)
 
         certs.ensure_certificates(force_overwrite=False)
 
@@ -200,27 +237,36 @@ class TestEnsureCertificates:
         mock_logger.error.assert_called_with(
             "Existing certificates are invalid (%s), regenerating...", "expired"
         )
-        mock_logger.info.assert_called_with("SSL certificates generated successfully")
+        mock_logger.info.assert_called_with(
+            "SSL certificates generated successfully")
 
     def test_ensure_certificates_not_exist(self, monkeypatch, mock_logger):
         """Generates certs if files do not exist."""
         gen_mock = mock.Mock()
         gen_mock.files_exist.return_value = False
         gen_mock.generate_certificate_pair.return_value = (True, "generated")
-        monkeypatch.setattr(certs, "CertificateGenerator", lambda **kwargs: gen_mock)
+        monkeypatch.setattr(
+            certs,
+            "CertificateGenerator",
+            lambda **kwargs: gen_mock)
 
         certs.ensure_certificates()
 
         gen_mock.generate_certificate_pair.assert_called_once()
-        mock_logger.debug.assert_any_call("SSL certificates not found, generating new ones...")
-        mock_logger.info.assert_called_with("SSL certificates generated successfully")
+        mock_logger.debug.assert_any_call(
+            "SSL certificates not found, generating new ones...")
+        mock_logger.info.assert_called_with(
+            "SSL certificates generated successfully")
 
     def test_ensure_certificates_generation_failure(self, monkeypatch):
         """Raises RuntimeError if generation fails."""
         gen_mock = mock.Mock()
         gen_mock.files_exist.return_value = False
         gen_mock.generate_certificate_pair.return_value = (False, "fail reason")
-        monkeypatch.setattr(certs, "CertificateGenerator", lambda **kwargs: gen_mock)
+        monkeypatch.setattr(
+            certs,
+            "CertificateGenerator",
+            lambda **kwargs: gen_mock)
 
         with pytest.raises(RuntimeError) as excinfo:
             certs.ensure_certificates()

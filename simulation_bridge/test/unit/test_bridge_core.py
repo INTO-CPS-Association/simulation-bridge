@@ -66,15 +66,17 @@ class TestInitialization:
     """Tests for BridgeCore initialization and connection setup."""
 
     def test_initialize_rabbitmq_connection_success(self, config_manager_mock,
-                                                   adapters_mock, mock_logger):
+                                                    adapters_mock, mock_logger):
         """Verify successful RabbitMQ connection initialization."""
-        with patch('simulation_bridge.src.core.bridge_core.pika.BlockingConnection') as blocking_conn: # pylint: disable=line-too-long
+        with patch('simulation_bridge.src.core.bridge_core.pika.BlockingConnection') as blocking_conn:  # pylint: disable=line-too-long
             conn_mock = MagicMock()
             chan_mock = MagicMock()
             conn_mock.channel.return_value = chan_mock
             blocking_conn.return_value = conn_mock
 
-            core = bridge_core.BridgeCore(config_manager_mock, adapters_mock) # pylint: disable=unused-variable
+            core = bridge_core.BridgeCore(
+                config_manager_mock,
+                adapters_mock)  # pylint: disable=unused-variable
 
             blocking_conn.assert_called_once()
             conn_mock.channel.assert_called_once()
@@ -113,7 +115,7 @@ class TestEnsureConnection:
             assert result is True
 
     def test_ensure_connection_fails_returns_false(self, bridge_core_instance,
-                                                  mock_logger):
+                                                   mock_logger):
         """Return False if reconnection fails with AMQP errors."""
         bridge_core_instance.connection = None
         with patch.object(bridge_core_instance, '_initialize_rabbitmq_connection',
@@ -126,8 +128,9 @@ class TestEnsureConnection:
 
 class TestHandleInputMessage:
     "Tests for handle_input_message method processing input messages."
+
     def test_handle_input_message_valid(self, bridge_core_instance,
-                                    patch_basic_publish, mock_logger):
+                                        patch_basic_publish, mock_logger):
         """Handle valid input message and publish to RabbitMQ."""
         message = {
             'simulation': {
@@ -159,8 +162,6 @@ class TestHandleInputMessage:
         assert 'properties' in kwargs
         mock_logger.info.assert_called_once()
 
-
-
     def test_handle_input_message_missing_simulation(self, bridge_core_instance,
                                                      patch_basic_publish, mock_logger):
         """Handle message with missing simulation key gracefully."""
@@ -184,23 +185,27 @@ class TestHandleInputMessage:
         mock_logger.info.assert_called_once()
 
 
-class TestHandleResultMessages: # pylint: disable=too-few-public-methods
+class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
     "Tests for handling result messages from RabbitMQ and other protocols."""
+
     def test_handle_result_rabbitmq_message_publishes(self, bridge_core_instance,
-                                                 patch_basic_publish):
+                                                      patch_basic_publish):
         """Publishes RabbitMQ result message correctly."""
         message = {
             'source': 'src',
             'simulation': {},
             'data': 'result'
         }
-        bridge_core_instance.handle_result_rabbitmq_message(None, message=message)
+        bridge_core_instance.handle_result_rabbitmq_message(
+            None, message=message)
         patch_basic_publish.assert_called_once()
         kwargs = patch_basic_publish.call_args[1]
         assert kwargs['exchange'] == 'ex.bridge.result'
 
+
 class TestPublishMessage:
     "Tests for _publish_message method publishing messages to RabbitMQ."""
+
     def test_publish_message_success(self, bridge_core_instance, patch_basic_publish,
                                      mock_logger):
         """Successfully publish a message on RabbitMQ."""
@@ -238,6 +243,6 @@ class TestPublishMessage:
             init_conn.assert_called_once()
             calls = mock_logger.debug.call_args_list
             assert any(
-                call.args[0] % call.args[1:] == "Message routed to exchange 'ex.test' after reconnection: prod -> cons" # pylint: disable=line-too-long
+                call.args[0] % call.args[1:] == "Message routed to exchange 'ex.test' after reconnection: prod -> cons"  # pylint: disable=line-too-long
                 for call in calls
             )

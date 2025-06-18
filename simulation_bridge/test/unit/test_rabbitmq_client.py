@@ -56,13 +56,17 @@ def mock_connection(mock_channel):
 @pytest.fixture
 def mock_pika(monkeypatch, mock_connection):
     """Patch pika.BlockingConnection to return mock connection."""
-    monkeypatch.setattr(rabbitmq_client.pika, "BlockingConnection", lambda _: mock_connection)
+    monkeypatch.setattr(
+        rabbitmq_client.pika,
+        "BlockingConnection",
+        lambda _: mock_connection)
 
 
-class TestRabbitMQClientInitialization: # pylint: disable=too-few-public-methods
+class TestRabbitMQClientInitialization:  # pylint: disable=too-few-public-methods
     """Test RabbitMQClient initialization and infrastructure setup."""
 
-    def test_initialization_sets_up_infrastructure(self, mock_config, mock_pika, mock_channel):
+    def test_initialization_sets_up_infrastructure(
+            self, mock_config, mock_pika, mock_channel):
         """Ensure __init__ sets up exchanges, queues, and bindings correctly."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -75,7 +79,7 @@ class TestRabbitMQClientInitialization: # pylint: disable=too-few-public-methods
         mock_channel.queue_bind.assert_called_once()
 
 
-class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
+class TestSendSimulationRequest:  # pylint: disable=too-few-public-methods
     """Test the send_simulation_request method."""
 
     def test_send_simulation_request_calls_basic_publish(
@@ -88,7 +92,7 @@ class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
         client.send_simulation_request(payload)
 
         mock_channel.basic_publish.assert_called_once()
-        args, kwargs = mock_channel.basic_publish.call_args # pylint: disable=unused-variable
+        args, kwargs = mock_channel.basic_publish.call_args  # pylint: disable=unused-variable
         assert kwargs['exchange'] == 'input_ex'
         assert kwargs['routing_key'] == 'dt.send'
         assert 'temperature' in kwargs['body']
@@ -97,7 +101,8 @@ class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
 class TestHandleResult:
     """Test handling of incoming messages."""
 
-    def test_handle_result_acknowledges_valid_yaml(self, mock_config, mock_pika, mock_channel):
+    def test_handle_result_acknowledges_valid_yaml(
+            self, mock_config, mock_pika, mock_channel):
         """Should acknowledge a valid YAML result message."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -109,7 +114,8 @@ class TestHandleResult:
         client.handle_result(mock_channel, method, None, body)
         mock_channel.basic_ack.assert_called_once_with(10)
 
-    def test_handle_result_handles_yaml_error(self, mock_config, mock_pika, mock_channel):
+    def test_handle_result_handles_yaml_error(
+            self, mock_config, mock_pika, mock_channel):
         """Should nack message if YAML is invalid."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -122,7 +128,7 @@ class TestHandleResult:
         mock_channel.basic_nack.assert_called_once_with(11)
 
 
-class TestStartListening: # pylint: disable=too-few-public-methods
+class TestStartListening:  # pylint: disable=too-few-public-methods
     """Test listener behavior."""
 
     def test_start_listening_calls_basic_consume_and_start(self,
@@ -137,7 +143,7 @@ class TestStartListening: # pylint: disable=too-few-public-methods
         mock_channel.start_consuming.assert_called_once()
 
 
-class TestYamlLoading: # pylint: disable=too-few-public-methods
+class TestYamlLoading:  # pylint: disable=too-few-public-methods
     """Test static YAML loading."""
 
     def test_load_yaml_file_returns_parsed_data(self, tmp_path):
@@ -164,13 +170,17 @@ class TestLoadConfig:
     def test_load_config_file_not_found(self, monkeypatch):
         """Should exit if config file is missing."""
         mock_exit = mock.MagicMock()
-        monkeypatch.setattr(rabbitmq_client, "sys", mock.MagicMock(exit=mock_exit))
+        monkeypatch.setattr(
+            rabbitmq_client,
+            "sys",
+            mock.MagicMock(
+                exit=mock_exit))
 
         rabbitmq_client.load_config("nonexistent.yaml")
         mock_exit.assert_called_once_with(1)
 
 
-class TestMainFunction: # pylint: disable=too-few-public-methods
+class TestMainFunction:  # pylint: disable=too-few-public-methods
     """Test main function behavior and CLI entry."""
 
     def test_main_keyboard_interrupt(self, mock_config, monkeypatch):

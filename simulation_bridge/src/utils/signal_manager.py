@@ -41,7 +41,8 @@ class SignalManager:
         """Return the list of enabled protocols."""
         enabled_protocols = []
         for protocol, protocol_data in cls.PROTOCOL_CONFIG.items():
-            if protocol_data.get("enabled", True):  # Default to True for backward compatibility
+            if protocol_data.get(
+                    "enabled", True):  # Default to True for backward compatibility
                 enabled_protocols.append(protocol)
         return enabled_protocols
 
@@ -51,7 +52,8 @@ class SignalManager:
         protocol_data = cls.PROTOCOL_CONFIG.get(protocol)
         if not protocol_data:
             return False
-        return protocol_data.get("enabled", True)  # Default to True for backward compatibility
+        # Default to True for backward compatibility
+        return protocol_data.get("enabled", True)
 
     @classmethod
     def connect_all_signals(cls):
@@ -59,7 +61,9 @@ class SignalManager:
         for protocol, protocol_data in cls.PROTOCOL_CONFIG.items():
             # Skip disabled protocols
             if not protocol_data.get("enabled", True):
-                logger.debug("Skipping signals for disabled protocol: %s", protocol)
+                logger.debug(
+                    "Skipping signals for disabled protocol: %s",
+                    protocol)
                 continue
 
             for sig_name, func_path in protocol_data.get(
@@ -108,9 +112,12 @@ class SignalManager:
     def disconnect_all_signals(cls):
         """Disconnect all signals from their connected callbacks for enabled protocols only."""
         for protocol, protocol_data in cls.PROTOCOL_CONFIG.items():
-            # Skip disabled protocols (they shouldn't have connected signals anyway)
+            # Skip disabled protocols (they shouldn't have connected signals
+            # anyway)
             if not protocol_data.get("enabled", True):
-                logger.debug("Skipping signal disconnection for disabled protocol: %s", protocol)
+                logger.debug(
+                    "Skipping signal disconnection for disabled protocol: %s",
+                    protocol)
                 continue
 
             for sig_name, func_path in protocol_data.get(
@@ -124,7 +131,7 @@ class SignalManager:
                 try:
                     signal(sig_name).disconnect(callback)
                     logger.debug("Disconnected signal '%s' from '%s' for protocol '%s'",
-                               sig_name, func_path, protocol)
+                                 sig_name, func_path, protocol)
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     logger.error("Failed to disconnect signal '%s': %s", sig_name,
                                  e)

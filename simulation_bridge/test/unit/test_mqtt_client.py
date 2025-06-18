@@ -59,7 +59,7 @@ class TestLoadConfig:
         assert "Error parsing YAML file:" in out
 
 
-class TestMQTTClientInit: # pylint: disable=too-few-public-methods
+class TestMQTTClientInit:  # pylint: disable=too-few-public-methods
     """Tests for MQTTClient initialization."""
 
     def test_initializes_client_attributes(self, mock_config):
@@ -67,12 +67,14 @@ class TestMQTTClientInit: # pylint: disable=too-few-public-methods
         client = mqtt_client.MQTTClient(mock_config)
         assert client.config['host'] == 'localhost'
         assert client.payload_file == 'test_payload.yaml'
-        assert client.client.on_message == client.on_message # pylint: disable=comparison-with-callable
+        assert client.client.on_message == client.on_message  # pylint: disable=comparison-with-callable
+
 
 class TestCreateRequest:
     """Tests for the create_request method."""
 
-    def test_loads_payload_successfully(self, tmp_path, mock_config, monkeypatch):
+    def test_loads_payload_successfully(
+            self, tmp_path, mock_config, monkeypatch):
         """Test create_request loads a YAML payload correctly."""
         payload_content = {'a': 1}
         payload_path = tmp_path / "test_payload.yaml"
@@ -95,7 +97,7 @@ class TestCreateRequest:
             client.create_request()
 
 
-class TestConnectAndListen: # pylint: disable=too-few-public-methods
+class TestConnectAndListen:  # pylint: disable=too-few-public-methods
     """Tests for connect_and_listen method."""
 
     def test_connects_and_publishes(self, client, monkeypatch):
@@ -118,7 +120,7 @@ class TestConnectAndListen: # pylint: disable=too-few-public-methods
         client.client.loop_forever.assert_called_once()
 
 
-class TestOnMessage: # pylint: disable=too-few-public-methods
+class TestOnMessage:  # pylint: disable=too-few-public-methods
     """Tests for on_message callback."""
 
     def test_prints_received_message(self, capsys, client):

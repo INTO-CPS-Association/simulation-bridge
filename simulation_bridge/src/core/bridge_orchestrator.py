@@ -10,9 +10,10 @@ from ..utils.signal_manager import SignalManager
 from ..utils.certs import ensure_certificates
 
 # Constants for RabbitMQ connection parameters
-POLL_INTERVAL_SECONDS = 60 # Continuously check adapter status every 60 seconds
+POLL_INTERVAL_SECONDS = 60  # Continuously check adapter status every 60 seconds
 
 logger = get_logger()
+
 
 class BridgeOrchestrator:
     """Orchestrates the simulation bridge components and lifecycle."""
@@ -56,15 +57,19 @@ class BridgeOrchestrator:
             # Get list of enabled protocols
             enabled_protocols = SignalManager.get_enabled_protocols()
             if not enabled_protocols:
-                logger.warning("No protocol adapters are enabled — no messages will be received.")
+                logger.warning(
+                    "No protocol adapters are enabled — no messages will be received.")
             else:
-                protocols_str = ", ".join(proto.upper() for proto in enabled_protocols)
+                protocols_str = ", ".join(proto.upper()
+                                          for proto in enabled_protocols)
                 logger.info("Enabled protocols: %s", protocols_str)
 
             # Instantiate and register each adapter only for enabled protocols
             for name, adapter_class in self.adapter_classes.items():
                 if name not in enabled_protocols:
-                    logger.debug("Skipping initialization of disabled protocol: %s", name.upper())
+                    logger.debug(
+                        "Skipping initialization of disabled protocol: %s",
+                        name.upper())
                     continue
 
                 adapter = adapter_class(self.config_manager)
@@ -78,9 +83,11 @@ class BridgeOrchestrator:
             self.bridge = BridgeCore(self.config_manager, self.adapters)
             SignalManager.set_bridge_core(self.bridge)
 
-            # Connect all signals defined in protocol config (only for enabled protocols)
+            # Connect all signals defined in protocol config (only for enabled
+            # protocols)
             SignalManager.connect_all_signals()
-            logger.info("Bridge core initialized and signals connected for enabled protocols")
+            logger.info(
+                "Bridge core initialized and signals connected for enabled protocols")
 
         except Exception as exc:  # pylint: disable=broad-exception-caught
             logger.error("Error setting up interfaces: %s", exc)

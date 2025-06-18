@@ -22,6 +22,8 @@ RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
 logger = get_logger()
 
 # Pydantic models for message validation
+
+
 class SimulationModel(BaseModel):
     "Represents the details of a simulation request."
     request_id: str
@@ -32,9 +34,11 @@ class SimulationModel(BaseModel):
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
 
+
 class MessageModel(BaseModel):
     "Represents a message structure for simulation requests."
     simulation: SimulationModel
+
 
 class BridgeCore:
     """
@@ -112,7 +116,7 @@ class BridgeCore:
         message_dict = kwargs.get('message', {})
         try:
             message = MessageModel.model_validate(message_dict)
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("Invalid message format: %s", e)
             return
         simulation = message.simulation
@@ -125,7 +129,11 @@ class BridgeCore:
         protocol = kwargs.get('protocol', 'unknown')
         logger.info(
             "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
-        self._publish_message(producer, consumer, message.model_dump(), protocol=protocol)
+        self._publish_message(
+            producer,
+            consumer,
+            message.model_dump(),
+            protocol=protocol)
 
     def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -155,7 +163,7 @@ class BridgeCore:
         logger.error(
             "Received error result message with unknown protocol: %s", message['error'])
 
-    def _publish_message(self, producer, consumer, message, # pylint: disable=too-many-arguments
+    def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments
                          exchange='ex.bridge.output', protocol='unknown'):
         """
         Publish message to RabbitMQ exchange.

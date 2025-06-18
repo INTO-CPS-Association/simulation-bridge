@@ -45,7 +45,7 @@ def adapter(config_manager_mock):
 async def test_handle_streaming_message_valid_and_invalid(monkeypatch, adapter):
     """Test streaming message handler with valid and invalid JSON."""
 
-    class DummyRequest: # pylint: disable=too-few-public-methods
+    class DummyRequest:  # pylint: disable=too-few-public-methods
         """Dummy request object for valid JSON."""
         headers = {'content-type': 'application/json'}
 
@@ -66,7 +66,7 @@ async def test_handle_streaming_message_valid_and_invalid(monkeypatch, adapter):
     assert isinstance(adapter._active_streams['prod1'], asyncio.Queue)
     signal_mock.send.assert_called_once()
 
-    class BadRequest: # pylint: disable=too-few-public-methods
+    class BadRequest:  # pylint: disable=too-few-public-methods
         """Dummy request object for invalid JSON."""
         headers = {'content-type': 'application/json'}
 
@@ -131,7 +131,8 @@ def test_start_calls_asyncio_run(monkeypatch, adapter):
         return None
 
     monkeypatch.setattr(adapter, '_start_server', fake_start)
-    monkeypatch.setattr('asyncio.run', lambda coro: asyncio.get_event_loop().run_until_complete(coro)) # pylint: disable=line-too-long
+    monkeypatch.setattr('asyncio.run', lambda coro: asyncio.get_event_loop(
+    ).run_until_complete(coro))  # pylint: disable=line-too-long
     adapter._running = False
     adapter.start()
     assert adapter._running is True
@@ -143,7 +144,7 @@ def test_send_result_sync_works_with_running_loop(monkeypatch, adapter):
     producer = 'client_sync'
     adapter._active_streams[producer] = asyncio.Queue()
 
-    class DummyLoop: # pylint: disable=too-few-public-methods
+    class DummyLoop:  # pylint: disable=too-few-public-methods
         """Dummy event loop that reports running status."""
 
         def is_running(self):
@@ -156,22 +157,27 @@ def test_send_result_sync_works_with_running_loop(monkeypatch, adapter):
 
     def dummy_run_coroutine_threadsafe(coro, loop):
         """Dummy function to simulate running a coroutine in the event loop."""
-        class DummyFuture: # pylint: disable=too-few-public-methods
+        class DummyFuture:  # pylint: disable=too-few-public-methods
             """Dummy future to simulate coroutine execution."""
+
             def result(self):
                 """Return the result of the coroutine."""
                 return asyncio.get_event_loop().run_until_complete(coro)
 
         return DummyFuture()
 
-    monkeypatch.setattr(asyncio, 'run_coroutine_threadsafe', dummy_run_coroutine_threadsafe)
+    monkeypatch.setattr(
+        asyncio,
+        'run_coroutine_threadsafe',
+        dummy_run_coroutine_threadsafe)
 
     adapter.send_result_sync(producer, {'test': 'value'})
     coro.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_publish_result_message_rest_calls_send_result_sync(monkeypatch, adapter):
+async def test_publish_result_message_rest_calls_send_result_sync(
+        monkeypatch, adapter):
     """Test that publish_result_message_rest calls send_result_sync correctly."""
 
     monkeypatch.setattr(adapter, 'send_result_sync', AsyncMock())

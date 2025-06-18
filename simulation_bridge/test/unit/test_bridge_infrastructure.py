@@ -72,11 +72,14 @@ class TestSetupMethod:
         conn, chan = pika_fixture
         monkeypatch.setattr('pika.PlainCredentials', lambda u, p: mock.Mock())
         monkeypatch.setattr('pika.BlockingConnection', lambda p: conn)
-        monkeypatch.setattr('pika.ConnectionParameters', lambda **kwargs: mock.Mock())
+        monkeypatch.setattr(
+            'pika.ConnectionParameters',
+            lambda **kwargs: mock.Mock())
 
         self.conn = conn
         self.chan = chan
-        self.infra = bridge_infrastructure.RabbitMQInfrastructure(config_fixture)
+        self.infra = bridge_infrastructure.RabbitMQInfrastructure(
+            config_fixture)
 
     def test_setup_successful(self):
         """Test that all setup steps complete and close is called."""
@@ -114,11 +117,14 @@ class TestReconnectMethod:
         conn, chan = pika_fixture
         monkeypatch.setattr('pika.PlainCredentials', lambda u, p: mock.Mock())
         monkeypatch.setattr('pika.BlockingConnection', lambda p: conn)
-        monkeypatch.setattr('pika.ConnectionParameters', lambda **kwargs: mock.Mock())
+        monkeypatch.setattr(
+            'pika.ConnectionParameters',
+            lambda **kwargs: mock.Mock())
 
         self.conn = conn
         self.chan = chan
-        self.infra = bridge_infrastructure.RabbitMQInfrastructure(config_fixture)
+        self.infra = bridge_infrastructure.RabbitMQInfrastructure(
+            config_fixture)
 
     def test_reconnect_when_closed(self):
         """Should reconnect if the connection is closed."""
@@ -146,11 +152,14 @@ class TestPrivateSetupMethods:
         conn, chan = pika_fixture
         monkeypatch.setattr('pika.PlainCredentials', lambda u, p: mock.Mock())
         monkeypatch.setattr('pika.BlockingConnection', lambda p: conn)
-        monkeypatch.setattr('pika.ConnectionParameters', lambda **kwargs: mock.Mock())
+        monkeypatch.setattr(
+            'pika.ConnectionParameters',
+            lambda **kwargs: mock.Mock())
 
         self.conn = conn
         self.chan = chan
-        self.infra = bridge_infrastructure.RabbitMQInfrastructure(config_fixture)
+        self.infra = bridge_infrastructure.RabbitMQInfrastructure(
+            config_fixture)
 
     def test_exchanges_success(self):
         """Test _setup_exchanges declares configured exchanges."""

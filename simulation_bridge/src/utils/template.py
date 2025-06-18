@@ -5,7 +5,7 @@ Utility functions for generating default project files and configuration.
 import os
 
 try:
-    from importlib.resources import files # only available in Python 3.9+
+    from importlib.resources import files  # only available in Python 3.9+
     pkg_resources = None  # pylint: disable=invalid-name
 except ImportError:
     files = None
@@ -148,7 +148,8 @@ def copy_config_template(config_path):
             with open(config_path, 'wb') as dst:
                 dst.write(template_content)
     except (ImportError, AttributeError, FileNotFoundError) as e:
-        raise FileNotFoundError(f"Template configuration file not found: {e}") from e
+        raise FileNotFoundError(
+            f"Template configuration file not found: {e}") from e
 
 
 def generate_default_config():

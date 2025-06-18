@@ -22,7 +22,6 @@ def mock_config():
     }
 
 
-
 @pytest.fixture
 def config_manager_mock(mock_config):
     """Fixture for mocking ConfigManager with valid config."""
@@ -115,15 +114,15 @@ class TestStartStop:
         adapter.is_running = True
         orchestrator.adapters = {'mqtt': adapter}
         with patch.object(orchestrator, 'setup_interfaces'), \
-             patch('simulation_bridge.src.core.bridge_orchestrator.time.sleep',
-                   side_effect=KeyboardInterrupt), \
-             patch.object(orchestrator, 'stop') as stop_mock:
+                patch('simulation_bridge.src.core.bridge_orchestrator.time.sleep',
+                      side_effect=KeyboardInterrupt), \
+                patch.object(orchestrator, 'stop') as stop_mock:
             orchestrator.start()
             adapter.start.assert_called_once()
             stop_mock.assert_called_once()
 
 
-class TestAdapterImport: # pylint: disable=too-few-public-methods
+class TestAdapterImport:  # pylint: disable=too-few-public-methods
     """Tests for internal _import_adapter_classes logic."""
 
     def test_import_adapter_classes(self, config_manager_mock):
