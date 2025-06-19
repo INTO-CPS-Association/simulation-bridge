@@ -184,34 +184,28 @@ class TestLoadConfig:
 class TestMainFunction:  # pylint: disable=too-few-public-methods
     """Test main function behavior and CLI entry."""
 
-    def test_main_keyboard_interrupt(self, mock_config, monkeypatch):
+    @mock.patch("simulation_bridge.resources.rabbitmq.rabbitmq_client.RabbitMQClient")
+    def test_main_keyboard_interrupt(self, mock_rmq_client, mock_config, monkeypatch, mock_pika):
         """Simulate KeyboardInterrupt in main."""
-        monkeypatch.setattr(rabbitmq_client, "load_config",
-                            lambda: mock_config)
-        monkeypatch.setattr(rabbitmq_client, "start_dt_listener",
-                            lambda config: None)
-        monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "load_yaml_file",
-                            lambda self, path: {})
-        monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "send_simulation_request",
-                            lambda self, data: None)
-        monkeypatch.setattr(rabbitmq_client.time, "sleep",
-                            mock.Mock(side_effect=KeyboardInterrupt))
+        monkeypatch.setattr(rabbitmq_client, "load_config", lambda: mock_config)
+        monkeypatch.setattr(rabbitmq_client, "start_dt_listener", lambda config: None)
+        monkeypatch.setattr(rabbitmq_client.time, "sleep", mock.Mock(side_effect=KeyboardInterrupt))
 
         rabbitmq_client.main()
 
+        mock_rmq_client.assert_called_once_with(mock_config)
 
-@pytest.mark.parametrize("error_type", [ValueError("fail"), OSError("fail")])
-def test_main_unexpected_exceptions(mock_config, monkeypatch, error_type):
-    """Ensure main handles unexpected errors gracefully."""
-    monkeypatch.setattr(rabbitmq_client, "load_config",
-                        lambda: mock_config)
-    monkeypatch.setattr(rabbitmq_client, "start_dt_listener",
-                        lambda config: None)
-    monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "load_yaml_file",
-                        lambda self, path: {})
-    monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "send_simulation_request",
-                        lambda self, data: (_ for _ in ()).throw(error_type))
-    monkeypatch.setattr(rabbitmq_client.time, "sleep",
-                        mock.Mock(side_effect=KeyboardInterrupt))
+    @pytest.mark.parametrize("error_type", [ValueError("fail"), OSError("fail")])
+    @mock.patch("simulation_bridge.resources.rabbitmq.rabbitmq_client.RabbitMQClient")
+    def test_main_unexpected_exceptions(self, mock_rmq_client, mock_config, monkeypatch, mock_pika, error_type):
+        """Ensure main handles unexpected errors gracefully."""
+        instance = mock_rmq_client.return_value
+        instance.load_yaml_file.return_value = {}
+        instance.send_simulation_request.side_effect = error_type
 
-    rabbitmq_client.main()
+        monkeypatch.setattr(rabbitmq_client, "load_config", lambda: mock_config)
+        monkeypatch.setattr(rabbitmq_client, "start_dt_listener", lambda config: None)
+        monkeypatch.setattr(rabbitmq_client.time, "sleep", mock.Mock(side_effect=KeyboardInterrupt))
+
+        rabbitmq_client.main()
+
