@@ -198,6 +198,9 @@ agents/matlab/dist/
 config*.yaml
 simulation*.yaml
 *.csv
+interactive.py
+*_interactive.py
+**/examples/interactive-simulation/*
 #SIMULATION BRIDGE 
 /logs
 /certs

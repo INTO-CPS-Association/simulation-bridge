@@ -5,9 +5,9 @@ omit =
     client/*
     dist/*
     images/*
-    */simulation_bridge/docs/*
-    */simulation_bridge/resources/*
-    */test/*
+    simulation_bridge/docs/*
+    simulation_bridge/resources/*
+    simulation_bridge/test/*
     */venv/*
     */.venv/*
     */__init__.py

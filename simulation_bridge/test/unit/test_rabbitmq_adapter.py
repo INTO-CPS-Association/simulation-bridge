@@ -55,8 +55,8 @@ class TestRabbitMQAdapterInit:
             self, config_manager_mock, pika_connection_mock):
         """RabbitMQAdapter should subscribe to queues defined in config."""
         _conn_mock, chan_mock = pika_connection_mock
-        adapter = rabbitmq_adapter.RabbitMQAdapter(
-            config_manager_mock)  # pylint: disable=unused-variable
+        adapter = rabbitmq_adapter.RabbitMQAdapter(   # pylint: disable=unused-variable
+            config_manager_mock)
         # Should call basic_consume for each queue
         assert chan_mock.basic_consume.call_count == 2
         calls = [call.kwargs['queue']

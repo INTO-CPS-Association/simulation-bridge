@@ -74,9 +74,9 @@ class TestInitialization:
             conn_mock.channel.return_value = chan_mock
             blocking_conn.return_value = conn_mock
 
-            core = bridge_core.BridgeCore(
+            core = bridge_core.BridgeCore(  # pylint: disable=unused-variable
                 config_manager_mock,
-                adapters_mock)  # pylint: disable=unused-variable
+                adapters_mock)
 
             blocking_conn.assert_called_once()
             conn_mock.channel.assert_called_once()
