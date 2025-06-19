@@ -55,11 +55,12 @@ def mock_connection(mock_channel):
 
 @pytest.fixture
 def mock_pika(monkeypatch, mock_connection):
-    """Patch pika.BlockingConnection to return mock connection."""
+    """Patch pika.BlockingConnection to return mock connection and avoid real connection errors."""
     monkeypatch.setattr(
         rabbitmq_client.pika,
         "BlockingConnection",
-        lambda _: mock_connection)
+        lambda params: mock_connection
+    )
 
 
 class TestRabbitMQClientInitialization:  # pylint: disable=too-few-public-methods
