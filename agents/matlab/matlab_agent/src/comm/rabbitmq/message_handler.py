@@ -8,12 +8,14 @@ import yaml
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+import queue
 
 from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.batch import handle_batch_simulation
 from ...core.streaming import handle_streaming_simulation
+from ...core.interactive import handle_interactive_simulation, handle_interactive_input
 
 logger = get_logger()
 
@@ -43,7 +45,7 @@ class SimulationData(BaseModel):
     @classmethod
     def validate_sim_type(cls, v):
         """Validate that simulation type is either 'batch' or 'streaming'"""
-        if v not in ['batch', 'streaming']:
+        if v not in ['batch', 'streaming', 'interactive']:
             raise ValueError(
                 f"Invalid simulation type: {v}. Must be 'batch' or 'streaming'")
         return v
@@ -78,6 +80,7 @@ class MessageHandler(IRabbitMQMessageHandler):
             'path', None)
         self.response_templates = self.config.get(
             'response_templates', {})
+        self.interactive_queues: Dict[str, queue.Queue] = {}
 
     def get_agent_id(self) -> str:
         """
@@ -152,6 +155,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 sim_file = simulation_data.file
                 bridge_meta = simulation_data.bridge_meta or 'unknown'
                 request_id = simulation_data.request_id
+                
             except Exception as e:
                 logger.error("Message validation failed: %s", e)
                 sim_file = ''
@@ -205,9 +209,30 @@ class MessageHandler(IRabbitMQMessageHandler):
                     self.response_templates,
                     tcp_settings
                 )
+            elif sim_type == 'interactive':
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                tcp_settings = self.config.get('tcp', {})
+                
+                # Create a Python Queue object for this interactive session
+                input_queue = queue.Queue()
+                self.interactive_queues[request_id] = input_queue
+                
+                # Set up the interactive environment and start the simulation
+                self.handle_interactive_init(simulation_data, tcp_settings, input_queue, request_id)
+                handle_interactive_simulation(  
+                    msg_dict, source,
+                    self.rabbitmq_manager,
+                    self.path_simulation,
+                    self.response_templates,
+                    tcp_settings,
+                    input_queue
+                )
+                
+                # Clean up the queue after simulation completes
+                if request_id in self.interactive_queues:
+                    del self.interactive_queues[request_id]
+                    
             else:
-                # This shouldn't happen due to Pydantic validation, but just in
-                # case
                 logger.error("Unknown simulation type: %s", sim_type)
                 error_response = create_response(
                     template_type='error',
@@ -224,7 +249,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 self.rabbitmq_manager.send_result(source, error_response)
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             logger.error("Error processing message %s: %s", message_id, e)
             error_response = create_response(
                 template_type='error',
@@ -239,10 +264,41 @@ class MessageHandler(IRabbitMQMessageHandler):
                     'type': 'execution_error'
                 }
             )
-            # Try to send the error response back
             try:
                 self.rabbitmq_manager.send_result(source, error_response)
-            except Exception as send_error:  # pylint: disable=broad-except
+            except Exception as send_error:
                 logger.error("Failed to send error response: %s", send_error)
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def handle_interactive_init(self, simulation_data: SimulationData, tcp_settings: Dict[str, Any], input_queue: queue.Queue, request_id: str) -> None:
+        """Set up the interactive simulation environment and subscribe to input stream"""
+        stream_key = simulation_data.inputs.model_dump().get("stream_source", "").replace("rabbitmq://", "")
+
+        # Declare stream exchange and queue binding
+        self.rabbitmq_manager.channel.exchange_declare(
+            exchange='ex.input.stream',
+            exchange_type='topic',
+            durable=True
+        )
+
+        # Use request_id to create unique queue name
+        queue_name = f"Q.{self.agent_id}.interactive.{request_id}"
+        result = self.rabbitmq_manager.channel.queue_declare(queue=queue_name, durable=True)
+        
+        self.rabbitmq_manager.channel.queue_bind(
+            exchange='ex.input.stream',
+            queue=queue_name,
+            routing_key=stream_key
+        )
+
+        from functools import partial
+
+        # Pass the actual Queue object, not the string
+        callback_with_tcp = partial(handle_interactive_input, tcp_settings=tcp_settings, input_queue=input_queue)
+
+        self.rabbitmq_manager.channel.basic_consume(
+            queue=queue_name,
+            on_message_callback=callback_with_tcp,
+            auto_ack=True
+        )
