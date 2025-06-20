@@ -1,7 +1,6 @@
 name: Simulation Bridge Tests
 
 on:
-  push:
   pull_request:
 
 jobs:
@@ -23,12 +22,19 @@ jobs:
 
       - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | python3 -
-        shell: bash
+          python -m pip install --upgrade pip
+          curl -sSL https://install.python-poetry.org | python -
+        env:
+          POETRY_HOME: ${{ runner.temp }}/poetry
 
       - name: Add Poetry to PATH
-        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
-        shell: bash
+        run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+        if: runner.os != 'Windows'
+
+      - name: Add Poetry to PATH on Windows
+        run: echo "${{ runner.temp }}\poetry\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        if: runner.os == 'Windows'
+        shell: pwsh
 
       - name: Install dependencies via Poetry
         run: |
