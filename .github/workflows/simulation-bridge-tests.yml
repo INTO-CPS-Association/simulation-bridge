@@ -1,0 +1,39 @@
+name: Simulation Bridge Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+        shell: bash
+
+      - name: Add Poetry to PATH
+        run: echo "$HOME/.local/bin" >> $GITHUB_PATH
+        shell: bash
+
+      - name: Install dependencies via Poetry
+        run: |
+          poetry install
+
+      - name: Run Pytest
+        run: |
+          poetry run pytest
