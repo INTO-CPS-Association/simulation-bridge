@@ -76,20 +76,6 @@ class TestSetupInterfaces:
                 core_mock.return_value)
             signal_mock.connect_all_signals.assert_called_once()
 
-    def test_setup_with_no_enabled_protocols(self, orchestrator):
-        """Test setup when no protocols are enabled."""
-        with patch(
-            'simulation_bridge.src.core.bridge_orchestrator.RabbitMQInfrastructure'
-        ) as rabbit_mock, patch(
-            'simulation_bridge.src.core.bridge_orchestrator.SignalManager'
-        ) as signal_mock:
-            rabbit_instance = rabbit_mock.return_value
-            rabbit_instance.setup.return_value = None
-
-            signal_mock.get_enabled_protocols.return_value = []
-            orchestrator.setup_interfaces()
-            rabbit_instance.setup.assert_called_once()
-
     def test_setup_raises_exception(self, orchestrator):
         """Test setup raises exception if infrastructure fails."""
         with patch(

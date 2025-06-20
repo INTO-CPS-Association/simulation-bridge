@@ -10,7 +10,7 @@ import unittest
 # pylint: disable=too-many-public-methods,unused-argument,protected-access
 
 
-class MockBridgeCore: # pylint: disable=too-few-public-methods
+class MockBridgeCore:  # pylint: disable=too-few-public-methods
     """Mock BridgeCore for testing."""
 
     def __init__(self, config_manager, adapters):
@@ -122,7 +122,7 @@ class TestBridgeOrchestratorSetup(unittest.TestCase):
         mock_protocol_config = self.mock_protocol_config
         adapter_classes = self.adapter_classes
 
-        class MockBridgeOrchestrator: # pylint: disable=too-few-public-methods,too-many-instance-attributes
+        class MockBridgeOrchestrator:  # pylint: disable=too-few-public-methods,too-many-instance-attributes
             """Mock BridgeOrchestrator with simplified setup and lifecycle."""
 
             def __init__(self, config_path=None):
@@ -160,7 +160,8 @@ class TestBridgeOrchestratorSetup(unittest.TestCase):
                     MockSignalManager.connect_all_signals()
 
                 except Exception as exc:
-                    raise RuntimeError(f"Error setting up interfaces: {exc}") from exc
+                    raise RuntimeError(
+                        f"Error setting up interfaces: {exc}") from exc
 
             def start(self):
                 """Start all adapters and mark running state."""
@@ -245,7 +246,8 @@ class TestBridgeOrchestratorSetup(unittest.TestCase):
         orchestrator = BridgeOrchestrator(self.config_path)
 
         def failing_adapter(config_manager):
-            raise Exception("Adapter initialization failed") # pylint: disable=broad-exception-raised
+            raise Exception(
+                "Adapter initialization failed")  # pylint: disable=broad-exception-raised
 
         orchestrator.adapter_classes["mqtt"] = failing_adapter
 

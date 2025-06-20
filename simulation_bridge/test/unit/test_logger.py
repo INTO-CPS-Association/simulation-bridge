@@ -71,7 +71,8 @@ class TestSetupLoggerFileHandler:
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 
     def test_rotating_file_handler_created_with_correct_args(
-            self, mock_rotating_file_handler):
+        self, mock_rotating_file_handler
+    ):
         """Verify RotatingFileHandler is instantiated with expected parameters."""
         logger.setup_logger(log_file="logs/test.log", enable_console=False)
         mock_rotating_file_handler.assert_called_once_with(
