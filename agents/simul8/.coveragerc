@@ -1,0 +1,13 @@
+[run]
+omit =
+    */tests/*
+    */venv/*
+    */.venv/*
+    */__init__.py
+    */matlab_agent/docs/*
+    */matlab_agent/resources/*
+
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
+    pragma: no cover
