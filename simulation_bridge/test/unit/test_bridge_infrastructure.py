@@ -21,7 +21,7 @@ def config_fixture():
         'password': 'pass',
         'host': 'localhost',
         'port': 5672,
-        'virtual_host': '/',
+        'vhost': '/',
         'infrastructure': {
             'exchanges': [
                 {

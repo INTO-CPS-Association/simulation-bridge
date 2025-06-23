@@ -19,7 +19,7 @@ def config_manager_mock():
         'password': 'pass',
         'host': 'localhost',
         'port': 5672,
-        'virtual_host': '/',
+        'vhost': '/',
         'infrastructure': {'queues': [{'name': 'Q.bridge.input'}, {'name': 'Q.bridge.result'}]}
     }
     return mock_cfg

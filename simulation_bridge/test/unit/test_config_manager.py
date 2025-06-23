@@ -18,7 +18,7 @@ def sample_valid_config_dict():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "virtual_host": "/",
+            "vhost": "/",
             "username": "guest",
             "password": "guest",
             "infrastructure": {

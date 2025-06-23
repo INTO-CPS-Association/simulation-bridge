@@ -59,7 +59,7 @@ class RabbitMQConfig(BaseModel):
     """Configuration for RabbitMQ connection."""
     host: str
     port: int
-    virtual_host: str
+    vhost: str
     username: str
     password: str
     infrastructure: RabbitMQInfrastructure
@@ -146,7 +146,7 @@ class Config(BaseModel):
         rabbit_config = RabbitMQConfig(
             host=rabbitmq_dict.get('host', 'localhost'),
             port=rabbitmq_dict.get('port', 5672),
-            virtual_host=rabbitmq_dict.get('virtual_host', '/'),
+            vhost=rabbitmq_dict.get('vhost', '/'),
             username=rabbitmq_dict.get('username', 'guest'),
             password=rabbitmq_dict.get('password', 'guest'),
             infrastructure=infrastructure
@@ -217,7 +217,7 @@ class ConfigManager:
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,
-                virtual_host="/",
+                vhost="/",
                 username="guest",
                 password="guest",
                 infrastructure=RabbitMQInfrastructure(

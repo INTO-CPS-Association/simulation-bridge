@@ -13,7 +13,14 @@ from simulation_bridge.resources.rabbitmq import rabbitmq_client
 def mock_config():
     """Mock configuration dictionary for RabbitMQClient."""
     return {
-        'rabbitmq_host': 'localhost',
+        'rabbitmq':
+            {
+                'host': 'localhost',
+                'port': 5672,
+                'vhost': '/',
+                'username': 'guest',
+                'password': 'guest'
+            },
         'digital_twin': {
             'dt_id': 'dt123',
             'routing_key_send': 'dt.send'

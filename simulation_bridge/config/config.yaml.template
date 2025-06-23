@@ -4,9 +4,10 @@ simulation_bridge:
 rabbitmq:
   host: localhost
   port: 5672
-  virtual_host: /
+  vhost: /
   username: guest
   password: guest
+
   infrastructure:
     exchanges:
       - name: ex.input.bridge

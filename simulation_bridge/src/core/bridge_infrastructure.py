@@ -30,7 +30,7 @@ class RabbitMQInfrastructure:
             pika.ConnectionParameters(
                 host=self.config['host'],
                 port=self.config['port'],
-                virtual_host=self.config['virtual_host'],
+                virtual_host=self.config['vhost'],
                 credentials=credentials
             )
         )
@@ -52,12 +52,18 @@ class RabbitMQInfrastructure:
 
     def reconnect(self):
         """Reconnect to RabbitMQ if connection was closed."""
+
         if self.connection.is_closed:
+            credentials = pika.PlainCredentials(
+                self.config['username'],
+                self.config['password']
+            )
             self.connection = pika.BlockingConnection(
                 pika.ConnectionParameters(
                     host=self.config['host'],
                     port=self.config['port'],
-                    virtual_host=self.config['virtual_host']
+                    virtual_host=self.config['vhost'],
+                    credentials=credentials
                 )
             )
             self.channel = self.connection.channel()

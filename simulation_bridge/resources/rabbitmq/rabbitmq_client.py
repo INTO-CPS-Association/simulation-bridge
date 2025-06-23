@@ -28,9 +28,20 @@ class RabbitMQClient:
         """Initialize the Digital Twin with the given configuration."""
         self.config = config
         self.dt_id = config['digital_twin']['dt_id']
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(config['rabbitmq_host'])
+
+        rabbitmq_cfg = config['rabbitmq']
+        credentials = pika.PlainCredentials(
+            username=rabbitmq_cfg['username'],
+            password=rabbitmq_cfg['password']
         )
+        parameters = pika.ConnectionParameters(
+            host=rabbitmq_cfg['host'],
+            port=rabbitmq_cfg.get('port', 5672),
+            virtual_host=rabbitmq_cfg.get('vhost', '/'),
+            credentials=credentials
+        )
+
+        self.connection = pika.BlockingConnection(parameters)
         self.channel = self.connection.channel()
         self.result_queue_name = None
         self.setup_infrastructure()

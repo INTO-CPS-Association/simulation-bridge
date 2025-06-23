@@ -16,7 +16,7 @@ def mock_config():
             'port': 5672,
             'username': 'guest',
             'password': 'guest',
-            'virtual_host': '/',
+            'vhost': '/',
             'exchange': 'sim_exchange',
         }
     }

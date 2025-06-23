@@ -155,8 +155,9 @@ simulation_bridge:
 rabbitmq:
   host: localhost # RabbitMQ server hostname or IP
   port: 5672 # RabbitMQ port (default is 5672)
-  virtual_host: / # RabbitMQ virtual host to use
-
+  vhost: / # RabbitMQ virtual host to use
+  username: guest # Username
+  password: guest # Password
   infrastructure:
     exchanges:
       # Define all the exchanges used by the bridge
@@ -214,19 +215,15 @@ mqtt:
   input_topic: bridge/input # Topic to subscribe to for input
   output_topic: bridge/output # Topic to publish results
   qos: 0 # Quality of Service level (0: at most once)
+  username: guest # Username
+  password: guest # Password
 
 # Configuration for REST protocol adapter
 rest:
   host: 0.0.0.0 # Host IP to bind the REST server (0.0.0.0 = all interfaces)
   port: 5000 # Port to run the REST server
-  input_endpoint: /message # Endpoint for receiving messages
+  endpoint: /message # Endpoint for receiving messages
   debug: false # Enable/disable Flask debug mode
-
-  client:
-    host: localhost # REST client target host
-    port: 5001 # Port of the external REST receiver
-    base_url: http://localhost:5001 # Base URL for outgoing REST requests
-    output_endpoint: /result # Path for sending result messages
 
 # Logging configuration
 logging:
@@ -292,7 +289,7 @@ The developer-specific commands are
 ```bash
 pylint simulation_bridge
 autopep8 --in-place --aggressive --recursive 'simulation_bridge'
-pytest --cov=simulation_bridge --cov-report=term --cov-report=html simulation_bridge/test/unit/
+pytest --cov=simulation_bridge --cov-report=term --cov-report=html simulation_bridge/test/
 open htmlcov/index.html
 ```
 

@@ -77,7 +77,7 @@ class BridgeCore:
                 pika.ConnectionParameters(
                     host=self.config['host'],
                     port=self.config['port'],
-                    virtual_host=self.config['virtual_host'],
+                    virtual_host=self.config['vhost'],
                     credentials=credentials,
                     heartbeat=RABBITMQ_HEARTBEAT,
                     blocked_connection_timeout=RABBITMQ_BLOCKED_CONNECTION_TIMEOUT,

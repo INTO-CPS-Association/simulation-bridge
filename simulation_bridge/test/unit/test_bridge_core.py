@@ -24,7 +24,7 @@ def config_manager_mock():
         'port': 5672,
         'username': 'user',
         'password': 'pass',
-        'virtual_host': '/'
+        'vhost': '/'
     }
     return cm
 

@@ -42,6 +42,10 @@ class MQTTClient:
         self.config = config['mqtt']
         self.payload_file = config.get('payload_file', 'simulation.yaml')
         self.client = mqtt.Client()
+        self.client.username_pw_set(
+            self.config['username'],
+            self.config['password']
+        )
         self.client.on_message = self.on_message
 
     def on_message(self, client, userdata, msg):  # pylint: disable=unused-argument

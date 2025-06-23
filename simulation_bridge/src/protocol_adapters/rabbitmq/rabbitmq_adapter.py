@@ -46,7 +46,7 @@ class RabbitMQAdapter(ProtocolAdapter):
             pika.ConnectionParameters(
                 host=self.config['host'],
                 port=self.config['port'],
-                virtual_host=self.config['virtual_host'],
+                virtual_host=self.config['vhost'],
                 credentials=credentials
             )
         )
