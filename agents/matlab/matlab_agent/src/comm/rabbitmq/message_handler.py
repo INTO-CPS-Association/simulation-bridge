@@ -212,26 +212,13 @@ class MessageHandler(IRabbitMQMessageHandler):
             elif sim_type == 'interactive':
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 tcp_settings = self.config.get('tcp', {})
-                
-                # Create a Python Queue object for this interactive session
-                input_queue = queue.Queue()
-                self.interactive_queues[request_id] = input_queue
-                
-                # Set up the interactive environment and start the simulation
-                self.handle_interactive_init(simulation_data, tcp_settings, input_queue, request_id)
                 handle_interactive_simulation(  
                     msg_dict, source,
                     self.rabbitmq_manager,
                     self.path_simulation,
                     self.response_templates,
-                    tcp_settings,
-                    input_queue
+                    tcp_settings
                 )
-                
-                # Clean up the queue after simulation completes
-                if request_id in self.interactive_queues:
-                    del self.interactive_queues[request_id]
-                    
             else:
                 logger.error("Unknown simulation type: %s", sim_type)
                 error_response = create_response(
