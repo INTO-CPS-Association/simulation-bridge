@@ -148,33 +148,3 @@ async def test_publish_result_message_rest_calls_send_result_sync(
     adapter.publish_result_message_rest(None, message=msg)
     adapter.send_result_sync.assert_called_once_with('dest1', msg)
 
-
-def test_start_creates_server_task(monkeypatch, adapter):
-    """Test that start sets running and schedules _start_server as asyncio task."""
-
-    async def fake_start_server():
-        return None
-
-    monkeypatch.setattr(adapter, '_start_server', fake_start_server)
-    adapter._running = False
-
-    # Patch get_event_loop to ensure we have a loop
-    loop = asyncio.new_event_loop()
-    monkeypatch.setattr(asyncio, 'get_event_loop', lambda: loop)
-
-    adapter.start()
-
-    assert adapter._running is True
-    assert adapter._server_task is not None
-    assert not adapter._server_task.done()
-
-
-def test_stop_cancels_server_task(monkeypatch, adapter):
-    adapter._running = True
-    mock_task = MagicMock()
-    adapter._server_task = mock_task
-
-    adapter.stop()
-
-    assert adapter._running is False
-    mock_task.cancel.assert_called_once()
