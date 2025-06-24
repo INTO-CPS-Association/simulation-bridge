@@ -179,8 +179,8 @@ rest:
   port: 5000 # Port to run the REST server
   endpoint: /message # Endpoint for receiving messages
   debug: false # Enable/disable Flask debug mode
-  certfile: /path/to/certfile.pem # Path to the SSL certificate file (enables HTTPS if provided)
-  keyfile: /path/to/keyfile.pem # Path to the SSL private key file (required when using certfile)
+  certfile: /certs/certfile.pem # Path to the SSL certificate file
+  keyfile: /certs/keyfile.pem # Path to the SSL private key file
 
 # Logging configuration
 logging:
@@ -190,6 +190,8 @@ logging:
 ```
 
 Each section of the configuration file enables or customizes a specific protocol adapter used to receive and dispatch simulation messages.
+
+> **Note:** The certificate file `certfile.pem` and the key file `keyfile.pem` will be automatically created by the _sim-bridge_, even if they are missing or invalid.
 
 ## Usage
 
