@@ -69,8 +69,8 @@ rest:
   port: 5000
   endpoint: /message
   debug: false
-  certfile: /certs/certfile.pem
-  keyfile: /certs/keyfile.pem
+  certfile: /certs/cert.pem
+  keyfile: /certs/key.pem
 
 logging:
   level: INFO

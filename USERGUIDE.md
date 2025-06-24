@@ -179,8 +179,8 @@ rest:
   port: 5000 # Port to run the REST server
   endpoint: /message # Endpoint for receiving messages
   debug: false # Enable/disable Flask debug mode
-  certfile: /certs/certfile.pem # Path to the SSL certificate file
-  keyfile: /certs/keyfile.pem # Path to the SSL private key file
+  certfile: /certs/cert.pem # Path to the SSL certificate file
+  keyfile: /certs/key.pem # Path to the SSL private key file
 
 # Logging configuration
 logging:

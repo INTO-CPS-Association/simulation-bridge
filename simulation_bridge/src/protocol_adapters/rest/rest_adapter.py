@@ -146,7 +146,7 @@ class RESTAdapter(ProtocolAdapter):
         config.worker_class = "asyncio"
         config.alpn_protocols = ["h2", "http/1.1"]
 
-        if self.config.get('certfile') and self.config.get('keyfile'):
+        if self.config['certfile'] and self.config['keyfile']:
             config.certfile = self.config['certfile']
             config.keyfile = self.config['keyfile']
 
