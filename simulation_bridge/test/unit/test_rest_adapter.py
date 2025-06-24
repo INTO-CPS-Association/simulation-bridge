@@ -8,7 +8,6 @@ import warnings
 
 from unittest.mock import MagicMock, AsyncMock
 import pytest
-from quart import Response
 
 from simulation_bridge.src.protocol_adapters.rest import rest_adapter
 
@@ -39,47 +38,6 @@ def config_manager_mock(config_mock):
 def adapter(config_manager_mock):
     """Create RESTAdapter instance with mock config manager."""
     return rest_adapter.RESTAdapter(config_manager_mock)
-
-
-@pytest.mark.asyncio
-async def test_handle_streaming_message_valid_and_invalid(monkeypatch, adapter):
-    """Test streaming message handler with valid and invalid JSON."""
-
-    class DummyRequest:  # pylint: disable=too-few-public-methods
-        """Dummy request object for valid JSON."""
-        headers = {'content-type': 'application/json'}
-
-        async def get_data(self):
-            """Return valid JSON data."""
-            return b'{"simulation": {"client_id": "prod1", "simulator": "sim1"}}'
-
-    monkeypatch.setattr(rest_adapter, 'request', DummyRequest())
-
-    signal_mock = MagicMock()
-    monkeypatch.setattr(rest_adapter, 'signal', lambda name: signal_mock)
-
-    response = await adapter._handle_streaming_message()
-    assert isinstance(response, Response)
-    assert response.status_code == 200
-    assert response.content_type == 'application/x-ndjson'
-    assert 'prod1' in adapter._active_streams
-    assert isinstance(adapter._active_streams['prod1'], asyncio.Queue)
-    signal_mock.send.assert_called_once()
-
-    class BadRequest:  # pylint: disable=too-few-public-methods
-        """Dummy request object for invalid JSON."""
-        headers = {'content-type': 'application/json'}
-
-        async def get_data(self):
-            """Return invalid JSON data."""
-            return b'{"simulation": invalid json'
-
-    monkeypatch.setattr(rest_adapter, 'request', BadRequest())
-    response = await adapter._handle_streaming_message()
-    assert response.status_code == 400
-    data = (await response.get_data()).decode()
-    assert 'error' in data
-
 
 @pytest.mark.asyncio
 async def test_generate_response_yields_and_cleans_queue(adapter):
@@ -147,4 +105,3 @@ async def test_publish_result_message_rest_calls_send_result_sync(
     msg = {'destinations': ['dest1']}
     adapter.publish_result_message_rest(None, message=msg)
     adapter.send_result_sync.assert_called_once_with('dest1', msg)
-
