@@ -59,7 +59,7 @@ It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external 
 
 ### Simulation Bridge
 
-- [**User Guide** ↗](USERGUIDE.md): Comprehensive guide covering system requirements, configuration steps, and detailed usage instructions for the Simulation Bridge.
+- [**User Guide** ↗](/USERGUIDE.md): Comprehensive guide covering system requirements, configuration steps, and detailed usage instructions for the Simulation Bridge.
 - [**Internal Architecture** ↗](simulation_bridge/docs/internal_architecture.md): Overview of the system's architecture, key modules, and their interactions.
 - [**Class Diagram** ↗](simulation_bridge/docs/class_diagram.md): UML Class Diagram of the Simulation Bridge Architecture
 
