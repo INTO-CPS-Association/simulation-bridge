@@ -41,7 +41,9 @@ def sample_valid_config_dict():
             "host": "127.0.0.1",
             "port": 8000,
             "endpoint": "/api",
-            "debug": False
+            "debug": False,
+            "certfile": "/path/to/cert.pem",
+            "keyfile": "/path/to/key.pem"
         },
         "logging": {
             "level": "INFO",

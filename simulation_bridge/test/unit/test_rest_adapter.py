@@ -39,6 +39,7 @@ def adapter(config_manager_mock):
     """Create RESTAdapter instance with mock config manager."""
     return rest_adapter.RESTAdapter(config_manager_mock)
 
+
 @pytest.mark.asyncio
 async def test_generate_response_yields_and_cleans_queue(adapter):
     """Test response generator yields initial status and queued results."""

@@ -51,7 +51,8 @@ class RESTAdapter(ProtocolAdapter):
 
             if not isinstance(message, dict):
                 return Response(
-                    response=json.dumps({"error": "Message is not a dictionary"}),
+                    response=json.dumps(
+                        {"error": "Message is not a dictionary"}),
                     status=400,
                     content_type='application/json'
                 )
@@ -95,11 +96,13 @@ class RESTAdapter(ProtocolAdapter):
 
         # Fallback: try YAML, then JSON, then raw text
         try:
-            logger.debug("REST - Attempting to parse message as YAML (fallback)")
+            logger.debug(
+                "REST - Attempting to parse message as YAML (fallback)")
             return yaml.safe_load(body)
         except Exception:
             try:
-                logger.debug("REST - Attempting to parse message as JSON (fallback)")
+                logger.debug(
+                    "REST - Attempting to parse message as JSON (fallback)")
                 return json.loads(body)
             except Exception:
                 logger.debug("REST - Parsing as raw text (fallback)")
@@ -133,7 +136,9 @@ class RESTAdapter(ProtocolAdapter):
         if producer in self._active_streams:
             await self._active_streams[producer].put(result)
         else:
-            logger.warning("REST - No active stream found for producer: %s", producer)
+            logger.warning(
+                "REST - No active stream found for producer: %s",
+                producer)
 
     async def _start_server(self) -> None:
         """Start the Hypercorn server."""
@@ -197,6 +202,8 @@ class RESTAdapter(ProtocolAdapter):
             message = kwargs.get('message', {})
             destination = message.get('destinations', [])[0]
             self.send_result_sync(destination, message)
-            logger.debug("Successfully scheduled result message for REST client: %s", destination)
+            logger.debug(
+                "Successfully scheduled result message for REST client: %s",
+                destination)
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error sending result message to REST client: %s", e)
