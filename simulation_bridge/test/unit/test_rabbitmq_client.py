@@ -1,7 +1,7 @@
 """Tests for RabbitMQ client in simulation bridge."""
 
 # pylint: disable=too-many-arguments,unused-argument,protected-access,redefined-outer-name
-
+# pylint: disable=too-many-positional-arguments
 from unittest.mock import MagicMock
 from unittest import mock
 import pytest

@@ -104,7 +104,6 @@ class TestStartStop:
             signal.disconnect_all_signals.assert_called_once()
 
     def test_start_keyboard_interrupt(self, orchestrator):
-        """Simulate KeyboardInterrupt to ensure graceful shutdown."""
         adapter = MagicMock()
         adapter.is_running = True
         orchestrator.adapters = {'mqtt': adapter}
@@ -112,7 +111,10 @@ class TestStartStop:
                 patch('simulation_bridge.src.core.bridge_orchestrator.time.sleep',
                       side_effect=KeyboardInterrupt), \
                 patch.object(orchestrator, 'stop') as stop_mock:
-            orchestrator.start()
+            try:
+                orchestrator.start()
+            except SystemExit:
+                pass
             adapter.start.assert_called_once()
             stop_mock.assert_called_once()
 

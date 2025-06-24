@@ -1,6 +1,7 @@
 """Bridge Orchestrator module for simulation bridge."""
 import time
 import importlib
+import threading
 from .bridge_core import BridgeCore
 from .bridge_infrastructure import RabbitMQInfrastructure
 from ..utils.config_manager import ConfigManager
@@ -93,19 +94,28 @@ class BridgeOrchestrator:
             logger.error("Error setting up interfaces: %s", exc)
             raise
 
+    def _start_adapters_async(self):
+        """Start all adapters in separate threads."""
+        for name, adapter in self.adapters.items():
+            thread = threading.Thread(
+                target=adapter.start,
+                name=f"{name}_adapter_thread",
+                daemon=True)
+            thread.start()
+            logger.debug("Started adapter %s in thread %s", name, thread.name)
+
     def start(self):
         """Start the bridge and all its components."""
         # 1) Initial setup
         self.setup_interfaces()
-
-        # 2) Start all adapters
-        for adapter in self.adapters.values():
-            adapter.start()
-        logger.info("Simulation Bridge Running")
-        self._running = True
         try:
+            # 2) Start all adapters
+            for adapter in self.adapters.values():
+                adapter.start()
+            logger.info("Simulation Bridge Running")
+            self._running = True
             # 3) Polling loop
-            while True:
+            while self._running:
                 all_alive = all(
                     adapter.is_running for adapter in self.adapters.values())
                 if not all_alive:
@@ -113,18 +123,20 @@ class BridgeOrchestrator:
                         "One or more adapters have stopped unexpectedly")
                     break
                 time.sleep(POLL_INTERVAL_SECONDS)
-
         except KeyboardInterrupt:
             # 4) Handle user Ctrl+C
             logger.info("Shutdown requested by user (Ctrl+C)")
-
+            self._running = False
+            raise SystemExit
         finally:
             # 5) In any case (adapter error or Ctrl+C), stop everything
             self.stop()
+        raise SystemExit("Simulation Bridge stopped")
 
     def stop(self):
         """Stop all components of the bridge cleanly."""
         logger.debug("Stopping all components...")
+        self._running = False
         try:
             for name, adapter in self.adapters.items():
                 try:

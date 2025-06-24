@@ -163,7 +163,7 @@ class BridgeCore:
         logger.error(
             "Received error result message with unknown protocol: %s", message['error'])
 
-    def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments
+    def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments, too-many-positional-arguments
                          exchange='ex.bridge.output', protocol='unknown'):
         """
         Publish message to RabbitMQ exchange.

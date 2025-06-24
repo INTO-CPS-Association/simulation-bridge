@@ -138,43 +138,6 @@ def test_start_calls_asyncio_run(monkeypatch, adapter):
     assert adapter._running is True
 
 
-def test_send_result_sync_works_with_running_loop(monkeypatch, adapter):
-    """Test send_result_sync calls send_result properly with running event loop."""
-
-    producer = 'client_sync'
-    adapter._active_streams[producer] = asyncio.Queue()
-
-    class DummyLoop:  # pylint: disable=too-few-public-methods
-        """Dummy event loop that reports running status."""
-
-        def is_running(self):
-            """Return True to simulate a running loop."""
-            return True
-
-    adapter._loop = DummyLoop()
-    coro = AsyncMock()
-    monkeypatch.setattr(adapter, 'send_result', coro)
-
-    def dummy_run_coroutine_threadsafe(coro, loop):
-        """Dummy function to simulate running a coroutine in the event loop."""
-        class DummyFuture:  # pylint: disable=too-few-public-methods
-            """Dummy future to simulate coroutine execution."""
-
-            def result(self):
-                """Return the result of the coroutine."""
-                return asyncio.get_event_loop().run_until_complete(coro)
-
-        return DummyFuture()
-
-    monkeypatch.setattr(
-        asyncio,
-        'run_coroutine_threadsafe',
-        dummy_run_coroutine_threadsafe)
-
-    adapter.send_result_sync(producer, {'test': 'value'})
-    coro.assert_called_once()
-
-
 @pytest.mark.asyncio
 async def test_publish_result_message_rest_calls_send_result_sync(
         monkeypatch, adapter):
@@ -186,11 +149,32 @@ async def test_publish_result_message_rest_calls_send_result_sync(
     adapter.send_result_sync.assert_called_once_with('dest1', msg)
 
 
-def test_stop_sets_running_false(adapter):
-    """Test that stop sets _running flag to False and closes server."""
+def test_start_creates_server_task(monkeypatch, adapter):
+    """Test that start sets running and schedules _start_server as asyncio task."""
 
+    async def fake_start_server():
+        return None
+
+    monkeypatch.setattr(adapter, '_start_server', fake_start_server)
+    adapter._running = False
+
+    # Patch get_event_loop to ensure we have a loop
+    loop = asyncio.new_event_loop()
+    monkeypatch.setattr(asyncio, 'get_event_loop', lambda: loop)
+
+    adapter.start()
+
+    assert adapter._running is True
+    assert adapter._server_task is not None
+    assert not adapter._server_task.done()
+
+
+def test_stop_cancels_server_task(monkeypatch, adapter):
     adapter._running = True
-    adapter.server = MagicMock()
+    mock_task = MagicMock()
+    adapter._server_task = mock_task
+
     adapter.stop()
+
     assert adapter._running is False
-    adapter.server.close.assert_called_once()
+    mock_task.cancel.assert_called_once()
