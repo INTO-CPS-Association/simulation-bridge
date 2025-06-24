@@ -4,12 +4,12 @@ This guide outlines how to configure and execute the simulation-bridge applicati
 
 - [User Guide](#user-guide)
   - [Requirements](#requirements)
-    - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
-    - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
-    - [3. Install Project Dependencies](#3-install-project-dependencies)
-    - [4. Install RabbitMQ](#4-install-rabbitmq)
-      - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
-      - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
+      - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
+      - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
+      - [3. Install Project Dependencies](#3-install-project-dependencies)
+      - [4. Install RabbitMQ](#4-install-rabbitmq)
+        - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
+        - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
   - [Configuration](#configuration)
   - [Usage](#usage)
     - [Generating a Template](#generating-a-template)
@@ -107,11 +107,12 @@ simulation_bridge:
 
 # Configuration for RabbitMQ protocol adapter
 rabbitmq:
-  host: localhost # RabbitMQ server hostname or IP
-  port: 5672 # RabbitMQ port (default is 5672)
-  vhost: / # RabbitMQ virtual host to use
-  username: guest # Username
-  password: guest # Password
+  host: localhost # RabbitMQ server hostname or IP address
+  port: 5672 # RabbitMQ port (default 5672 for non-TLS, 5671 for TLS/SSL)
+  vhost: / # RabbitMQ virtual host to connect to
+  username: guest # Username for RabbitMQ authentication
+  password: guest # Password for RabbitMQ authentication
+  tls: false # Enable TLS/SSL encryption (true = enabled, false = disabled)
 
   infrastructure:
     exchanges:
@@ -164,14 +165,15 @@ rabbitmq:
 
 # Configuration for MQTT protocol adapter
 mqtt:
-  host: localhost # MQTT broker host
-  port: 1883 # MQTT port (default is 1883)
-  keepalive: 60 # Keepalive interval in seconds
-  input_topic: bridge/input # Topic to subscribe to for input
-  output_topic: bridge/output # Topic to publish results
-  qos: 0 # Quality of Service level (0: at most once)
-  username: guest # Username
-  password: guest # Password
+  host: localhost # MQTT broker hostname or IP address
+  port: 1883 # MQTT broker port (default 1883 for non-TLS, 8883 for TLS)
+  keepalive: 60 # Keepalive interval in seconds to maintain the connection
+  input_topic: bridge/input # MQTT topic to subscribe for incoming messages
+  output_topic: bridge/output # MQTT topic to publish outgoing result messages
+  qos: 0 # Quality of Service level (0 = at most once delivery)
+  username: guest # Username for MQTT authentication
+  password: guest # Password for MQTT authentication
+  tls: false # Enable TLS/SSL encryption (set to true for secure connection)
 
 # Configuration for REST protocol adapter
 rest:

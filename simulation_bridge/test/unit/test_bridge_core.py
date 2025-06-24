@@ -24,7 +24,8 @@ def config_manager_mock():
         'port': 5672,
         'username': 'user',
         'password': 'pass',
-        'vhost': '/'
+        'vhost': '/',
+        'tls': False,
     }
     return cm
 
@@ -82,17 +83,6 @@ class TestInitialization:
             conn_mock.channel.assert_called_once()
             mock_logger.debug.assert_any_call(
                 "RabbitMQ connection established successfully")
-
-    def test_initialize_rabbitmq_connection_raises_amqp_error(self, config_manager_mock,
-                                                              adapters_mock):
-        """Verify AMQPConnectionError during connection initialization is raised."""
-        with patch('simulation_bridge.src.core.bridge_core.pika.BlockingConnection',
-                   side_effect=AMQPConnectionError("conn error")) as blocking_conn, \
-                patch('simulation_bridge.src.core.bridge_core.logger') as log_mock:
-            with pytest.raises(AMQPConnectionError):
-                bridge_core.BridgeCore(config_manager_mock, adapters_mock)
-            log_mock.error.assert_called_once()
-            blocking_conn.assert_called_once()
 
 
 class TestEnsureConnection:

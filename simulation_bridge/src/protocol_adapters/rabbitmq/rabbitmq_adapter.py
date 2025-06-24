@@ -2,6 +2,7 @@
 import json
 import threading
 import functools
+import ssl
 from typing import Dict, Any
 
 import pika
@@ -37,20 +38,45 @@ class RabbitMQAdapter(ProtocolAdapter):
         super().__init__(config_manager)
         logger.debug("RabbitMQ adapter initialized")
 
-        credentials = pika.PlainCredentials(
-            self.config['username'],
-            self.config['password']
-        )
-
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=self.config['host'],
-                port=self.config['port'],
-                virtual_host=self.config['vhost'],
-                credentials=credentials
+        try:
+            credentials = pika.PlainCredentials(
+                self.config['username'],
+                self.config['password']
             )
-        )
+            if self.config.get('tls', False):
+                context = ssl.create_default_context()
+                ssl_options = pika.SSLOptions(context, self.config['host'])
+                connection_params = pika.ConnectionParameters(
+                    host=self.config['host'],
+                    port=self.config['port'],
+                    virtual_host=self.config['vhost'],
+                    credentials=credentials,
+                    ssl_options=ssl_options
+                )
+            else:
+                connection_params = pika.ConnectionParameters(
+                    host=self.config['host'],
+                    port=self.config['port'],
+                    virtual_host=self.config['vhost'],
+                    credentials=credentials
+                )
 
+            self.connection = pika.BlockingConnection(connection_params)
+
+        except (pika.exceptions.AMQPConnectionError, ssl.SSLError) as e:
+            logger.error(
+                f"Failed to connect to RabbitMQ at {
+                    self.config['host']}:{
+                    self.config['port']} with TLS={
+                    self.config.get(
+                        'tls',
+                        False)}")
+            logger.error(f"Error: {e}")
+            raise RuntimeError(
+                f"Connection failed. Check TLS settings and port.") from e
+        except Exception as e:
+            logger.error(f"Unexpected error while connecting to RabbitMQ: {e}")
+            raise
         self.channel = self.connection.channel()
         self._consumer_thread = None
         self._running = False

@@ -7,6 +7,7 @@ rabbitmq:
   vhost: /
   username: guest
   password: guest
+  tls: false
 
   infrastructure:
     exchanges:
@@ -63,6 +64,7 @@ mqtt:
   qos: 0
   username: guest
   password: guest
+  tls: false
 
 rest:
   host: localhost

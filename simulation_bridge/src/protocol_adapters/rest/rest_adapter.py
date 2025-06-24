@@ -121,11 +121,13 @@ class RESTAdapter(ProtocolAdapter):
                 try:
                     result = await asyncio.wait_for(queue.get(), timeout=600)
                     yield json.dumps(result) + "\n"
-                    
-                    if result.get('status') == 'completed' and result.get('metadata', {}).get('execution_time', 0) > 1:
-                        logger.debug("REST - Final message sent, closing stream")
-                        break 
-                
+
+                    if result.get('status') == 'completed' and result.get(
+                            'metadata', {}).get('execution_time', 0) > 1:
+                        logger.debug(
+                            "REST - Final message sent, closing stream")
+                        break
+
                 except asyncio.TimeoutError:
                     yield json.dumps({"status": "timeout", "error": "No response received within timeout"}) + "\n"
                     break

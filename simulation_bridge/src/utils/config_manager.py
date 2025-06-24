@@ -62,6 +62,7 @@ class RabbitMQConfig(BaseModel):
     vhost: str
     username: str
     password: str
+    tls: bool
     infrastructure: RabbitMQInfrastructure
 
 
@@ -75,6 +76,7 @@ class MQTTConfig(BaseModel):
     qos: int
     username: str
     password: str
+    tls: bool
 
 
 class RESTConfig(BaseModel):
@@ -151,6 +153,7 @@ class Config(BaseModel):
             vhost=rabbitmq_dict.get('vhost', '/'),
             username=rabbitmq_dict.get('username', 'guest'),
             password=rabbitmq_dict.get('password', 'guest'),
+            tls=rabbitmq_dict.get('tls', False),
             infrastructure=infrastructure
         )
 
@@ -222,6 +225,7 @@ class ConfigManager:
                 vhost="/",
                 username="guest",
                 password="guest",
+                tls=False,
                 infrastructure=RabbitMQInfrastructure(
                     exchanges=[],
                     queues=[],
@@ -236,15 +240,16 @@ class ConfigManager:
                 output_topic="bridge/output",
                 qos=0,
                 username="guest",
-                password="guest"
+                password="guest",
+                tls=False,
             ),
             rest=RESTConfig(
                 host="0.0.0.0",
                 port=5000,
                 endpoint="/message",
                 debug=False,
-                certfile="/certs/certfile.pem",
-                keyfile="/certs/keyfile.pem"
+                certfile=None,
+                keyfile=None
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,

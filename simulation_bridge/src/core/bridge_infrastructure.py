@@ -3,6 +3,7 @@ Module for managing RabbitMQ infrastructure for the simulation bridge.
 Handles setup of exchanges, queues and bindings based on configuration.
 """
 
+import ssl
 import pika
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
@@ -21,19 +22,45 @@ class RabbitMQInfrastructure:
             config_manager: Configuration manager object to retrieve RabbitMQ settings
         """
         self.config = config_manager.get_rabbitmq_config()
-        credentials = pika.PlainCredentials(
-            self.config['username'],
-            self.config['password']
-        )
-
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=self.config['host'],
-                port=self.config['port'],
-                virtual_host=self.config['vhost'],
-                credentials=credentials
+        try:
+            credentials = pika.PlainCredentials(
+                self.config['username'],
+                self.config['password']
             )
-        )
+
+            if self.config.get('tls', False):
+                context = ssl.create_default_context()
+                ssl_options = pika.SSLOptions(context, self.config['host'])
+                connection_params = pika.ConnectionParameters(
+                    host=self.config['host'],
+                    port=self.config['port'],
+                    virtual_host=self.config['vhost'],
+                    credentials=credentials,
+                    ssl_options=ssl_options
+                )
+            else:
+                connection_params = pika.ConnectionParameters(
+                    host=self.config['host'],
+                    port=self.config['port'],
+                    virtual_host=self.config['vhost'],
+                    credentials=credentials
+                )
+
+            self.connection = pika.BlockingConnection(connection_params)
+
+        except (pika.exceptions.AMQPConnectionError, ssl.SSLError) as e:
+            logger.error(
+                "Failed to connect to RabbitMQ at %s:%s with TLS=%s",
+                self.config['host'],
+                self.config['port'],
+                self.config.get('tls', False)
+            )
+            logger.error("Error: %s", e)
+            raise RuntimeError(
+                "Connection failed. Check TLS settings and port.") from e
+        except Exception as e:
+            logger.error("Unexpected error while connecting to RabbitMQ: %s", e)
+            raise
         self.channel = self.connection.channel()
 
     def setup(self):

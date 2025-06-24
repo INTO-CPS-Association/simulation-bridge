@@ -21,6 +21,7 @@ def sample_valid_config_dict():
             "vhost": "/",
             "username": "guest",
             "password": "guest",
+            "tls": False,
             "infrastructure": {
                 "exchanges": [],
                 "queues": [],
@@ -35,7 +36,8 @@ def sample_valid_config_dict():
             "output_topic": "output",
             "qos": 1,
             "username": "user",
-            "password": "pass"
+            "password": "pass",
+            "tls": False
         },
         "rest": {
             "host": "127.0.0.1",
