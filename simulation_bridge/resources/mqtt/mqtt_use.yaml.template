@@ -7,5 +7,6 @@ mqtt:
   output_topic: "bridge/output"
   username: "guest"
   password: "guest"
+  tls: false
 
 payload_file: "../simulation.yaml"

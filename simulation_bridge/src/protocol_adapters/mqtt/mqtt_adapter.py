@@ -61,6 +61,9 @@ class MQTTAdapter(ProtocolAdapter):
             self.mqtt_client.username_pw_set(
                 self.mqtt_config['username'], self.mqtt_config['password']
             )
+        if self.mqtt_config.get('tls', False):
+            logger.debug("MQTT - TLS is enabled for publishing client")
+            self.mqtt_client.tls_set()
         self.mqtt_client.connect(
             host=self.mqtt_config['host'],
             port=self.mqtt_config['port'],
