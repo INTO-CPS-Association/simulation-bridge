@@ -43,7 +43,6 @@ class RESTClient:
         self.yaml_file = config["yaml_file"]
         self.url = config["url"]
         self.timeout = config.get("timeout", 600)
-        self.verify_ssl = config.get("verify_ssl", True)
 
     async def send_yaml_and_stream_response(self) -> None:
         """Send YAML data to server and stream the response."""
@@ -58,7 +57,7 @@ class RESTClient:
             print(f"Error: YAML file not found at '{self.yaml_file}'")
             sys.exit(1)
 
-        async with httpx.AsyncClient(verify=self.verify_ssl) as client:
+        async with httpx.AsyncClient(verify=False) as client:
             try:
                 async with client.stream(
                     "POST", self.url,

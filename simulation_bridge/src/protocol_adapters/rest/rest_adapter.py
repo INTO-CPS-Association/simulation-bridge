@@ -121,7 +121,8 @@ class RESTAdapter(ProtocolAdapter):
                 try:
                     result = await asyncio.wait_for(queue.get(), timeout=600)
                     yield json.dumps(result) + "\n"
-
+                    # Check if the status is 'completed' and the execution time is greater than 1 second
+                    # This helps prevent issues caused by executions that are too short or not properly finished
                     if result.get('status') == 'completed' and result.get(
                             'metadata', {}).get('execution_time', 0) > 1:
                         logger.debug(
