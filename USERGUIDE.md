@@ -1,34 +1,39 @@
 # User Guide
 
-This guide outlines how to configure and execute the simulation-bridge application. It provides detailed information on the configuration parameters, command-line options, and execution procedures.
+This guide outlines how to configure and execute the _sim-bridge_ application. It provides detailed information on the configuration parameters, command-line options, and execution procedures.
+
+## Table of Contents
 
 - [User Guide](#user-guide)
+  - [Table of Contents](#table-of-contents)
   - [Requirements](#requirements)
-      - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
-      - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
-      - [3. Install Project Dependencies](#3-install-project-dependencies)
-      - [4. Install RabbitMQ](#4-install-rabbitmq)
-        - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
-        - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
+    - [Clone the Repository](#clone-the-repository)
+    - [Install Poetry and Create Virtual Environment](#install-poetry-and-create-virtual-environment)
+    - [Install Project Dependencies](#install-project-dependencies)
+    - [Install RabbitMQ](#install-rabbitmq)
+      - [Option 1: Install RabbitMQ Locally](#option-1-install-rabbitmq-locally)
+      - [Option 2: Use a Remote RabbitMQ Server](#option-2-use-a-remote-rabbitmq-server)
   - [Configuration](#configuration)
   - [Usage](#usage)
-    - [Generating a Template](#generating-a-template)
-    - [Running with the Default Configuration](#running-with-the-default-configuration)
-    - [Running with a Custom Configuration File](#running-with-a-custom-configuration-file)
-  - [Command-Line Options](#command-line-options)
+    - [Generating a Template Configuration](#generating-a-template-configuration)
+    - [Generating a Complete Project Structure](#generating-a-complete-project-structure)
+    - [Running with Default Configuration](#running-with-default-configuration)
+    - [Running with Custom Configuration](#running-with-custom-configuration)
+  - [Command-Line Options Overview](#command-line-options-overview)
+  - [Author](#author)
 
 ## Requirements
 
-#### 1. Clone the Repository and Navigate to the Working Directory
+### Clone the Repository
 
 ```bash
 git clone https://github.com/INTO-CPS-Association/simulation-bridge.git
 cd simulation-bridge
 ```
 
-#### 2. Install Poetry and Create Virtual Environment
+### Install Poetry and Create Virtual Environment
 
-Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
+Ensure Poetry is installed on your system:
 
 ```bash
 python3 -m pip install --user pipx
@@ -36,7 +41,7 @@ python3 -m pipx ensurepath
 pipx install poetry
 ```
 
-Verify the installation by checking the Poetry version:
+Verify the installation:
 
 ```bash
 poetry --version
@@ -48,35 +53,33 @@ Activate the virtual environment:
 poetry env activate
 ```
 
-> **Important:**  
-> The command `poetry env activate` does not automatically activate the virtual environment; instead, it prints the command you need to run to activate it.  
-> You must copy and paste the displayed command, for example:
+> **Important:** The `poetry env activate` command prints the activation command. Copy and run the displayed command:
+>
+> ```bash
+> source /path/to/virtualenv/bin/activate
+> ```
 
-```bash
-source /path/to/virtualenv/bin/activate
-```
-
-Verify that the environment is active by checking the Python path:
+Verify the environment is active:
 
 ```bash
 which python
 ```
 
-#### 3. Install Project Dependencies
+### Install Project Dependencies
 
-Run the following command to install all dependencies defined in `pyproject.toml`:
+Install all dependencies defined in `pyproject.toml`:
 
 ```bash
 poetry install
 ```
 
-#### 4. Install RabbitMQ
+### Install RabbitMQ
 
-The _sim-bridge_ requires an active RabbitMQ server. You can choose one of the following options:
+The _sim-bridge_ requires an active RabbitMQ server. Choose one of the following options:
 
-##### Option 1: Install RabbitMQ Locally
+#### Option 1: Install RabbitMQ Locally
 
-If you do not have access to an external RabbitMQ server, you can install one locally. On macOS, use Homebrew:
+On macOS using Homebrew:
 
 ```bash
 brew update
@@ -84,7 +87,7 @@ brew install rabbitmq
 brew services start rabbitmq
 ```
 
-Verify that RabbitMQ is running:
+Verify RabbitMQ is running:
 
 ```bash
 brew services list
@@ -92,154 +95,179 @@ rabbitmqctl status
 lsof -i :5672
 ```
 
-##### Option 2: Use a Remote RabbitMQ Server
+#### Option 2: Use a Remote RabbitMQ Server
 
-Alternatively, connect to an existing RabbitMQ instance hosted on a remote server (on-premise or cloud).
+Connect to an existing RabbitMQ instance hosted on a remote server.
 
 ## Configuration
 
-The simulation-bridge uses a YAML-based configuration file. Below is a comprehensive example including all supported protocol adapters and logging options:
+The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive example:
 
 ```yaml
 # Unique identifier for this simulation bridge instance
 simulation_bridge:
-  bridge_id: simulation_bridge # Must be unique if running multiple bridges
+  bridge_id: simulation_bridge
 
-# Configuration for RabbitMQ protocol adapter
+# RabbitMQ protocol adapter configuration
 rabbitmq:
-  host: localhost # RabbitMQ server hostname or IP address
-  port: 5672 # RabbitMQ port (default 5672 for non-TLS, 5671 for TLS/SSL)
-  vhost: / # RabbitMQ virtual host to connect to
-  username: guest # Username for RabbitMQ authentication
-  password: guest # Password for RabbitMQ authentication
-  tls: false # Enable TLS/SSL encryption (true = enabled, false = disabled)
+  host: localhost
+  port: 5672
+  vhost: /
+  username: guest
+  password: guest
+  tls: false
 
   infrastructure:
     exchanges:
-      # Define all the exchanges used by the bridge
-      - name: ex.input.bridge # Incoming messages from clients
-        type: topic # Exchange type (topic allows routing via routing keys)
-        durable: true # Should survive RabbitMQ restarts
-        auto_delete: false # Should not be deleted when unused
-        internal: false # Accessible to clients
-
-      - name: ex.bridge.output # Messages forwarded to simulator
+      - name: ex.input.bridge
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
-      - name: ex.sim.result # Results from simulator
+      - name: ex.bridge.output
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
-      - name: ex.bridge.result # Final result for clients
+      - name: ex.sim.result
+        type: topic
+        durable: true
+        auto_delete: false
+        internal: false
+
+      - name: ex.bridge.result
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
     queues:
-      # Queues for consuming messages
-      - name: Q.bridge.input # Bridge input queue
-        durable: true # Should survive server restarts
-        exclusive: false # Can be shared by multiple consumers
-        auto_delete: false # Should not be deleted automatically
+      - name: Q.bridge.input
+        durable: true
+        exclusive: false
+        auto_delete: false
 
-      - name: Q.bridge.result # Queue for receiving simulation results
+      - name: Q.bridge.result
         durable: true
         exclusive: false
         auto_delete: false
 
     bindings:
-      # Bind queues to exchanges using routing keys
       - queue: Q.bridge.input
         exchange: ex.input.bridge
-        routing_key: "#" # Receive all messages (wildcard)
+        routing_key: "#"
 
       - queue: Q.bridge.result
         exchange: ex.sim.result
-        routing_key: "#" # Receive all messages (wildcard)
+        routing_key: "#"
 
-# Configuration for MQTT protocol adapter
+# MQTT protocol adapter configuration
 mqtt:
-  host: localhost # MQTT broker hostname or IP address
-  port: 1883 # MQTT broker port (default 1883 for non-TLS, 8883 for TLS)
-  keepalive: 60 # Keepalive interval in seconds to maintain the connection
-  input_topic: bridge/input # MQTT topic to subscribe for incoming messages
-  output_topic: bridge/output # MQTT topic to publish outgoing result messages
-  qos: 0 # Quality of Service level (0 = at most once delivery)
-  username: guest # Username for MQTT authentication
-  password: guest # Password for MQTT authentication
-  tls: false # Enable TLS/SSL encryption (set to true for secure connection)
+  host: localhost
+  port: 1883
+  keepalive: 60
+  input_topic: bridge/input
+  output_topic: bridge/output
+  qos: 0
+  username: guest
+  password: guest
+  tls: false
 
-# Configuration for REST protocol adapter
+# REST protocol adapter configuration
 rest:
-  host: 0.0.0.0 # Host IP to bind the REST server (0.0.0.0 = all interfaces)
-  port: 5000 # Port to run the REST server
-  endpoint: /message # Endpoint for receiving messages
-  debug: false # Enable/disable Flask debug mode
-  certfile: /certs/cert.pem # Path to the SSL certificate file
-  keyfile: /certs/key.pem # Path to the SSL private key file
+  host: 0.0.0.0
+  port: 5000
+  endpoint: /message
+  debug: false
+  certfile: /certs/cert.pem
+  keyfile: /certs/key.pem
 
 # Logging configuration
 logging:
-  level: INFO # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Log format
-  file: logs/sim_bridge.log # File path to store logs
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/sim_bridge.log
 ```
 
-Each section of the configuration file enables or customizes a specific protocol adapter used to receive and dispatch simulation messages.
-
-> **Note:** The certificate file `certfile.pem` and the key file `keyfile.pem` will be automatically created by the _sim-bridge_, even if they are missing or invalid.
+> **Note:** Certificate files (`certfile.pem` and `keyfile.pem`) will be automatically created by the _sim-bridge_ if missing.
 
 ## Usage
 
-The simulation-bridge requires a valid configuration file to operate.
+### Generating a Template Configuration
 
-### Generating a Template
-
-To create a default configuration file:
+Create a default configuration file:
 
 ```bash
 poetry run simulation-bridge --generate-config
 ```
 
-This command generates a `config.yaml` file in the current working directory based on the template located at `simulation_bridge/config/config.yaml.template`.
-If the file already exists, it will not be overwritten.
+This generates a `config.yaml` file in the current directory. Existing files will not be overwritten.
 
-### Running with the Default Configuration
+### Generating a Complete Project Structure
 
-Once the configuration is in place, the bridge can be launched with:
+Generate a complete example project with clients and configurations:
+
+```bash
+poetry run simulation-bridge --generate-project
+```
+
+This creates the following structure:
+
+```
+.
+├── config.yaml                     # Main configuration file
+├── client/
+│   ├── README.md                   # Client documentation
+│   ├── simulation.yaml             # Example simulation payload
+│   ├── mqtt/
+│   │   ├── mqtt_client.py          # MQTT client implementation
+│   │   ├── mqtt_use.yaml           # MQTT usage configuration
+│   │   └── requirements.txt        # MQTT client requirements
+│   ├── rabbitmq/
+│   │   ├── rabbitmq_client.py      # RabbitMQ client implementation
+│   │   ├── rabbitmq_use.yaml       # RabbitMQ usage configuration
+│   │   └── requirements.txt        # RabbitMQ client requirements
+│   └── rest/
+│       ├── rest_client.py          # REST client implementation
+│       ├── rest_use.yaml           # REST usage configuration
+│       └── requirements.txt        # REST client requirements
+```
+
+### Running with Default Configuration
+
+Launch the bridge with the default configuration:
 
 ```bash
 poetry run simulation-bridge
 ```
 
-By default, the application attempts to load the configuration from `simulation_bridge/config/config.yaml.template`.
+The application loads configuration from `simulation-bridge/config.yaml` by default.
 
-**Note:** To facilitate debugging during development, set `logging.level` to `DEBUG`.
+### Running with Custom Configuration
 
-### Running with a Custom Configuration File
-
-To specify a custom configuration file, use the `--config-file` (or `-c`) option:
+Specify a custom configuration file:
 
 ```bash
 poetry run simulation-bridge --config-file /path/to/config.yaml
 ```
 
-Alternatively, use the shorthand syntax:
+Or use the shorthand syntax:
 
 ```bash
 poetry run simulation-bridge -c /path/to/config.yaml
 ```
 
-## Command-Line Options
+## Command-Line Options Overview
 
-| Option                | Description                                                     |
-| --------------------- | --------------------------------------------------------------- |
-| `--generate-config`   | Generates a default configuration file in the current directory |
-| `--config-file`, `-c` | Path to a custom configuration file                             |
-| `--help`, `-h`        | Displays help information for available options                 |
+| Option                | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| `--generate-config`   | Generates a default configuration file in the current directory      |
+| `--generate-project`  | Generates a sample project with clients, configs, and usage examples |
+| `--config-file`, `-c` | Path to a custom configuration file                                  |
+| `--help`, `-h`        | Displays help information for available options                      |
+
+## Author
+
+<div style="display: flex; flex-direction: column; gap: 25px;"> <!-- Marco Melloni --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="images/melloni.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Marco Melloni</h3> <p style="margin: 4px 0;">Digital Automation Engineering Student<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-melloni/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/marcomelloni" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Marco Picone --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="images/picone.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Prof. Marco Picone</h3> <p style="margin: 4px 0;">Associate Professor<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-picone-8a6a4612/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/piconem" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Prasad Talasila --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="images/talasila.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Dr. Prasad Talasila</h3> <p style="margin: 4px 0;">Postdoctoral Researcher<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/prasad-talasila/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/prasadtalasila" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> </div>

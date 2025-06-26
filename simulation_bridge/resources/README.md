@@ -42,7 +42,7 @@ Additionally, in the root folder (client/) there is:
 
 ### How to use a client
 
-#### 1. Configure simulation.yaml
+#### 1. Configure API payload
 
 Customize the `client/simulation.yaml` file with your distributed simulation parameters.
 
