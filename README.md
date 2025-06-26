@@ -51,6 +51,10 @@ _sim-bridge_ supports Batch and Streaming simulation modes, allowing for both di
 The system follows a _plug-in-based protocol adapter architecture_, enabling seamless future integration of additional protocols.
 It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external clients to communicate with the _sim-bridge_ through these channels.
 
+Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AMQP/amqps, HTTP/2.0, and HTTPS.
+
+> TLS certificates (cert.pem, key.pem) are generated automatically when needed.
+
 <p align="center">
   <img src="images/plug-in-protocol-adapter.png" alt="Plug-in Protocol Adapter Architecture" width="70%">
   <br>
