@@ -1,6 +1,6 @@
 agent:
-  agent_id: matlab
-  simulator: matlab
+  agent_id: simul8
+  simulator: simul8
 
 rabbitmq:
   host: localhost
@@ -9,6 +9,7 @@ rabbitmq:
   password: guest
   heartbeat: 600
   vhost: /
+  tls: false
 
 simulation:
   path: /Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples

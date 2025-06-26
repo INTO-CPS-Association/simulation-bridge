@@ -201,6 +201,9 @@ simulation*.yaml
 interactive.py
 *_interactive.py
 **/examples/interactive-simulation/*
+# SIMUL8 agent
+agents/simul8/client
+agents/simul8/logs
 #SIMULATION BRIDGE 
 /logs
 /certs
