@@ -19,6 +19,10 @@ This guide outlines how to configure and execute the _sim-bridge_ application. I
     - [Generating a Complete Project Structure](#generating-a-complete-project-structure)
     - [Running with Default Configuration](#running-with-default-configuration)
     - [Running with Custom Configuration](#running-with-custom-configuration)
+  - [Use _sim-bridge_ as a Pip-Installable Package](#use-sim-bridge-as-a-pip-installable-package)
+    - [Build the Package](#build-the-package)
+    - [Install the Package](#install-the-package)
+    - [Use the Package](#use-the-package)
   - [Command-Line Options Overview](#command-line-options-overview)
   - [Author](#author)
 
@@ -258,6 +262,50 @@ Or use the shorthand syntax:
 ```bash
 poetry run simulation-bridge -c /path/to/config.yaml
 ```
+
+## Use _sim-bridge_ as a Pip-Installable Package
+
+If you prefer to use `sim-bridge` as a standalone Python package, you can build and install it using the following steps:
+
+### Build the Package
+
+In the root of the project (where `pyproject.toml` is located), run:
+
+```bash
+poetry build
+```
+
+This will generate the distribution files in the `dist/` directory:
+
+- `simulation_bridge-<version>.tar.gz`
+- `simulation_bridge-<version>-py3-none-any.whl`
+
+### Install the Package
+
+You can install the built package using pip:
+
+```bash
+pip install dist/simulation_bridge-<version>-py3-none-any.whl
+```
+
+Replace `<version>` with the actual version number (e.g., `0.1.0`).
+
+### Use the Package
+
+After installation, the `simulation-bridge` command will be available globally in your environment:
+
+```bash
+simulation-bridge --help
+```
+
+You can use it exactly as described in the previous sections:
+
+```bash
+simulation-bridge --generate-config
+simulation-bridge --config-file config.yaml
+```
+
+> **Note:** When using the installed package, you no longer need to prefix commands with `poetry run`.
 
 ## Command-Line Options Overview
 
