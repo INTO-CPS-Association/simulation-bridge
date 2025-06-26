@@ -1,68 +1,94 @@
 # Simulation Bridge
 
-The **Simulation Bridge** is an open-source middleware solution designed to enable seamless and dynamic communication between Digital Twins (DT), Mock Physical Twins (MockPT), and their dedicated Simulator counterparts.
-It serves as a **modular**, **reusable**, and **bidirectional** bridge, supporting multiple protocols and interaction modes to ensure interoperability across diverse simulation environments.
+Simulation Bridge (_sim-bridge_) is a modular, reusable, and bidirectional middleware designed to orchestrate distributed simulation systems involving Digital Twins (DTs), Mock Physical Twins (MockPTs), and Physical Twins (PTs).
 
-Built around the concept of simulation, the bridge facilitates control, monitoring, and data exchange among the involved entities, providing a universal middleware solution that enhances flexibility and integration within simulation-based systems.
+It acts as an intelligent communication layer between DTs, PTs, and heterogeneous simulation environments, integrating and coordinating simulations developed with diverse models, technologies, and protocols.
 
-![Project](images/project.png)
+_sim-bridge_ exposes a unified interface that enables seamless data exchange and interaction. It receives inputs from DTs or PTs, routes them to the appropriate simulators through dedicated components called _Simulator Agents_, collects the simulation results, and delivers them back to the clients.
 
-## Overview
+<p align="center">
+  <img src="images/software_architecture.png" alt="Simulation Bridge Architecture" width="90%">
+  <br>
+  <em>Figure 1: Simulation Bridge Architecture </em>
+</p>
 
-![Simulation Bridge Architecture](images/software_architecture.png)
+> Please refer to the [**User Guide**](USERGUIDE.md) for detailed requirements, configuration instructions, and usage guidelines for the Simulation Bridge.
 
----
+## Table of Contents
+
+- [Simulation Bridge](#simulation-bridge)
+  - [Table of Contents](#table-of-contents)
+  - [Key Features](#key-features)
+    - [Agents](#agents)
+    - [Modes of Simulation](#modes-of-simulation)
+    - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
+  - [Documentation](#documentation)
+    - [Simulation Bridge](#simulation-bridge-1)
+    - [Matlab Agent](#matlab-agent)
+  - [Package Development](#package-development)
+  - [License](#license)
+  - [Author](#author)
 
 ## Key Features
 
-### 🌐 Multi-Protocol Support
+#### Agents
 
-- **RabbitMQ** (default)
-- **MQTT**
-- **REST API**
-- Custom protocol plugins for tailored integrations
+Agent is a software connector that acts as an interpreter between _sim-bridge_ and the specific simulator. Each simulator requires its own Agent, which must be designed to be reusable across diverse simulation scenarios for that simulator.
 
-### ⚙️ Flexible Interaction Modes
+> Refer to the [Matlab Agent](agents/matlab/README.md) for an implementation example.
 
-| **Mode**      | **Description**                                   |
-| ------------- | ------------------------------------------------- |
-| **Batch**     | Execute simulations without real-time monitoring. |
-| **Streaming** | Enable real-time monitoring and control.          |
+#### Modes of Simulation
 
-### 🔍 Intelligent Discoverability
+_sim-bridge_ supports Batch and Streaming simulation modes, allowing for both discrete and real-time streaming simulation workflows:
 
-- Dynamic capability detection through an advanced agent system.
-- Automatic registration of simulator features for seamless integration.
+| Mode      | Description                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch     | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
+| Streaming | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
 
-### 🔄 Advanced Data Transformation
+#### Plug-in Protocol Adapters
 
-- Effortless conversion between **JSON**, **XML**, and **CSV** formats.
-- Protocol-agnostic data formatting to ensure compatibility across systems.
+The system follows a _plug-in-based protocol adapter architecture_, enabling seamless future integration of additional protocols.
+It currently supports MQTT, RabbitMQ, and RESTful interfaces, allowing external clients to communicate with the _sim-bridge_ through these channels.
 
----
+Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AMQP/amqps, HTTP/2.0, and HTTPS.
+
+> TLS certificates (cert.pem, key.pem) are generated automatically when needed.
+
+<p align="center">
+  <img src="images/plug-in-protocol-adapter.png" alt="Plug-in Protocol Adapter Architecture" width="70%">
+  <br>
+  <em>Figure 2: Plug-in Protocol Adapter Architecture </em>
+</p>
 
 ## Documentation
 
 ### Simulation Bridge
 
-- [📘 **Instruction Guide** ↗](INSTRUCTION.md): A comprehensive guide to set up and configure the Simulation Bridge.
-- [🚀 **Usage Guide** ↗](USAGE.md): Detailed instructions on how to run the Simulation Bridge and its components.
+- [**User Guide** ↗](/USERGUIDE.md): Comprehensive guide covering system requirements, configuration steps, and detailed usage instructions for the Simulation Bridge.
+- [**Internal Architecture** ↗](simulation_bridge/docs/internal_architecture.md): Overview of the system's architecture, key modules, and their interactions.
+- [**Class Diagram** ↗](simulation_bridge/docs/class_diagram.md): UML Class Diagram of the Simulation Bridge Architecture
 
-### Simulators
+### Matlab Agent
 
-#### Matlab
+- [**Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
+- [**Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
-- [🔗 **Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
-- [⚙️ **Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
+## Package Development
 
----
+The developer-specific commands are
+
+```bash
+pylint simulation_bridge
+autopep8 --in-place --aggressive --recursive 'simulation_bridge'
+pytest --cov=simulation_bridge --cov-report=term --cov-report=html simulation_bridge/test/
+open htmlcov/index.html
+```
 
 ## License
 
 This project is licensed under the **INTO-CPS Association Public License v1.0**.  
 See the [LICENSE](./LICENSE) file for full license text.
-
----
 
 ## Author
 

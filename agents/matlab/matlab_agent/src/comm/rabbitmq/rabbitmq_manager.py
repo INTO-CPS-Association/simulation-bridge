@@ -4,6 +4,7 @@ This module provides functionality to establish connections with RabbitMQ,
 set up exchanges and queues, and send/receive messages within a simulation agent framework.
 """
 import sys
+import ssl
 import uuid
 from typing import Dict, Any, Callable, Optional
 
@@ -61,13 +62,27 @@ class RabbitMQManager(IRabbitMQManager):
                 )
                 vhost = rabbitmq_config.get('vhost', '/')
                 logger.debug(f"Using vhost: {vhost}")
-                parameters = pika.ConnectionParameters(
-                    host=rabbitmq_config.get('host', 'localhost'),
-                    port=rabbitmq_config.get('port', 5672),
-                    virtual_host=vhost,
-                    credentials=credentials,
-                    heartbeat=rabbitmq_config.get('heartbeat', 600)
-                )
+                use_tls = rabbitmq_config.get('tls', False)
+
+                if use_tls:
+                    context = ssl.create_default_context()
+                    ssl_options = pika.SSLOptions(context, rabbitmq_config.get('host', 'localhost'))
+                    parameters = pika.ConnectionParameters(
+                        host=rabbitmq_config.get('host', 'localhost'),
+                        port=rabbitmq_config.get('port', 5671),
+                        virtual_host=vhost,
+                        credentials=credentials,
+                        ssl_options=ssl_options,
+                        heartbeat=rabbitmq_config.get('heartbeat', 600)
+                    )
+                else:
+                    parameters = pika.ConnectionParameters(
+                        host=rabbitmq_config.get('host', 'localhost'),
+                        port=rabbitmq_config.get('port', 5672),
+                        virtual_host=vhost,
+                        credentials=credentials,
+                        heartbeat=rabbitmq_config.get('heartbeat', 600)
+                    )
                 self.connection = pika.BlockingConnection(parameters)
 
                 if self.connection.is_open:

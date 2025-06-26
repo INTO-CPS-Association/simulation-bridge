@@ -1,0 +1,12 @@
+mqtt:
+  host: "localhost"
+  port: 1883
+  keepalive: 60
+  qos: 0
+  input_topic: "bridge/input"
+  output_topic: "bridge/output"
+  username: "guest"
+  password: "guest"
+  tls: false
+
+payload_file: "../simulation.yaml"

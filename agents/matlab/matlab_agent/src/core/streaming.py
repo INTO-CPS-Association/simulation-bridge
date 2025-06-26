@@ -257,10 +257,11 @@ class MatlabStreamingController:
                     self.sim_file,
                     'streaming',
                     self.response_templates,
-                    outputs={'status': 'completed'},
+                    outputs={},
                     metadata=self.get_metadata(),
                     bridge_meta=self.bridge_meta,
-                    request_id=self.request_id
+                    request_id=self.request_id,
+                    status='Simulation Started',
                 )
             )
 
