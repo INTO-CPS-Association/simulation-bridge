@@ -110,89 +110,89 @@ The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive 
 ```yaml
 # Unique identifier for this simulation bridge instance
 simulation_bridge:
-  bridge_id: simulation_bridge
+  bridge_id: simulation_bridge # ID used to identify this instance of the sim-bridge
 
 # RabbitMQ protocol adapter configuration
 rabbitmq:
-  host: localhost
-  port: 5672
-  vhost: /
-  username: guest
-  password: guest
-  tls: false
+  host: localhost # RabbitMQ broker hostname or IP address
+  port: 5672 # Port for non-TLS AMQP connections (default: 5672)
+  vhost: / # Virtual host used in RabbitMQ
+  username: guest # Username for RabbitMQ authentication
+  password: guest # Password for RabbitMQ authentication
+  tls: false # Whether to use TLS (amqps) or not
 
   infrastructure:
     exchanges:
-      - name: ex.input.bridge
+      - name: ex.input.bridge # Exchange for receiving input messages from external systems
+        type: topic # Exchange type (topic allows pattern-based routing)
+        durable: true # Exchange survives broker restarts
+        auto_delete: false # Exchange won't be deleted when no longer used
+        internal: false # Exchange is available to external producers
+
+      - name: ex.bridge.output # Exchange for sending output messages to external systems
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
-      - name: ex.bridge.output
+      - name: ex.sim.result # Exchange for simulation result messages
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
-      - name: ex.sim.result
-        type: topic
-        durable: true
-        auto_delete: false
-        internal: false
-
-      - name: ex.bridge.result
+      - name: ex.bridge.result # Exchange for bridge-processed results
         type: topic
         durable: true
         auto_delete: false
         internal: false
 
     queues:
-      - name: Q.bridge.input
-        durable: true
-        exclusive: false
-        auto_delete: false
+      - name: Q.bridge.input # Queue for receiving messages intended for the bridge
+        durable: true # Queue survives broker restarts
+        exclusive: false # Queue is not exclusive to one connection
+        auto_delete: false # Queue will not be deleted automatically
 
-      - name: Q.bridge.result
+      - name: Q.bridge.result # Queue for receiving simulation results
         durable: true
         exclusive: false
         auto_delete: false
 
     bindings:
-      - queue: Q.bridge.input
-        exchange: ex.input.bridge
-        routing_key: "#"
+      - queue: Q.bridge.input # Bind the input queue...
+        exchange: ex.input.bridge # ...to this exchange...
+        routing_key: "#" # ...with wildcard routing (all messages)
 
-      - queue: Q.bridge.result
-        exchange: ex.sim.result
-        routing_key: "#"
+      - queue: Q.bridge.result # Bind the result queue...
+        exchange: ex.sim.result # ...to receive all simulation result messages
+        routing_key: "#" # ...with wildcard routing
 
 # MQTT protocol adapter configuration
 mqtt:
-  host: localhost
-  port: 1883
-  keepalive: 60
-  input_topic: bridge/input
-  output_topic: bridge/output
-  qos: 0
-  username: guest
-  password: guest
-  tls: false
+  host: localhost # MQTT broker hostname or IP
+  port: 1883 # Port for MQTT (1883 for non-TLS, 8883 for TLS)
+  keepalive: 60 # Keep-alive interval in seconds for MQTT client
+  input_topic: bridge/input # Topic to subscribe to for receiving messages
+  output_topic: bridge/output # Topic to publish processed messages to
+  qos: 0 # Quality of Service level (0 = at most once)
+  username: guest # Username for MQTT authentication
+  password: guest # Password for MQTT authentication
+  tls: false # Whether to use secure MQTT (mqtts) or not
 
 # REST protocol adapter configuration
 rest:
-  host: 0.0.0.0
-  port: 5000
-  endpoint: /message
-  debug: false
-  certfile: /certs/cert.pem
-  keyfile: /certs/key.pem
+  host: 0.0.0.0 # REST API binds to all network interfaces
+  port: 5000 # Port for RESTful HTTP server
+  endpoint: /message # Endpoint path for sending messages to the bridge
+  debug: false # Disable Flask debug mode (set to true for development)
+  certfile: certs/cert.pem # Path to the TLS certificate file for HTTPS
+  keyfile: certs/key.pem # Path to the private key file for HTTPS
 
 # Logging configuration
 logging:
-  level: INFO
-  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-  file: logs/sim_bridge.log
+  level: INFO # Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Format of log messages
+  file: logs/sim_bridge.log # Path to the log output file
 ```
 
 > **Note:** Certificate files (`certfile.pem` and `keyfile.pem`) will be automatically created by the _sim-bridge_ if missing.
@@ -265,7 +265,7 @@ poetry run simulation-bridge -c /path/to/config.yaml
 
 ## Use _sim-bridge_ as a Pip-Installable Package
 
-If you prefer to use `sim-bridge` as a standalone Python package, you can build and install it using the following steps:
+If you prefer to use `simulation-bridge` as a standalone Python package, you can build and install it using the following steps:
 
 ### Build the Package
 
