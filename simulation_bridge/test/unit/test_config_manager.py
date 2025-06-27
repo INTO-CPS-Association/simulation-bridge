@@ -51,6 +51,11 @@ def sample_valid_config_dict():
             "level": "INFO",
             "format": "%(message)s",
             "file": "logfile.log"
+        },
+        "performance": {
+            "enabled": False,
+            "log_dir": "performance_logs",
+            "log_filename": "performance_metrics.csv"
         }
     }
 

@@ -138,6 +138,8 @@ class BridgeCore:
         Args:
             **kwargs: Keyword arguments containing message data
         """
+        # input received
+        
         message_dict = kwargs.get('message', {})
         try:
             message = MessageModel.model_validate(message_dict)
@@ -176,6 +178,7 @@ class BridgeCore:
             message,
             exchange='ex.bridge.result',
             protocol='rabbitmq')
+        # result sent to client
 
     def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -221,6 +224,7 @@ class BridgeCore:
             logger.debug(
                 "Message routed to exchange '%s': %s -> %s, protocol=%s",
                 exchange, producer, consumer, protocol)
+            # message sent to simulator
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError) as e:
             logger.error("RabbitMQ connection error: %s", e)

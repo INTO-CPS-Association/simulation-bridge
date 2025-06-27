@@ -243,5 +243,6 @@ class MQTTAdapter(ProtocolAdapter):
             self.send_result(message)
             logger.debug(
                 "Succesfully scheduled result message for MQTT client")
+            # result sent to client
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)

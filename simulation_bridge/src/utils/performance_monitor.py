@@ -1,5 +1,5 @@
 """
-Performance monitoring utilities for the MATLAB agent.
+Performance monitoring utilities for the Simulation Bridge.
 """
 import csv
 import os
@@ -21,11 +21,11 @@ class PerformanceMetrics:
     operation_id: str
     timestamp: float
     request_received_time: float
-    matlab_start_time: float
-    matlab_startup_duration: float
+    core_received_input_time: float
+    core_sent_input_time: float
     simulation_duration: float
-    matlab_stop_time: float
-    result_send_time: float
+    core_received_result_time: float
+    result_sent_time: float
     cpu_percent: float
     memory_rss_mb: float
     total_duration: float
@@ -33,7 +33,7 @@ class PerformanceMetrics:
 
 class PerformanceMonitor:
     """
-    A class to monitor and collect performance metrics for the MATLAB agent.
+    A class to monitor and collect performance metrics for the Simulation Bridge.
     """
     _instance = None
     _initialized = False
@@ -73,10 +73,6 @@ class PerformanceMonitor:
             if self.enabled:
                 try:
                     self.output_dir.mkdir(parents=True, exist_ok=True)
-                    logger.debug(
-                        "Created performance log directory: %s",
-                        self.output_dir)
-
                     self.process = psutil.Process()
                     self.csv_path = self.output_dir / log_filename
 
@@ -108,14 +104,14 @@ class PerformanceMonitor:
                     'Operation ID',
                     'Timestamp',
                     'Request Received Time',
-                    'MATLAB Start Time',
-                    'MATLAB Startup Duration (s)',
-                    'Simulation Duration (s)',
-                    'MATLAB Stop Time',
-                    'Result Send Time',
-                    'CPU Usage (%)',
+                    'Core Received Input Time',
+                    'Core Sent Input Time',
+                    'Simulation Duration',
+                    'Core Received Result Time',
+                    'Result Sent Time',
+                    'CPU Percent',
                     'Memory RSS (MB)',
-                    'Total Duration (s)'
+                    'Total Duration'
                 ])
         except Exception as e:
             logger.error("Failed to write CSV headers: %s", e)
@@ -135,11 +131,11 @@ class PerformanceMonitor:
             operation_id=operation_id,
             timestamp=time.time(),
             request_received_time=time.time(),
-            matlab_start_time=0.0,
-            matlab_startup_duration=0.0,
+            core_received_input_time=0.0,
+            core_sent_input_time=0.0,
             simulation_duration=0.0,
-            matlab_stop_time=0.0,
-            result_send_time=0.0,
+            core_received_result_time=0.0,
+            result_sent_time=0.0,
             cpu_percent=self.process.cpu_percent(),
             memory_rss_mb=self.process.memory_info().rss / (1024 * 1024),
             total_duration=0.0

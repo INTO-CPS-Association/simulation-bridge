@@ -64,13 +64,7 @@ class RabbitMQAdapter(ProtocolAdapter):
             self.connection = pika.BlockingConnection(connection_params)
 
         except (pika.exceptions.AMQPConnectionError, ssl.SSLError) as e:
-            logger.error(
-                f"Failed to connect to RabbitMQ at {
-                    self.config['host']}:{
-                    self.config['port']} with TLS={
-                    self.config.get(
-                        'tls',
-                        False)}")
+            logger.error(f"Failed to connect to RabbitMQ at {self.config['host']}:{self.config['port']} with TLS={self.config.get('tls', False)}") # pylint: disable=line-too-long
             logger.error(f"Error: {e}")
             raise RuntimeError(
                 f"Connection failed. Check TLS settings and port.") from e
@@ -152,6 +146,7 @@ class RabbitMQAdapter(ProtocolAdapter):
                         logger.debug("bridge_meta is a non-JSON string: %s",
                                      bridge_meta)
                         bridge_meta = {}
+                # result received
                 protocol = bridge_meta.get('protocol', 'unknown')
                 if protocol == 'rest':
                     signal_name = 'message_received_result_rest'

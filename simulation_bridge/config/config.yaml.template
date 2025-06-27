@@ -78,3 +78,8 @@ logging:
   level: INFO
   format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s' 
   file: logs/sim_bridge.log
+
+performance:
+  enabled: false
+  log_dir: performance_log
+  log_filename: performance_metrics.csv

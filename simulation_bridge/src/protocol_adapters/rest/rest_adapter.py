@@ -214,5 +214,6 @@ class RESTAdapter(ProtocolAdapter):
             logger.debug(
                 "Successfully scheduled result message for REST client: %s",
                 destination)
+            # result sent to client
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error sending result message to REST client: %s", e)
