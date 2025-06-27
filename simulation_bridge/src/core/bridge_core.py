@@ -12,6 +12,7 @@ import pika
 from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 
 # Constants for RabbitMQ connection parameters
 RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
@@ -138,9 +139,13 @@ class BridgeCore:
         Args:
             **kwargs: Keyword arguments containing message data
         """
-        # input received
-        
+        # Initialize performance monitor
+        performance_monitor = PerformanceMonitor()
         message_dict = kwargs.get('message', {})
+        operation_id = message_dict.get(
+            'simulation', {}).get(
+            'request_id', 'unknown')
+        performance_monitor.record_core_received_input(operation_id)
         try:
             message = MessageModel.model_validate(message_dict)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -160,7 +165,7 @@ class BridgeCore:
             producer,
             consumer,
             message.model_dump(),
-            protocol=protocol)
+            protocol=protocol, operation_id=operation_id)
 
     def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -169,16 +174,25 @@ class BridgeCore:
         Args:
             **kwargs: Keyword arguments containing message data
         """
+        # Initialize performance monitor
+        performance_monitor = PerformanceMonitor()
         message = kwargs.get('message', {})
         producer = message.get('source', 'unknown')
         consumer = "result"
+        operation_id = message.get('request_id', 'unknown')
         self._publish_message(
             producer,
             consumer,
             message,
             exchange='ex.bridge.result',
-            protocol='rabbitmq')
-        # result sent to client
+            protocol='rabbitmq',
+            operation_id=operation_id)
+        performance_monitor.record_result_sent(operation_id)
+        status = message.get('status', 'unknown')
+        if status == 'completed':
+            performance_monitor.finalize_operation(operation_id)
+        else:
+            performance_monitor.record_result_sent(operation_id)
 
     def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -192,7 +206,7 @@ class BridgeCore:
             "Received error result message with unknown protocol: %s", message['error'])
 
     def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments, too-many-positional-arguments
-                         exchange='ex.bridge.output', protocol='unknown'):
+                         exchange='ex.bridge.output', protocol='unknown', operation_id='unknown'):
         """
         Publish message to RabbitMQ exchange.
 
@@ -207,6 +221,9 @@ class BridgeCore:
             logger.error(
                 "Cannot publish message: RabbitMQ connection is not available")
             return
+
+        # Initialize performance monitor
+        performance_monitor = PerformanceMonitor()
 
         routing_key = f"{producer}.{consumer}"
         message['simulation']['bridge_meta'] = {
@@ -224,7 +241,8 @@ class BridgeCore:
             logger.debug(
                 "Message routed to exchange '%s': %s -> %s, protocol=%s",
                 exchange, producer, consumer, protocol)
-            # message sent to simulator
+            # Record sent input time in performance monitor
+            performance_monitor.record_core_sent_input(operation_id)
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError) as e:
             logger.error("RabbitMQ connection error: %s", e)

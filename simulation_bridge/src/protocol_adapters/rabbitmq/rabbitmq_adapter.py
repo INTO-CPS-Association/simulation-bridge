@@ -1,4 +1,5 @@
 """RabbitMQ adapter for message transport between simulation components."""
+from email.mime import message
 import json
 import threading
 import functools
@@ -10,6 +11,7 @@ import yaml
 from blinker import signal
 
 from ...utils.config_manager import ConfigManager
+from ...utils.performance_monitor import PerformanceMonitor
 from ...utils.logger import get_logger
 from ..base.protocol_adapter import ProtocolAdapter
 
@@ -64,7 +66,14 @@ class RabbitMQAdapter(ProtocolAdapter):
             self.connection = pika.BlockingConnection(connection_params)
 
         except (pika.exceptions.AMQPConnectionError, ssl.SSLError) as e:
-            logger.error(f"Failed to connect to RabbitMQ at {self.config['host']}:{self.config['port']} with TLS={self.config.get('tls', False)}") # pylint: disable=line-too-long
+            logger.error(
+                f"Failed to connect to RabbitMQ at {
+                    self.config['host']}:{
+                    self.config['port']} with TLS={
+                    self.config.get(
+                        'tls',
+                        False)}"  # pylint: disable=line-too-long
+            )
             logger.error(f"Error: {e}")
             raise RuntimeError(
                 f"Connection failed. Check TLS settings and port.") from e
@@ -118,21 +127,28 @@ class RabbitMQAdapter(ProtocolAdapter):
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
 
-            simulation = message.get('simulation', {})
-            producer = simulation.get('client_id', 'unknown')
-            consumer = simulation.get('simulator', 'unknown')
-
+            # Initialize performance monitor
+            performance_monitor = PerformanceMonitor()
             signal_name = None
-            kwargs = {
-                "message": message,
-                "producer": producer,
-                "consumer": consumer,
-            }
 
             if queue_name == 'Q.bridge.input':
                 signal_name = 'message_received_input_rabbitmq'
+                simulation = message.get('simulation', {})
+                producer = simulation.get('client_id', 'unknown')
+                consumer = simulation.get('simulator', 'unknown')
+                kwargs = {
+                    "message": message,
+                    "producer": producer,
+                    "consumer": consumer,
+                }
                 kwargs["protocol"] = 'rabbitmq'
+                operation_id = message.get(
+                    'simulation', {}).get(
+                    'request_id', 'unknown')
+                performance_monitor.start_operation(operation_id)
             elif queue_name == 'Q.bridge.result':
+                operation_id = message.get('request_id', 'unknown')
+                performance_monitor.record_core_received_result(operation_id)
                 bridge_meta = message.get('bridge_meta', {})
                 if isinstance(bridge_meta, str):
                     if bridge_meta.strip().startswith('{'):
@@ -146,8 +162,16 @@ class RabbitMQAdapter(ProtocolAdapter):
                         logger.debug("bridge_meta is a non-JSON string: %s",
                                      bridge_meta)
                         bridge_meta = {}
-                # result received
                 protocol = bridge_meta.get('protocol', 'unknown')
+                destinations = message.get('destinations', [])
+                producer = destinations[0] if destinations else 'unknown'
+                consumer = message.get('source', 'unknown')
+                kwargs = {
+                    "message": message,
+                    "producer": producer,
+                    "consumer": consumer,
+                }
+                kwargs["protocol"] = 'rabbitmq'
                 if protocol == 'rest':
                     signal_name = 'message_received_result_rest'
                 elif protocol == 'mqtt':
@@ -156,6 +180,10 @@ class RabbitMQAdapter(ProtocolAdapter):
                     signal_name = 'message_received_result_rabbitmq'
                 elif protocol == 'unknown':
                     signal_name = 'message_received_result_unknown'
+            if signal_name is None:
+                raise ValueError(
+                    "Could not determine signal name from message.")
+
             signal(signal_name).send(self, **kwargs)
             ch.basic_ack(delivery_tag=method.delivery_tag)
             logger.debug(

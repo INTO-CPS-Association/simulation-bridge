@@ -12,6 +12,7 @@ import yaml
 from blinker import signal
 
 from ...utils.config_manager import ConfigManager
+from ...utils.performance_monitor import PerformanceMonitor
 from ...utils.logger import get_logger
 from ..base.protocol_adapter import ProtocolAdapter
 
@@ -130,14 +131,20 @@ class MQTTAdapter(ProtocolAdapter):
             if not isinstance(message, dict):
                 raise ValueError("Message is not a dictionary")
 
+            # Initialize performance monitor
+            performance_monitor = PerformanceMonitor()
+
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
+            operation_id = simulation.get('request_id', 'unknown')
 
             # Process message directly - no need for queuing
             logger.debug(
                 "MQTT - Processing message %s, from producer: %s, simulator: %s",
                 message, producer, consumer)
+
+            performance_monitor.start_operation(operation_id)
 
             # Send signal directly
             signal('message_received_input_mqtt').send(
@@ -212,6 +219,9 @@ class MQTTAdapter(ProtocolAdapter):
 
     def send_result(self, message):
         try:
+            # Initialize performance monitor
+            performance_monitor = PerformanceMonitor()
+            operation_id = message.get('request_id', 'unknown')
             output_topic = self.mqtt_config['output_topic']
             self.mqtt_client.publish(
                 topic=output_topic,
@@ -220,6 +230,12 @@ class MQTTAdapter(ProtocolAdapter):
             )
             logger.debug(
                 "Message published to MQTT topic '%s': %s", output_topic, message)
+            performance_monitor.record_result_sent(operation_id)
+            status = message.get('status', 'unknown')
+            if status == 'completed':
+                performance_monitor.finalize_operation(operation_id)
+            else:
+                performance_monitor.record_result_sent(operation_id)
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)
 
@@ -243,6 +259,5 @@ class MQTTAdapter(ProtocolAdapter):
             self.send_result(message)
             logger.debug(
                 "Succesfully scheduled result message for MQTT client")
-            # result sent to client
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)

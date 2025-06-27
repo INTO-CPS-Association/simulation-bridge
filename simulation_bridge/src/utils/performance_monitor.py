@@ -2,11 +2,10 @@
 Performance monitoring utilities for the Simulation Bridge.
 """
 import csv
-import os
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 
 import psutil
 
@@ -14,6 +13,7 @@ from .logger import get_logger
 
 logger = get_logger()
 
+#pylint: disable= too-many-instance-attributes,broad-exception-caught
 
 @dataclass
 class PerformanceMetrics:
@@ -23,17 +23,21 @@ class PerformanceMetrics:
     request_received_time: float
     core_received_input_time: float
     core_sent_input_time: float
-    simulation_duration: float
-    core_received_result_time: float
-    result_sent_time: float
-    cpu_percent: float
-    memory_rss_mb: float
-    total_duration: float
+    result_times: List[float] = field(default_factory=list)
+    result_sent_time: float = 0.0
+    cpu_percent: float = 0.0
+    memory_rss_mb: float = 0.0
+    total_duration: float = 0.0
+    input_overhead: float = 0.0
+    output_overhead: float = 0.0
+    total_overhead: float = 0.0
+    processing_duration: float = 0.0
 
 
 class PerformanceMonitor:
     """
-    A class to monitor and collect performance metrics for the Simulation Bridge.
+    A singleton class to monitor and collect performance metrics
+    for multiple concurrent operations in the Simulation Bridge.
     """
     _instance = None
     _initialized = False
@@ -44,53 +48,47 @@ class PerformanceMonitor:
         return cls._instance
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
-        """
-        Initialize the performance monitor.
+        if self._initialized:
+            return
 
-        Args:
-            config (Optional[Dict[str, Any]]): Configuration dictionary containing performance settings
-        """
-        if not self._initialized:
-            self.enabled = False
-            self.output_dir = Path('performance_logs')
-            self.current_metrics = None
-            self.metrics_history = []
-            self.process = None
-            self.csv_path = None
+        self.enabled = False
+        self.output_dir = Path('performance_logs')
+        self.metrics_by_operation_id: Dict[str, PerformanceMetrics] = {}
+        self.metrics_history = []
+        self.process = None
+        self.csv_path = None
 
-            if config:
-                perf_config = config.get('performance', {})
-                self.enabled = perf_config.get('enabled', False)
-                log_dir = perf_config.get('log_dir', 'performance_logs')
-                log_filename = perf_config.get(
-                    'log_filename', 'performance_metrics.csv')
+        if config:
+            perf_config = config.get('performance', {})
+            self.enabled = perf_config.get('enabled', False)
+            log_file = perf_config.get(
+                'file', 'performance_logs/performance_metrics.csv')
 
-                if os.path.isabs(log_dir):
-                    self.output_dir = Path(log_dir)
-                else:
-                    self.output_dir = Path.cwd() / log_dir
+            self.output_dir = Path(log_file).parent
+            self.csv_path = Path(log_file)
 
-            if self.enabled:
-                try:
-                    self.output_dir.mkdir(parents=True, exist_ok=True)
-                    self.process = psutil.Process()
-                    self.csv_path = self.output_dir / log_filename
+        if self.enabled:
+            try:
+                self.output_dir.mkdir(parents=True, exist_ok=True)
+                self.process = psutil.Process()
 
-                    if not self.csv_path.exists():
-                        self._write_csv_headers()
-                        logger.debug(
-                            "Created performance metrics file: %s", self.csv_path)
+                if not self.csv_path.exists():
+                    self._write_csv_headers()
+                    logger.debug(
+                        "PERFORMANCE - Created performance metrics file: %s",
+                        self.csv_path)
 
-                    logger.debug("Performance monitoring enabled. Logs will be saved to %s",
-                                 self.output_dir)
-                except Exception as e:
-                    logger.error(
-                        "Failed to initialize performance monitoring: %s", e)
-                    self.enabled = False
-            else:
-                logger.debug("Performance monitoring is disabled")
+                logger.debug(
+                    "PERFORMANCE - Performance monitoring enabled. Logs will be saved to %s",
+                    self.output_dir)
+            except Exception as e:
+                logger.error(
+                    "Failed to initialize performance monitoring: %s", e)
+                self.enabled = False
+        else:
+            logger.debug("PERFORMANCE - Performance monitoring is disabled")
 
-            self._initialized = True
+        self._initialized = True
 
     def _write_csv_headers(self):
         """Write CSV headers to the output file."""
@@ -106,164 +104,149 @@ class PerformanceMonitor:
                     'Request Received Time',
                     'Core Received Input Time',
                     'Core Sent Input Time',
-                    'Simulation Duration',
-                    'Core Received Result Time',
+                    'Number of Results',
                     'Result Sent Time',
                     'CPU Percent',
                     'Memory RSS (MB)',
-                    'Total Duration'
+                    'Total Duration',
+                    'Average Result Interval',
+                    'Input Overhead',
+                    'Output Overhead',
+                    'Total Overhead',
+                    'Processing Duration'
                 ])
         except Exception as e:
             logger.error("Failed to write CSV headers: %s", e)
             self.enabled = False
 
     def start_operation(self, operation_id: str):
-        """
-        Start monitoring a new operation.
-
-        Args:
-            operation_id (str): Unique identifier for the operation
-        """
+        """Initialize metrics for a new operation."""
         if not self.enabled:
             return
 
-        self.current_metrics = PerformanceMetrics(
+        metric = PerformanceMetrics(
             operation_id=operation_id,
             timestamp=time.time(),
             request_received_time=time.time(),
             core_received_input_time=0.0,
-            core_sent_input_time=0.0,
-            simulation_duration=0.0,
-            core_received_result_time=0.0,
-            result_sent_time=0.0,
-            cpu_percent=self.process.cpu_percent(),
-            memory_rss_mb=self.process.memory_info().rss / (1024 * 1024),
-            total_duration=0.0
+            core_sent_input_time=0.0
         )
-        logger.debug("Started monitoring operation %s", operation_id)
-
-    def record_matlab_start(self):
-        """Record the start of MATLAB engine initialization."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.matlab_start_time = time.time()
-        self._update_system_metrics()
-
-    def record_matlab_startup_complete(self):
-        """Record the completion of MATLAB engine initialization."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        startup_duration = time.time() - self.current_metrics.matlab_start_time
-        self.current_metrics.matlab_startup_duration = startup_duration
-        self._update_system_metrics()
-        logger.debug("MATLAB startup duration: %.2fs", startup_duration)
-
-    def record_simulation_complete(self):
-        """Record the completion of the simulation."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.simulation_duration = (
-            time.time() - self.current_metrics.matlab_start_time -
-            self.current_metrics.matlab_startup_duration
-        )
-        self._update_system_metrics()
-
-    def record_matlab_stop(self):
-        """Record the stop of MATLAB engine."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.matlab_stop_time = time.time()
-        self._update_system_metrics()
-
-    def record_result_sent(self):
-        """Record when results are sent."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.result_send_time = time.time()
-        self._update_system_metrics()
-
-    def _update_system_metrics(self):
-        """Update system resource metrics."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.cpu_percent = self.process.cpu_percent()
-        self.current_metrics.memory_rss_mb = (
-            self.process.memory_info().rss / (1024 * 1024)
-        )
-
-    def complete_operation(self):
-        """Complete the current operation and save metrics."""
-        if not self.enabled or not self.current_metrics:
-            return
-
-        self.current_metrics.total_duration = (
-            time.time() - self.current_metrics.request_received_time
-        )
-        self.metrics_history.append(self.current_metrics)
-        self._save_metrics_to_csv(self.current_metrics)
+        self.metrics_by_operation_id[operation_id] = metric
         logger.debug(
-            "Completed operation %s in %.2fs",
-            self.current_metrics.operation_id,
-            self.current_metrics.total_duration
+            "PERFORMANCE - Started monitoring operation %s",
+            operation_id)
+
+    def record_core_received_input(self, operation_id: str):
+        self._update_timestamp(operation_id, 'core_received_input_time')
+
+    def record_core_sent_input(self, operation_id: str):
+        self._update_timestamp(operation_id, 'core_sent_input_time')
+
+    def record_result_sent(self, operation_id: str):
+        self._update_timestamp(operation_id, 'result_sent_time')
+
+    def record_core_received_result(self, operation_id: str):
+        """Record timestamp of a received partial result."""
+        if not self._is_valid_operation(operation_id):
+            return
+        now = time.time()
+        self.metrics_by_operation_id[operation_id].result_times.append(now)
+        self._update_system_metrics(self.metrics_by_operation_id[operation_id])
+        logger.debug(
+            "PERFORMANCE - Recorded core received result for operation %s at %.2fs",
+            operation_id,
+            now)
+
+    def finalize_operation(self, operation_id: str):
+        """Mark an operation as complete and save its metrics."""
+        if not self._is_valid_operation(operation_id):
+            return
+
+        metric = self.metrics_by_operation_id.pop(operation_id)
+
+        metric.total_duration = time.time() - metric.request_received_time
+
+        if metric.core_sent_input_time and metric.request_received_time:
+            metric.input_overhead = metric.core_sent_input_time - metric.request_received_time
+
+        if metric.result_times:
+            last_result_time = metric.result_times[-1]
+            metric.output_overhead = metric.result_sent_time - last_result_time
+            metric.processing_duration = last_result_time - metric.core_sent_input_time
+
+        metric.total_overhead = metric.input_overhead + metric.output_overhead
+
+        self._update_system_metrics(metric)
+        self.metrics_history.append(metric)
+        self._save_metrics_to_csv(metric)
+        logger.debug(
+            "PERFORMANCE - Finalized operation %s. Duration: %.2fs",
+            operation_id,
+            metric.total_duration)
+
+    def _update_timestamp(self, operation_id: str, field_name: str):
+        if not self._is_valid_operation(operation_id):
+            return
+        now = time.time()
+        setattr(self.metrics_by_operation_id[operation_id], field_name, now)
+        self._update_system_metrics(self.metrics_by_operation_id[operation_id])
+        logger.debug(
+            "PERFORMANCE - Updated %s for operation %s at %.2fs",
+            field_name,
+            operation_id,
+            now)
+
+    def _update_system_metrics(self, metric: PerformanceMetrics):
+        metric.cpu_percent = self.process.cpu_percent()
+        metric.memory_rss_mb = self.process.memory_info().rss / (1024 * 1024)
+        logger.debug(
+            "Updated system metrics for operation %s: CPU %%: %.2f, Memory RSS: %.2f MB",
+            metric.operation_id,
+            metric.cpu_percent,
+            metric.memory_rss_mb
         )
-        self.current_metrics = None
 
-    def _save_metrics_to_csv(self, metrics: PerformanceMetrics):
-        """
-        Save metrics to CSV file.
-
-        Args:
-            metrics (PerformanceMetrics): The metrics to save
-        """
+    def _save_metrics_to_csv(self, metric: PerformanceMetrics):
         if not self.enabled:
             return
 
-        with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                metrics.operation_id,
-                metrics.timestamp,
-                metrics.request_received_time,
-                metrics.matlab_start_time,
-                metrics.matlab_startup_duration,
-                metrics.simulation_duration,
-                metrics.matlab_stop_time,
-                metrics.result_send_time,
-                metrics.cpu_percent,
-                metrics.memory_rss_mb,
-                metrics.total_duration
-            ])
+        # Calculate average interval between results
+        avg_result_interval = 0.0
+        if len(metric.result_times) > 1:
+            intervals = [t2 - t1 for t1,
+                         t2 in zip(metric.result_times,
+                                   metric.result_times[1:])]
+            avg_result_interval = sum(intervals) / len(intervals)
 
-    def get_summary(self) -> Dict[str, float]:
-        """
-        Get a summary of performance metrics across all operations.
+        try:
+            with open(self.csv_path, 'a', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    metric.operation_id,
+                    metric.timestamp,
+                    metric.request_received_time,
+                    metric.core_received_input_time,
+                    metric.core_sent_input_time,
+                    len(metric.result_times),
+                    metric.result_sent_time,
+                    metric.cpu_percent,
+                    metric.memory_rss_mb,
+                    metric.total_duration,
+                    avg_result_interval,
+                    metric.input_overhead,
+                    metric.output_overhead,
+                    metric.total_overhead,
+                    metric.processing_duration
+                ])
+            logger.debug(
+                "PERFORMANCE - Saved metrics for operation %s to %s",
+                metric.operation_id,
+                self.csv_path)
+        except Exception as e:
+            logger.error(
+                "Failed to save metrics for operation %s: %s",
+                metric.operation_id,
+                e)
 
-        Returns:
-            Dict[str, float]: Summary statistics
-        """
-        if not self.enabled or not self.metrics_history:
-            return {}
-
-        startup_times = [
-            m.matlab_startup_duration for m in self.metrics_history]
-        simulation_times = [m.simulation_duration for m in self.metrics_history]
-        total_times = [m.total_duration for m in self.metrics_history]
-
-        return {
-            'avg_startup_time': sum(startup_times) / len(startup_times),
-            'min_startup_time': min(startup_times),
-            'max_startup_time': max(startup_times),
-            'avg_simulation_time': sum(simulation_times) / len(simulation_times),
-            'min_simulation_time': min(simulation_times),
-            'max_simulation_time': max(simulation_times),
-            'avg_total_time': sum(total_times) / len(total_times),
-            'min_total_time': min(total_times),
-            'max_total_time': max(total_times),
-            'total_operations': len(self.metrics_history)
-        }
+    def _is_valid_operation(self, operation_id: str) -> bool:
+        return self.enabled and operation_id in self.metrics_by_operation_id

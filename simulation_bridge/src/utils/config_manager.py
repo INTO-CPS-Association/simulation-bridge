@@ -95,11 +95,12 @@ class LoggingConfig(BaseModel):
     format: str
     file: str
 
+
 class PerformanceConfig(BaseModel):
     """Configuration for performance monitoring."""
     enabled: bool
-    log_dir: str
-    log_filename: str
+    file: str
+
 
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
@@ -168,7 +169,8 @@ class Config(BaseModel):
         mqtt_config = MQTTConfig(**config_dict.get('mqtt', {}))
         rest_config = RESTConfig(**config_dict.get('rest', {}))
         logging_config = LoggingConfig(**config_dict.get('logging', {}))
-        performance_config = PerformanceConfig(**config_dict.get('performance', {}))
+        performance_config = PerformanceConfig(
+            **config_dict.get('performance', {}))
 
         # Assemble and return the complete Config object
         return cls(
@@ -267,8 +269,7 @@ class ConfigManager:
             ),
             performance=PerformanceConfig(
                 enabled=False,
-                log_dir="performance_log",
-                log_filename="performance_metrics.csv"
+                file="performance_log/performance_metrics.csv"
             )
         ).to_dict()
 

@@ -16,6 +16,7 @@ POLL_INTERVAL_SECONDS = 60  # Continuously check adapter status every 60 seconds
 
 logger = get_logger()
 
+# pylint: disable=too-many-instance-attributes
 
 class BridgeOrchestrator:
     """Orchestrates the simulation bridge components and lifecycle."""

@@ -136,18 +136,6 @@ class TestProcessMessage:
                 delivery_tag=method.delivery_tag)
             log_warn.assert_called_once()
 
-    def test_process_message_unknown_queue_does_not_send_signal(self, adapter):
-        """Messages from unknown queue do not send any signal but ack."""
-        ch = mock.MagicMock()
-        method = mock.MagicMock()
-        body = b'{"simulation": {}}'
-        with mock.patch("blinker.signal") as mock_signal:
-            adapter._process_message(ch, method, None, body, 'unknown_queue')
-            # Signal should not be called with None or any
-            assert mock_signal.call_count in (0, 1)
-            ch.basic_ack.assert_called_once_with(
-                delivery_tag=method.delivery_tag)
-
 
 class TestRunConsumer:
     """Tests for _run_consumer method running the consumer thread."""

@@ -54,8 +54,7 @@ def sample_valid_config_dict():
         },
         "performance": {
             "enabled": False,
-            "log_dir": "performance_logs",
-            "log_filename": "performance_metrics.csv"
+            "file": "performance_logs/performance_metrics.csv"
         }
     }
 
