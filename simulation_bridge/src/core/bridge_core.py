@@ -242,7 +242,8 @@ class BridgeCore:
                 "Message routed to exchange '%s': %s -> %s, protocol=%s",
                 exchange, producer, consumer, protocol)
             # Record sent input time in performance monitor
-            performance_monitor.record_core_sent_input(operation_id)
+            if exchange == 'ex.bridge.output':
+                performance_monitor.record_core_sent_input(operation_id)
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError) as e:
             logger.error("RabbitMQ connection error: %s", e)

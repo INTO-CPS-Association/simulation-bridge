@@ -211,3 +211,4 @@ dist/
 .venv*
 certs
 performance_log/
+performance/
