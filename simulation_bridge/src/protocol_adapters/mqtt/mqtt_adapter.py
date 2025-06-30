@@ -230,12 +230,10 @@ class MQTTAdapter(ProtocolAdapter):
             )
             logger.debug(
                 "Message published to MQTT topic '%s': %s", output_topic, message)
-            performance_monitor.record_result_sent(operation_id)
             status = message.get('status', 'unknown')
+            performance_monitor.record_result_sent(operation_id)
             if status == 'completed':
                 performance_monitor.finalize_operation(operation_id)
-            else:
-                performance_monitor.record_result_sent(operation_id)
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)
 

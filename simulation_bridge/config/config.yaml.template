@@ -81,5 +81,4 @@ logging:
 
 performance:
   enabled: false
-  log_dir: performance_log
-  log_filename: performance_metrics.csv
+  file: performance_log/performance_metrics.csv

@@ -221,12 +221,10 @@ class RESTAdapter(ProtocolAdapter):
             operation_id = message.get('request_id', 'unknown')
             destination = message.get('destinations', [])[0]
             self.send_result_sync(destination, message)
-            performance_monitor.record_result_sent(operation_id)
             status = message.get('status', 'unknown')
+            performance_monitor.record_result_sent(operation_id)
             if status == 'completed':
                 performance_monitor.finalize_operation(operation_id)
-            else:
-                performance_monitor.record_result_sent(operation_id)
             logger.debug(
                 "Successfully scheduled result message for REST client: %s",
                 destination)

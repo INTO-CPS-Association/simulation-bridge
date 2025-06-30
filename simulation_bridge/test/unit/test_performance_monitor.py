@@ -9,6 +9,7 @@ from simulation_bridge.src.utils.performance_monitor import PerformanceMetrics
 
 # pylint: disable=redefined-outer-name,protected-access,line-too-long,unused-argument
 
+
 @pytest.fixture
 def config_enabled(tmp_path):
     """Configuration with performance monitoring enabled."""
@@ -147,8 +148,6 @@ def test_finalize_operation_calculates_metrics_and_saves(
         assert abs(metric.input_overhead - 1.0) < 0.1
         # result_sent_time - last_result_time = 6 - 5 = 1
         assert abs(metric.output_overhead - 1.0) < 0.1
-        # last_result_time - core_sent_input_time = 5 - 2 = 3
-        assert abs(metric.processing_duration - 3.0) < 0.1
         # input_overhead + output_overhead = 1 + 1 = 2
         assert abs(metric.total_overhead - 2.0) < 0.1
 
@@ -172,8 +171,7 @@ def test_save_metrics_to_csv_writes_file(monitor_enabled, tmp_path):
         total_duration=5,
         input_overhead=1,
         output_overhead=1,
-        total_overhead=2,
-        processing_duration=2
+        total_overhead=2
     )
     monitor_enabled.metrics_history = []
 

@@ -13,7 +13,8 @@ from .logger import get_logger
 
 logger = get_logger()
 
-#pylint: disable= too-many-instance-attributes,broad-exception-caught
+# pylint: disable= too-many-instance-attributes,broad-exception-caught
+
 
 @dataclass
 class PerformanceMetrics:
@@ -25,13 +26,13 @@ class PerformanceMetrics:
     core_sent_input_time: float
     result_times: List[float] = field(default_factory=list)
     result_sent_time: float = 0.0
+    result_completed_time: float = 0.0
     cpu_percent: float = 0.0
     memory_rss_mb: float = 0.0
     total_duration: float = 0.0
     input_overhead: float = 0.0
     output_overhead: float = 0.0
     total_overhead: float = 0.0
-    processing_duration: float = 0.0
 
 
 class PerformanceMonitor:
@@ -106,14 +107,14 @@ class PerformanceMonitor:
                     'Core Sent Input Time',
                     'Number of Results',
                     'Result Sent Time',
+                    'Simulation Request Completed Time',
                     'CPU Percent',
                     'Memory RSS (MB)',
                     'Total Duration',
                     'Average Result Interval',
                     'Input Overhead',
                     'Output Overhead',
-                    'Total Overhead',
-                    'Processing Duration'
+                    'Total Overhead'
                 ])
         except Exception as e:
             logger.error("Failed to write CSV headers: %s", e)
@@ -122,6 +123,13 @@ class PerformanceMonitor:
     def start_operation(self, operation_id: str):
         """Initialize metrics for a new operation."""
         if not self.enabled:
+            return
+
+        if operation_id in self.metrics_by_operation_id:
+            logger.warning(
+                "PERFORMANCE - Operation %s è già in corso, skip start_operation",
+                operation_id
+            )
             return
 
         metric = PerformanceMetrics(
@@ -162,9 +170,11 @@ class PerformanceMonitor:
         if not self._is_valid_operation(operation_id):
             return
 
+        self._update_timestamp(operation_id, 'result_completed_time')
         metric = self.metrics_by_operation_id.pop(operation_id)
-
-        metric.total_duration = time.time() - metric.request_received_time
+        metric.total_duration = (
+            metric.result_completed_time -
+            metric.request_received_time)
 
         if metric.core_sent_input_time and metric.request_received_time:
             metric.input_overhead = metric.core_sent_input_time - metric.request_received_time
@@ -172,7 +182,6 @@ class PerformanceMonitor:
         if metric.result_times:
             last_result_time = metric.result_times[-1]
             metric.output_overhead = metric.result_sent_time - last_result_time
-            metric.processing_duration = last_result_time - metric.core_sent_input_time
 
         metric.total_overhead = metric.input_overhead + metric.output_overhead
 
@@ -229,14 +238,14 @@ class PerformanceMonitor:
                     metric.core_sent_input_time,
                     len(metric.result_times),
                     metric.result_sent_time,
+                    metric.result_completed_time,
                     metric.cpu_percent,
                     metric.memory_rss_mb,
                     metric.total_duration,
                     avg_result_interval,
                     metric.input_overhead,
                     metric.output_overhead,
-                    metric.total_overhead,
-                    metric.processing_duration
+                    metric.total_overhead
                 ])
             logger.debug(
                 "PERFORMANCE - Saved metrics for operation %s to %s",

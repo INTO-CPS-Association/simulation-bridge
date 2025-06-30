@@ -187,12 +187,10 @@ class BridgeCore:
             exchange='ex.bridge.result',
             protocol='rabbitmq',
             operation_id=operation_id)
-        performance_monitor.record_result_sent(operation_id)
         status = message.get('status', 'unknown')
+        performance_monitor.record_result_sent(operation_id)
         if status == 'completed':
             performance_monitor.finalize_operation(operation_id)
-        else:
-            performance_monitor.record_result_sent(operation_id)
 
     def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """

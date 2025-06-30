@@ -197,8 +197,7 @@ logging:
 # Performance monitoring configuration
 performance:
   enabled: false # Enable/disable performance monitoring
-  log_dir: performance_log # Directory where performance logs will be stored
-  log_filename: performance_metrics.csv # Name of the CSV file for performance metrics
+  file: performance_log/performance_metrics.csv # File where performance logs will be stored
 ```
 
 > **Note:** Certificate files (`certfile.pem` and `keyfile.pem`) will be automatically created by the _sim-bridge_ if missing.
