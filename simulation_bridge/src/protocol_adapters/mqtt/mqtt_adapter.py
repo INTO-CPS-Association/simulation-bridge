@@ -256,6 +256,6 @@ class MQTTAdapter(ProtocolAdapter):
             message = kwargs.get('message', {})
             self.send_result(message)
             logger.debug(
-                "Succesfully scheduled result message for MQTT client")
+                "Successfully scheduled result message for MQTT client")
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)
