@@ -78,6 +78,11 @@ class MQTTConfig(BaseModel):
     password: str
     tls: bool
 
+class JWTConfig(BaseModel):
+    """JWT authentication configuration."""
+    secret: str
+    algorithm: str
+    max_token_age_seconds: int = 3600
 
 class RESTConfig(BaseModel):
     """Configuration for REST API."""
@@ -87,6 +92,7 @@ class RESTConfig(BaseModel):
     debug: bool
     certfile: Optional[str]
     keyfile: Optional[str]
+    jwt: Optional[JWTConfig]
 
 
 class LoggingConfig(BaseModel):
@@ -260,7 +266,12 @@ class ConfigManager:
                 endpoint="/message",
                 debug=False,
                 certfile=None,
-                keyfile=None
+                keyfile=None,
+                jwt=JWTConfig(
+                    secret="your_jwt_secret",
+                    algorithm="HS256",
+                    max_token_age_seconds=3600
+                )
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,

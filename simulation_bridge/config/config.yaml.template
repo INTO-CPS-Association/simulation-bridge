@@ -73,6 +73,10 @@ rest:
   debug: false
   certfile: certs/cert.pem
   keyfile: certs/key.pem
+  jwt:
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE"
+    algorithm: HS256
+    max_token_age_seconds: 3600  
 
 logging:
   level: INFO

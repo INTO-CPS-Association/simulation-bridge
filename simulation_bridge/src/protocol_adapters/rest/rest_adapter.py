@@ -3,6 +3,9 @@ from hypercorn.config import Config as HyperConfig
 from hypercorn.asyncio import serve
 import asyncio
 import yaml
+import jwt
+from jwt import PyJWTError
+from datetime import datetime, timezone, timedelta
 import json
 from typing import Dict, Any, Optional, AsyncGenerator
 from ...utils.config_manager import ConfigManager
@@ -37,6 +40,25 @@ class RESTAdapter(ProtocolAdapter):
 
         @app.post(self.config['endpoint'])
         async def handle_streaming_message() -> Response:
+            auth_header = request.headers.get("Authorization", "")
+            if not auth_header.startswith("Bearer "):
+                return Response(
+                    response=json.dumps({"error": "Missing Bearer token"}),
+                    status=401,
+                    content_type="application/json",
+                )
+            token = auth_header.split(" ", 1)[1]
+            try:
+                jwt_payload = self._verify_jwt(token)
+                logger.debug("REST - JWT verified for sub=%s", jwt_payload["sub"])
+            except ValueError as exc:
+                logger.warning("REST - JWT verification failed: %s", exc)
+                return Response(
+                    response=json.dumps({"error": str(exc)}),
+                    status=401,
+                    content_type="application/json",
+                )
+
             content_type = request.headers.get('content-type', '')
             body = await request.get_data()
 
@@ -52,13 +74,11 @@ class RESTAdapter(ProtocolAdapter):
 
             if not isinstance(message, dict):
                 return Response(
-                    response=json.dumps(
-                        {"error": "Message is not a dictionary"}),
+                    response=json.dumps({"error": "Message is not a dictionary"}),
                     status=400,
                     content_type='application/json'
                 )
 
-            # Initialize performance monitor
             performance_monitor = PerformanceMonitor()
 
             simulation = message.get('simulation', {})
@@ -69,7 +89,9 @@ class RESTAdapter(ProtocolAdapter):
             message['bridge_meta'] = {
                 'protocol': 'rest',
                 'producer': producer,
-                'consumer': consumer
+                'consumer': consumer,
+                'jwt_sub': jwt_payload.get("sub"),
+                'jwt_iss': jwt_payload.get("iss"),
             }
 
             performance_monitor.start_operation(operation_id)
@@ -89,7 +111,6 @@ class RESTAdapter(ProtocolAdapter):
                 content_type='application/x-ndjson',
                 status=200
             )
-
         return app
 
     def _parse_message(self, body: bytes, content_type: str) -> Dict[str, Any]:
@@ -230,3 +251,38 @@ class RESTAdapter(ProtocolAdapter):
                 destination)
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error sending result message to REST client: %s", e)
+
+    def _load_jwt_config(self) -> Dict[str, Any]:
+        """Return JWT config (secret / pubkey / alg / max age)."""
+        return self.config.get("jwt", {})
+
+
+    def _verify_jwt(self, token: str) -> Dict[str, Any]:
+        """Decode & validate a JWT. Raise ValueError if invalid."""
+        cfg = self._load_jwt_config()
+
+        if "secret" not in cfg:
+            raise ValueError("Missing 'secret' field in JWT configuration.")
+
+        if "algorithm" not in cfg:
+            raise ValueError("Missing 'algorithm' field in JWT configuration.")
+
+        try:
+            payload = jwt.decode(
+                token,
+                cfg["secret"],  # oppure cfg["public_key"] per RS256
+                algorithms=[cfg["algorithm"]],
+                options={"require": ["exp", "iat", "sub"]},
+                leeway=5,
+            )
+
+            iat = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
+            if (
+                datetime.now(timezone.utc) - iat
+            ).total_seconds() > cfg.get("max_token_age_seconds", 3600):
+                raise ValueError("Token too old")
+
+            return payload
+
+        except PyJWTError as exc:
+            raise ValueError(f"Invalid JWT: {exc}")

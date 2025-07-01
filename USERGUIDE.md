@@ -187,6 +187,10 @@ rest:
   debug: false # Disable Flask debug mode (set to true for development)
   certfile: certs/cert.pem # Path to the TLS certificate file for HTTPS
   keyfile: certs/key.pem # Path to the private key file for HTTPS
+  jwt: # JWT configuration for secure token-based authentication
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE" # Secret key for signing JWT tokens
+    algorithm: HS256 # Algorithm used for signing JWT tokens
+    max_token_age_seconds: 3600 # Maximum age of JWT tokens in seconds (1 hour)
 
 # Logging configuration
 logging:

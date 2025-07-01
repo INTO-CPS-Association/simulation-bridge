@@ -2,11 +2,26 @@
 
 import asyncio
 import sys
+import os
+import time
 from pathlib import Path
 from typing import NoReturn, Dict, Any
 import yaml
 import httpx
+import jwt
 
+SECRET = os.getenv("REST_JWT_SECRET", "CHANGE_ME_TO_A_LONG_RANDOM_VALUE")
+ALG = "HS256"
+
+def build_token(sub: str = "sim-client") -> str:
+    now = int(time.time())
+    payload = {
+        "sub": sub,
+        "iat": now,
+        "exp": now + 900,   # 15 min
+        "iss": "sim-bridge-client",
+    }
+    return jwt.encode(payload, SECRET, algorithm=ALG)
 
 def load_config(config_path: str = "rest_use.yaml") -> Dict[str, Any]:
     """Load configuration from YAML file.
@@ -43,12 +58,14 @@ class RESTClient:
         self.yaml_file = config["yaml_file"]
         self.url = config["url"]
         self.timeout = config.get("timeout", 600)
+        self.token = build_token()
 
     async def send_yaml_and_stream_response(self) -> None:
         """Send YAML data to server and stream the response."""
         headers = {
             "Content-Type": "application/x-yaml",
-            "Accept": "application/x-ndjson"
+            "Accept": "application/x-ndjson",
+            "Authorization": f"Bearer {self.token}",
         }
 
         try:
@@ -82,7 +99,6 @@ class RESTClient:
                         error.request.url!r}.\n"""
                     f"Error: {error}"
                 )
-
 
 def main() -> NoReturn:
     """Run the REST client application."""

@@ -45,7 +45,12 @@ def sample_valid_config_dict():
             "endpoint": "/api",
             "debug": False,
             "certfile": "/path/to/cert.pem",
-            "keyfile": "/path/to/key.pem"
+            "keyfile": "/path/to/key.pem",
+            "jwt": {
+                "secret": "your_jwt_secret",
+                "algorithm": "HS256",
+                "max_token_age_seconds": 3600
+            }
         },
         "logging": {
             "level": "INFO",
