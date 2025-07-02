@@ -173,7 +173,35 @@ class TestHandleInputMessage:
         bridge_core_instance.handle_input_message(None, **kwargs)
         patch_basic_publish.assert_called_once()
         mock_logger.info.assert_called_once()
-
+        
+    
+    def test_handle_input_message_invalid_dataset_uri(self, bridge_core_instance,
+                                                      patch_basic_publish, mock_logger):
+        """Abort processing when dataset URI is invalid."""
+        message = {
+            'simulation': {
+                'request_id': '1',
+                'client_id': 'c',
+                'simulator': 's',
+                'type': 't',
+                'file': 'f',
+                'inputs': {
+                    'external_dataset': {'uri': 'ftp://bad'}
+                },
+                'outputs': {}
+            }
+        }
+        kwargs = {
+            'message': message,
+            'producer': 'prod',
+            'consumer': 'cons',
+            'protocol': 'mqtt'
+        }
+        bridge_core_instance.handle_input_message(None, **kwargs)
+        patch_basic_publish.assert_not_called()
+        mock_logger.error.assert_called_once_with(
+            "Invalid external dataset URI: %s", 'ftp://bad'
+        )
 
 class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
     "Tests for handling result messages from RabbitMQ and other protocols."""
