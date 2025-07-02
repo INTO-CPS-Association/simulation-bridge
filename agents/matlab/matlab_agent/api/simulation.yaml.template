@@ -24,6 +24,7 @@ simulation:
     i1: ..
     i2: ..
     i3: ..
+    stream_source: # Source of the input stream RabbitMQ
 
   outputs:
     # Expected output variables from the simulation.
