@@ -186,7 +186,7 @@ class TestHandleInputMessage:
                 'type': 't',
                 'file': 'f',
                 'inputs': {
-                    'external_dataset': {'uri': 'ftp://bad'}
+                    'external_dataset': {'uri': 'sftp://bad'}
                 },
                 'outputs': {}
             }
@@ -200,7 +200,7 @@ class TestHandleInputMessage:
         bridge_core_instance.handle_input_message(None, **kwargs)
         patch_basic_publish.assert_not_called()
         mock_logger.error.assert_called_once_with(
-            "Invalid external dataset URI: %s", 'ftp://bad'
+            "Invalid external dataset URI: %s", 'sftp://bad'
         )
 
 class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
