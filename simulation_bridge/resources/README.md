@@ -1,10 +1,11 @@
 ## Example Clients
 
-This folder contains three example clients that communicate with the Simulation Bridge using three different protocols:
+This folder contains four example clients that communicate with the Simulation Bridge using different protocols:
 
 - **mqtt/** – MQTT Client
 - **rabbitmq/** – RabbitMQ Client
 - **rest/** – REST Client
+- **inmemory/** – In-Memory Client
 
 Each client is completely independent and demonstrates how to send a simulation request and handle real-time responses.
 
@@ -22,13 +23,17 @@ client/
 │   ├── rabbitmq_client.py  # RabbitMQ-specific Python client
 │   ├── rabbitmq_use.yaml   # RabbitMQ client configuration
 │   └── requirements.txt    # Python dependencies
-└── rest/
-    ├── rest_client.py      # REST-specific Python client
-    ├── rest_use.yaml       # REST client configuration
+├── rest/
+│   ├── rest_client.py      # REST-specific Python client
+│   ├── rest_use.yaml       # REST client configuration
+│   └── requirements.txt    # Python dependencies
+└── inmemory/
+    ├── inmemory_client.py  # In-memory simulation client
+    ├── inmemory_use.yaml   # In-memory client configuration
     └── requirements.txt    # Python dependencies
 ```
 
-Each subfolder (mqtt/, rabbitmq/, rest/) contains:
+Each subfolder (mqtt/, rabbitmq/, rest/, inmemory/) contains:
 
 - `*_client.py` – Protocol-specific Python client
 - `*_use.yaml` – Client configuration file (network parameters, authentication, etc.)
@@ -48,7 +53,7 @@ Customize the `client/simulation.yaml` file with your distributed simulation par
 
 #### 2. Configure the client
 
-In the subfolder of the client you want to use, modify `mqtt_use.yaml`, `rabbitmq_use.yaml` or `rest_use.yaml` based on the chosen protocol (e.g. host, port, topic, URL, etc.).
+In the subfolder of the client you want to use, modify `mqtt_use.yaml`, `rabbitmq_use.yaml`, `rest_use.yaml` or `inmemory_use.yaml` based on the chosen protocol (e.g. host, port, topic, URL, etc.).
 
 #### 3. Install dependencies
 

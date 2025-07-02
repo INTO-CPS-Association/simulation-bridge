@@ -13,6 +13,7 @@ import jwt
 SECRET = os.getenv("REST_JWT_SECRET", "CHANGE_ME_TO_A_LONG_RANDOM_VALUE")
 ALG = "HS256"
 
+
 def build_token(sub: str = "sim-client") -> str:
     now = int(time.time())
     payload = {
@@ -22,6 +23,7 @@ def build_token(sub: str = "sim-client") -> str:
         "iss": "sim-bridge-client",
     }
     return jwt.encode(payload, SECRET, algorithm=ALG)
+
 
 def load_config(config_path: str = "rest_use.yaml") -> Dict[str, Any]:
     """Load configuration from YAML file.
@@ -99,6 +101,7 @@ class RESTClient:
                         error.request.url!r}.\n"""
                     f"Error: {error}"
                 )
+
 
 def main() -> NoReturn:
     """Run the REST client application."""

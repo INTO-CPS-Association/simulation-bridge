@@ -123,6 +123,12 @@ def get_files_to_generate():
                                       'rest_use.yaml.template'),
         'client/rest/requirements.txt': ('simulation_bridge.resources.rest',
                                          'requirements.txt'),
+        'client/inmemory/inmemory_client.py': ('simulation_bridge.resources.inmemory',
+                                               'inmemory_client.py'),
+        'client/inmemory/inmemory_use.yaml': ('simulation_bridge.resources.inmemory',
+                                              'inmemory_use.yaml.template'),
+        'client/inmemory/requirements.txt': ('simulation_bridge.resources.inmemory',
+                                             'requirements.txt'),
         'client/README.md': ('simulation_bridge.resources',
                              'README.md'),
     }
@@ -142,6 +148,9 @@ def get_file_descriptions():
         'client/rest/rest_client.py': "REST protocol client implementation",
         'client/rest/rest_use.yaml': "REST usage configuration (example)",
         'client/rest/requirements.txt': "REST protocol client requirements",
+        'client/inmemory/inmemory_client.py': "In-memory protocol client implementation",
+        'client/inmemory/inmemory_use.yaml': "In-memory usage configuration (example)",
+        'client/inmemory/requirements.txt': "In-memory protocol client requirements",
         'client/README.md': "Documentation for the Clients",
     }
 

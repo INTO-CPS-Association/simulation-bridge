@@ -178,6 +178,8 @@ class RabbitMQAdapter(ProtocolAdapter):
                     signal_name = 'message_received_result_mqtt'
                 elif protocol == 'rabbitmq':
                     signal_name = 'message_received_result_rabbitmq'
+                elif protocol == 'inmemory':
+                    signal_name = 'message_received_result_inmemory'
                 elif protocol == 'unknown':
                     signal_name = 'message_received_result_unknown'
             if signal_name is None:
@@ -227,6 +229,9 @@ class RabbitMQAdapter(ProtocolAdapter):
         """Stop the RabbitMQ adapter and clean up resources."""
         logger.debug("RabbitMQ - Stopping adapter")
         self._running = False
+        # If we're already in the consumer thread, just return
+        if threading.current_thread() is self._consumer_thread:
+            return
         try:
             if self.channel and self.channel.is_open:
                 def stop_consuming_from_thread():

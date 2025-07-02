@@ -50,7 +50,9 @@ class RESTAdapter(ProtocolAdapter):
             token = auth_header.split(" ", 1)[1]
             try:
                 jwt_payload = self._verify_jwt(token)
-                logger.debug("REST - JWT verified for sub=%s", jwt_payload["sub"])
+                logger.debug(
+                    "REST - JWT verified for sub=%s",
+                    jwt_payload["sub"])
             except ValueError as exc:
                 logger.warning("REST - JWT verification failed: %s", exc)
                 return Response(
@@ -74,7 +76,8 @@ class RESTAdapter(ProtocolAdapter):
 
             if not isinstance(message, dict):
                 return Response(
-                    response=json.dumps({"error": "Message is not a dictionary"}),
+                    response=json.dumps(
+                        {"error": "Message is not a dictionary"}),
                     status=400,
                     content_type='application/json'
                 )
@@ -255,7 +258,6 @@ class RESTAdapter(ProtocolAdapter):
     def _load_jwt_config(self) -> Dict[str, Any]:
         """Return JWT config (secret / pubkey / alg / max age)."""
         return self.config.get("jwt", {})
-
 
     def _verify_jwt(self, token: str) -> Dict[str, Any]:
         """Decode & validate a JWT. Raise ValueError if invalid."""

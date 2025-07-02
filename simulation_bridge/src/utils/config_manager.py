@@ -78,11 +78,13 @@ class MQTTConfig(BaseModel):
     password: str
     tls: bool
 
+
 class JWTConfig(BaseModel):
     """JWT authentication configuration."""
     secret: str
     algorithm: str
     max_token_age_seconds: int = 3600
+
 
 class RESTConfig(BaseModel):
     """Configuration for REST API."""
