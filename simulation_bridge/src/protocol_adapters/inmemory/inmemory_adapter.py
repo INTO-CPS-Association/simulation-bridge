@@ -23,10 +23,8 @@ class InMemoryAdapter(ProtocolAdapter):
         if not req_id:
             logger.warning("InMemory - missing request_id in message")
             return
-
-        # registra il callback
+        # Register the callback for this request_id
         self._callbacks[req_id] = callback
-
         # If the request_id is already in pending, we need to
         # immediately call the callback for all pending messages.
         if req_id in self._pending:
@@ -56,7 +54,8 @@ class InMemoryAdapter(ProtocolAdapter):
                           "aborted", "cancelled"}:
                 self._callbacks.pop(req_id, None)
         else:
-            # nessun callback *ancora* registrato ⇒ accoda
+            # no callback registered for this request_id,
+            # cache the message for later processing
             self._pending.setdefault(req_id, []).append(msg)
             logger.debug(
                 "InMemory - cached %s msg for request_id %s "
