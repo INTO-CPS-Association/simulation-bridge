@@ -3,6 +3,11 @@ Comprehensive test suite for main.py with 90%+ code coverage.
 Tests all functions including CLI commands, file generation, and error handling.
 Fixed version addressing pkg_resources and assertion issues.
 """
+
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
+
 import logging
 from pathlib import Path
 from unittest.mock import MagicMock, patch, mock_open, call

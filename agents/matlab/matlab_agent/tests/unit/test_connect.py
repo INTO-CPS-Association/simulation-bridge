@@ -5,6 +5,9 @@ This module contains comprehensive tests for the Connect class,
 testing all its methods and error conditions.
 """
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any, Optional, Callable

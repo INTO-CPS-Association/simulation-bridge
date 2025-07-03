@@ -1,12 +1,12 @@
-classdef SimulationWrapper < handle
+classdef SimulationWrapperStreaming < handle
     properties (Access = private)
         tcp_client  % TCP client object for communication with Python
         inputs      % Store the inputs received from Python
     end
     
     methods
-        % Constructor for the SimulationWrapper class
-        function obj = SimulationWrapper()
+        % Constructor for the SimulationWrapperStreaming class
+        function obj = SimulationWrapperStreaming()
             % Default port (modifiable)
             port = 5678;
 

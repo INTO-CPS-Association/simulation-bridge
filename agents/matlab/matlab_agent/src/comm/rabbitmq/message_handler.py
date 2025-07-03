@@ -7,7 +7,9 @@ from typing import Any, Optional, Dict
 import yaml
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel, ConfigDict, Field, field_validator, model_validator
+)
 import queue
 
 from .interfaces import IRabbitMQMessageHandler
@@ -22,6 +24,7 @@ logger = get_logger()
 
 class SimulationInputs(BaseModel):
     """Model for simulation inputs - dynamic fields allowed"""
+    stream_source: str | None = None
     model_config = ConfigDict(extra="allow")
 
 
@@ -44,11 +47,25 @@ class SimulationData(BaseModel):
     @field_validator('type', mode='before')
     @classmethod
     def validate_sim_type(cls, v):
-        """Validate that simulation type is either 'batch' or 'streaming'"""
-        if v not in ['batch', 'streaming', 'interactive']:
+        if v not in {'batch', 'streaming', 'interactive'}:
             raise ValueError(
-                f"Invalid simulation type: {v}. Must be 'batch' or 'streaming'")
+                f"Invalid simulation type: {v}. "
+                "Must be 'batch', 'streaming' or 'interactive'"
+            )
         return v
+
+    @model_validator(mode='after')
+    def check_stream_source_for_interactive(self):
+        """
+        Validate that 'inputs.stream_source' is provided for interactive simulations.
+        """
+        if self.type == 'interactive':
+            if not self.inputs.stream_source:
+                raise ValueError(
+                    "For 'interactive' simulations you must provide "
+                    "'inputs.stream_source'"
+                )
+        return self
 
 
 class MessagePayload(BaseModel):
@@ -155,7 +172,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 sim_file = simulation_data.file
                 bridge_meta = simulation_data.bridge_meta or 'unknown'
                 request_id = simulation_data.request_id
-                
+
             except Exception as e:
                 logger.error("Message validation failed: %s", e)
                 sim_file = ''
@@ -212,7 +229,7 @@ class MessageHandler(IRabbitMQMessageHandler):
             elif sim_type == 'interactive':
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 tcp_settings = self.config.get('tcp', {})
-                handle_interactive_simulation(  
+                handle_interactive_simulation(
                     msg_dict, source,
                     self.rabbitmq_manager,
                     self.path_simulation,

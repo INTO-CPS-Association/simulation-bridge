@@ -1,4 +1,5 @@
-classdef SimulationWrapper < handle
+
+classdef SimulationWrapperInteractive < handle
     properties (Access = private)
         out_client  % TCP client object for outgoing data
         in_client   % TCP client object for incoming data
@@ -6,11 +7,12 @@ classdef SimulationWrapper < handle
     end
     
     methods
-        % Constructor for the SimulationWrapper class
-        function obj = SimulationWrapper()
+        % Constructor for the SimulationWrapperInteractive class
+        function obj = SimulationWrapperInteractive()
             % Default host and ports (modifiable)
-            host = 'localhost';
+            out_host = 'localhost';
             out_port = 5678;
+            in_host = 'localhost';
             in_port = 5679;
             % Max retries for connecting to the server
             max_retries = 5;
@@ -20,8 +22,8 @@ classdef SimulationWrapper < handle
             for retry = 1:max_retries
                 try
                     % Create a TCP client object to connect to Python server
-                    obj.out_client = tcpclient(host, out_port);
-                    obj.in_client = tcpclient(host, in_port);
+                    obj.out_client = tcpclient(out_host, out_port);
+                    obj.in_client = tcpclient(in_host, in_port);
                     configureTerminator(obj.out_client, "LF");
                     configureTerminator(obj.in_client, "LF");
                     break; % Exit the loop if the connection is successful

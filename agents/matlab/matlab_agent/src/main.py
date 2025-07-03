@@ -9,6 +9,8 @@ from .interfaces.agent import IMatlabAgent
 from .core.agent import MatlabAgent
 from .utils.config_loader import load_config
 
+# pylint: disable=import-outside-toplevel,too-many-branches
+
 
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
@@ -77,7 +79,8 @@ def generate_default_config():
 
 
 def generate_default_project():
-    """Copy all template project files to the current directory, only if they don't already exist."""
+    """Copy all template project files to the current directory,
+    only if they don't already exist."""
 
     existing_files = []
     created_files = []
@@ -85,12 +88,22 @@ def generate_default_project():
     # Mapping from output filename to importlib resource location
     files_to_generate = {
         'config.yaml': ('matlab_agent.config', 'config.yaml.template'),
-        'SimulationWrapper.m': ('matlab_agent.resources', 'SimulationWrapper.m'),
-        'SimulationBatch.m': ('matlab_agent.docs.examples', 'simulation_batch.m.template'),
-        'SimulationStreaming.m': ('matlab_agent.docs.examples', 'simulation_streaming.m.template'),
-        'client/use_matlab_agent.py': ('matlab_agent.resources', 'use_matlab_agent.py'),
-        'client/use.yaml': ('matlab_agent.resources', 'use.yaml.template'),
-        'client/simulation.yaml': ('matlab_agent.api', 'simulation.yaml.template'),
+        'SimulationWrapperStreaming.m': ('matlab_agent.resources',
+                                         'SimulationWrapperStreaming.m'),
+        'SimulationWrapperInteractive.m': ('matlab_agent.resources',
+                                           'SimulationWrapperInteractive.m'),
+        'SimulationBatch.m': ('matlab_agent.docs.examples',
+                              'simulation_batch.m.template'),
+        'SimulationStreaming.m': ('matlab_agent.docs.examples',
+                                  'simulation_streaming.m.template'),
+        'client/use_matlab_agent_interactive.py': ('matlab_agent.resources',
+                                                   'use_matlab_agent_interactive.py'),
+        'client/use_matlab_agent.py': ('matlab_agent.resources',
+                                       'use_matlab_agent.py'),
+        'client/use.yaml': ('matlab_agent.resources',
+                            'use.yaml.template'),
+        'client/simulation.yaml': ('matlab_agent.api',
+                                   'simulation.yaml.template'),
         'client/README.md': ('matlab_agent.resources', 'README.md'),
     }
 
@@ -100,9 +113,12 @@ def generate_default_project():
         'SimulationWrapper.m': "Helper class for handling streaming simulations",
         'SimulationBatch.m': "Template for batch-mode simulations",
         'SimulationStreaming.m': "Template for streaming-mode simulations",
+        'client/use_matlab_agent_interactive.py':
+            "Python script to use the MATLAB agent in interactive mode",
         'client/use_matlab_agent.py': "Python script to use the MATLAB agent",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
-        'client/simulation.yaml': "Example API payload to communicate with the MATLAB agent",
+        'client/simulation.yaml':
+            "Example API payload to communicate with the MATLAB agent",
         'client/README.md': "README file for the client directory",
     }
 

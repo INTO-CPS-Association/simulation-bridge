@@ -6,6 +6,9 @@ from typing import Any, Dict, Tuple
 
 from src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 
 @pytest.fixture(scope="function")
 def mock_config() -> dict:

@@ -4,7 +4,7 @@ function InteractiveSimulation()
     %   processed one, the function sends an output structure back to the
     %   Python side. Otherwise, it idles until a new input arrives.
 
-    wrapper = SimulationWrapper();
+    wrapper = SimulationWrapperInteractive();
     disp("🟢 Starting communication loop...");
 
     last_input = [];  % Cache of the most recently processed input

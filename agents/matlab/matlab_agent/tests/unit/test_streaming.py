@@ -1,5 +1,9 @@
 """Test suite for streaming functionality."""
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
+
 import socket
 import time
 from pathlib import Path
@@ -264,10 +268,12 @@ def test_controller_run_success(
     matlab_controller.connection = conn
 
     # Pass performance_monitor as arg
-    matlab_controller.run({'param': 'value'}, performance_monitor=performance_monitor)
+    matlab_controller.run({'param': 'value'},
+                          performance_monitor=performance_monitor)
 
     # Verify result was sent
     assert mock_rabbit_client.send_result.call_count >= 1
+
 
 def test_get_metadata(matlab_controller, monkeypatch):
     """

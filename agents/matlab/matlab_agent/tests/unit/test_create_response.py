@@ -6,6 +6,9 @@ testing all response types and edge cases while ensuring proper error handling
 and response formatting.
 """
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 import unittest
 from unittest.mock import patch
 from typing import Dict, Any

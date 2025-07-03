@@ -141,7 +141,10 @@ class MatlabInteractiveController:
         cmd = [
             "matlab",
             "-batch",
-            f"addpath('{self.sim_path}');cd('{self.sim_path}');run('{self.sim_file}');",
+            f"addpath('{
+                self.sim_path}');cd('{
+                self.sim_path}');run('{
+                self.sim_file}');",
         ]
         self.out_srv.matlab_proc = subprocess.Popen(
             cmd,
@@ -167,20 +170,22 @@ class MatlabInteractiveController:
 
     # ------------------------------------------------------------------
     def _relay(self, payload: Dict[str, Any]) -> None:
-        """Relay a response from the MATLAB process to the broker."""
-        self.broker.send_result(
-            self.source,
-            create_response(
-                "interactive",
-                self.sim_file,
-                "interactive",
-                self.templates,
-                data=payload,
-                sequence=self.sequence,
-                bridge_meta=self.bridge_meta,
-                request_id=self.request_id,
-            ),
+        """Relay a response from the MATLAB process to the broker
+        including the full simulation output."""
+
+        # Costruiamo il messaggio base con l’utility già esistente
+        msg = create_response(
+            "interactive",
+            self.sim_file,
+            "interactive",
+            self.templates,
+            data=payload,
+            sequence=self.sequence,
+            bridge_meta=self.bridge_meta,
+            request_id=self.request_id,
         )
+        msg["output"] = payload
+        self.broker.send_result(self.source, msg)
         self.sequence += 1
 
     @staticmethod
@@ -201,19 +206,27 @@ class MatlabInteractiveController:
 
         ch = self.broker.channel
         qname = f"Q.{self.agent_id}.interactive.{self.request_id}"
-        ch.exchange_declare("ex.input.stream", exchange_type="topic", durable=True)
+        ch.exchange_declare(
+            "ex.input.stream",
+            exchange_type="topic",
+            durable=True)
         ch.queue_declare(queue=qname, durable=True)
-        ch.queue_bind(exchange="ex.input.stream", queue=qname, routing_key=stream_key)
+        ch.queue_bind(
+            exchange="ex.input.stream",
+            queue=qname,
+            routing_key=stream_key)
 
         try:
             while True:
-                method, properties, body = ch.basic_get(queue=qname, auto_ack=True)
+                method, properties, body = ch.basic_get(
+                    queue=qname, auto_ack=True)
                 while method:
                     frame = _parse_frame(body)
                     if frame:
                         # Send the inputs to MATLAB
                         self.in_srv.send(self._only_inputs(frame))
-                    method, properties, body = ch.basic_get(queue=qname, auto_ack=True)
+                    method, properties, body = ch.basic_get(
+                        queue=qname, auto_ack=True)
 
                 # Receive Responses from MATLAB
                 for resp in self.out_srv.recv_all():
@@ -233,12 +246,10 @@ class MatlabInteractiveController:
         meta: Dict[str, Any] = {}
         if self.start_time:
             meta["execution_time"] = time.time() - self.start_time
-        meta["memory_usage"] = psutil.Process().memory_info().rss // (1024 * 1024)
+        meta["memory_usage"] = psutil.Process(
+        ).memory_info().rss // (1024 * 1024)
         return meta
 
-# ---------------------------------------------------------------------------
-# Public entry point
-# ---------------------------------------------------------------------------
 
 def handle_interactive_simulation(
     msg_dict: Dict[str, Any],

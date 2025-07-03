@@ -5,6 +5,9 @@ This module contains comprehensive tests for the logger configuration utilities,
 including file logging, console output, log rotation, and colorized formatting.
 """
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 import logging
 import os
 import shutil
