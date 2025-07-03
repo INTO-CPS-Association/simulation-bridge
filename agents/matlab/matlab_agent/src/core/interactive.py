@@ -56,8 +56,13 @@ class _TcpServer:
     def accept(self) -> None:
         if not self._srv:
             raise RuntimeError("Server not started")
-        self._conn, _ = self._srv.accept()
-        self._conn.setblocking(False)
+        ready = select([self._srv], [], [], 60)
+        if ready[0]:
+            self._conn, _ = self._srv.accept()
+            self._conn.setblocking(False)
+        else:
+            logger.error("[INTERACTIVE] Timeout waiting for client connection.")
+            raise TimeoutError("No client connection received in time.")
 
     def send(self, data: Dict[str, Any]) -> None:
         if self._conn:
@@ -161,7 +166,11 @@ class MatlabInteractiveController:
         self.start_time = time.time()
         self.out_srv.start()
         self.in_srv.start()
+        logger.debug("[INTERACTIVE] TCP servers started on %s:%s and %s:%s",
+                     self.out_srv.host, self.out_srv.port,
+                     self.in_srv.host, self.in_srv.port)
         self._start_matlab()
+        logger.debug("[INTERACTIVE] Waiting for MATLAB to start...")
         pm.record_matlab_startup_complete()
         self.out_srv.accept()
         self.in_srv.accept()
@@ -194,11 +203,10 @@ class MatlabInteractiveController:
         if isinstance(frame, dict):
             sim = frame.get("simulation")
             if isinstance(sim, dict) and "inputs" in sim:
-                logger.info("[INTERACTIVE] Received inputs: %s", sim["inputs"])
+                logger.debug("[INTERACTIVE] Received inputs: %s", sim["inputs"])
                 return sim["inputs"]
         return frame
 
-    # ------------------------------------------------------------------
     def run(self, pm: PerformanceMonitor, msg_dict: Dict[str, Any]) -> None:
         """Run the interactive simulation loop."""
         sim = msg_dict["simulation"]
@@ -232,8 +240,6 @@ class MatlabInteractiveController:
                 for resp in self.out_srv.recv_all():
                     # Send the response to the broker
                     self._relay(resp)
-                # Wait 10ms to avoid spin-locking
-                time.sleep(0.01)
         finally:
             pm.record_simulation_complete()
 
@@ -262,7 +268,7 @@ def handle_interactive_simulation(
     pm = PerformanceMonitor()
     sim = msg_dict["simulation"]
     pm.start_operation(sim["request_id"])
-
+    logger.debug("[INTERACTIVE] Starting interactive simulation: %s", sim["file"])
     controller = MatlabInteractiveController(
         path_simulation or sim.get("path"),
         sim["file"],

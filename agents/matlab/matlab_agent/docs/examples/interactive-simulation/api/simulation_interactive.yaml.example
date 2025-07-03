@@ -7,4 +7,9 @@ simulation:
   inputs:
     stream_source: "rabbitmq://streaming.inputs.sim123"
   outputs:
-    
+    predicted:
+      x_next: float
+      y_next: float
+    misc:
+      distance_from_origin: float
+      timestamp: float # epoch seconds

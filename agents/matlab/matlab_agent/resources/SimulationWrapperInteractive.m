@@ -1,3 +1,4 @@
+
 classdef SimulationWrapperInteractive < handle
     properties (Access = private)
         out_client  % TCP client object for outgoing data
@@ -43,6 +44,32 @@ classdef SimulationWrapperInteractive < handle
             obj.last_inputs = jsondecode(data);
         end
 
+        % Method to retrieve input parameters from the Python server
+        function inputs = get_input(obj)
+            % Single method to get input data
+            % Reads new streaming data if available, otherwise returns last input
+
+            % Timeout or no data received for a while
+            timeout_limit = 2;  % Set a timeout limit (in seconds)
+            time_start = tic;
+
+            new_data = obj.try_receive();
+            while isempty(new_data)
+                % No new data, check if the timeout limit is reached
+                if toc(time_start) > timeout_limit
+                    disp('⏳ Timeout: No new input data received for a while.');
+                    break;  % Exit the loop if timeout
+                end
+                % Retry reading if no new data
+                new_data = obj.try_receive();
+            end
+
+            if ~isempty(new_data)
+                obj.last_inputs = new_data;
+            end
+            inputs = obj.last_inputs;  % Return the stored inputs
+        end
+
         function data_struct = try_receive(obj)
             % Non-blocking receive function to get data if available
             data_struct = [];
@@ -56,18 +83,6 @@ classdef SimulationWrapperInteractive < handle
                     warning("JSON decode failed");
                 end
             end
-        end
-        
-        % Method to retrieve input parameters from the Python server
-        function inputs = get_input(obj)
-            % Single method to get input data
-            % Reads new streaming data if available, otherwise returns last input
-
-            new_data = obj.try_receive();
-            if ~isempty(new_data)
-                obj.last_inputs = new_data;
-            end
-            inputs = obj.last_inputs;  % Return the stored inputs
         end
 
         % Method to send output data to the Python server

@@ -73,29 +73,27 @@ class AsyncInteractiveMatlabClient:
     async def stream_inputs(self, request_id: str, stream_key: str):
         "Stream input frames to MATLAB for the interactive simulation."
         print(f"[INPUT STREAM] Sending input frames to {stream_key}...")
-        for t in range(100):
-            input_frame = {
+        for k in range(100):
+            t  = k * 0.1
+            vx = 1.0
+            vy = 0.5
+            x  = vx * t
+            y  = vy * t
+            frame = {
                 "simulation": {
                     "request_id": request_id,
-                    "inputs": {
-                        "t": t * 0.1,
-                        "i1": t,
-                        "i2": t * 2,
-                        "i3": t ** 2,
-                    },
+                    "inputs": {"t": t, "x": x, "y": y, "vx": vx, "vy": vy},
                 }
             }
-            yaml_body = yaml.dump(input_frame)
             await self.ex_stream.publish(
                 Message(
-                    body=yaml_body.encode(),
+                    body=yaml.dump(frame).encode(),
                     content_type="application/x-yaml",
                     message_id=str(uuid.uuid4()),
                 ),
                 routing_key=stream_key,
             )
-            print(f"[INPUT STREAM] Sent frame t={t * 0.1}")
-            await asyncio.sleep(0.3)
+            await asyncio.sleep(0.1)
 
     async def handle_results(self):
         "Handle incoming results from MATLAB and print them."
