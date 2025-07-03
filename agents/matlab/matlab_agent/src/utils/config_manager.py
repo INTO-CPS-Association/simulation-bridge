@@ -58,8 +58,10 @@ class Config(BaseModel):
     performance_log_filename: str = Field(default="performance_metrics.csv")
 
     # TCP configuration
-    tcp_host: str = Field(default="localhost")
-    tcp_port: int = Field(default=5678)
+    tcp_input_host: str = Field(default="localhost")
+    tcp_input_port: int = Field(default=5679)
+    tcp_output_host: str = Field(default="localhost")
+    tcp_output_port: int = Field(default=5678)
 
     # Response templates
     # Success template
@@ -126,8 +128,10 @@ class Config(BaseModel):
                 "log_filename": self.performance_log_filename
             },
             "tcp": {
-                "host": self.tcp_host,
-                "port": self.tcp_port
+                "input_host": self.tcp_input_host,
+                "input_port": self.tcp_input_port,
+                "output_host": self.tcp_output_host,
+                "output_port": self.tcp_output_port
             },
             "response_templates": {
                 "success": {
@@ -210,8 +214,10 @@ class Config(BaseModel):
 
         # Extract tcp section if present
         if tcp := config_dict.get("tcp", {}):
-            flat_config["tcp_host"] = tcp.get("host", "localhost")
-            flat_config["tcp_port"] = tcp.get("port", 5678)
+            flat_config["tcp_input_host"] = tcp.get("input_host", "localhost")
+            flat_config["tcp_input_port"] = tcp.get("input_port", 5679)
+            flat_config["tcp_output_host"] = tcp.get("output_host", "localhost")
+            flat_config["tcp_output_port"] = tcp.get("output_port", 5678)
 
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):

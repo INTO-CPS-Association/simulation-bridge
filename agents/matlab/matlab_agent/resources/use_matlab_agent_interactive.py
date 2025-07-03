@@ -9,6 +9,7 @@ import asyncio
 import argparse
 import uuid
 from typing import Any, Dict
+import time
 import yaml
 from aio_pika import connect_robust, Message, DeliveryMode, ExchangeType
 
@@ -61,6 +62,7 @@ class AsyncInteractiveMatlabClient:
 
     async def stream_inputs(self, request_id: str, stream_key: str):
         print(f"[STREAM] Sending input frames to {stream_key}...")
+        time.sleep(10)  # Simulate some delay before starting the stream
         for t in range(100):
             input_frame = {
                 "simulation": {

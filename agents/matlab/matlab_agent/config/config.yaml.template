@@ -31,8 +31,10 @@ performance:
   log_filename: performance_metrics.csv  # Name of the CSV file for performance metrics
 
 tcp:
-  host: localhost
-  port: 5678
+  input_host: localhost
+  input_port: 5679
+  output_host: localhost
+  output_port: 5678
 
 response_templates:
   success:

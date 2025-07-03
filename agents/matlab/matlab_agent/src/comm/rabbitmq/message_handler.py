@@ -257,35 +257,3 @@ class MessageHandler(IRabbitMQMessageHandler):
                 logger.error("Failed to send error response: %s", send_error)
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
-
-    def handle_interactive_init(self, simulation_data: SimulationData, tcp_settings: Dict[str, Any], input_queue: queue.Queue, request_id: str) -> None:
-        """Set up the interactive simulation environment and subscribe to input stream"""
-        stream_key = simulation_data.inputs.model_dump().get("stream_source", "").replace("rabbitmq://", "")
-
-        # Declare stream exchange and queue binding
-        self.rabbitmq_manager.channel.exchange_declare(
-            exchange='ex.input.stream',
-            exchange_type='topic',
-            durable=True
-        )
-
-        # Use request_id to create unique queue name
-        queue_name = f"Q.{self.agent_id}.interactive.{request_id}"
-        result = self.rabbitmq_manager.channel.queue_declare(queue=queue_name, durable=True)
-        
-        self.rabbitmq_manager.channel.queue_bind(
-            exchange='ex.input.stream',
-            queue=queue_name,
-            routing_key=stream_key
-        )
-
-        from functools import partial
-
-        # Pass the actual Queue object, not the string
-        callback_with_tcp = partial(handle_interactive_input, tcp_settings=tcp_settings, input_queue=input_queue)
-
-        self.rabbitmq_manager.channel.basic_consume(
-            queue=queue_name,
-            on_message_callback=callback_with_tcp,
-            auto_ack=True
-        )

@@ -195,8 +195,8 @@ class MatlabStreamingController:
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
         self.response_templates: Dict = response_templates
-        host = tcp_settings.get('host', 'localhost')
-        port = tcp_settings.get('port', 5678)
+        host = tcp_settings.get('output_host', 'localhost')
+        port = tcp_settings.get('output_port', 5678)
         self.connection = StreamingConnection(host, port)
         logger.debug("Path to simulation: %s", self.sim_path)
         logger.debug("Simulation file: %s", self.sim_file)
