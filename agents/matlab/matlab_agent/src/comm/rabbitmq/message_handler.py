@@ -15,7 +15,7 @@ from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.batch import handle_batch_simulation
 from ...core.streaming import handle_streaming_simulation
-from ...core.interactive import handle_interactive_simulation, handle_interactive_input
+from ...core.interactive import handle_interactive_simulation
 
 logger = get_logger()
 

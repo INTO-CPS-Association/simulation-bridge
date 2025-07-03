@@ -1,30 +1,17 @@
-"""Interactive simulation core (MATLAB side)
+"""Interactive MATLAB simulation bridge."""
 
-Revision: r6 – **single-thread event loop**
------------------------------------------
-* Rimosso l’uso di `process_data_events` da un thread separato: Pika
-  `BlockingConnection` non è thread-safe e provocava `StreamLostError`.
-* Ora un **unico loop** gestisce contemporaneamente:
-  • pompaggio di RabbitMQ (input) tramite `connection.process_data_events()`
-  • inoltro di frame a MATLAB via TCP
-  • lettura di risposte da MATLAB e forward al broker
-* Eliminati i duplicati della funzione `_push_frame` e mantenuto
-  `handle_interactive_input` come alias.
-* Architettura più semplice, nessun accesso concorrente all’oggetto
-  `BlockingConnection`.
-"""
+from __future__ import annotations
 
 import json
-import time
-import yaml
-import subprocess
-from pathlib import Path
-from queue import Queue, Empty
-from typing import Any, Dict, Optional
-from functools import partial
 import socket
+import subprocess
+import time
+from pathlib import Path
 from select import select
+from typing import Any, Dict, Optional
+
 import psutil
+import yaml
 
 from ..comm.interfaces import IMessageBroker
 from ..utils.create_response import create_response
@@ -33,48 +20,67 @@ from ..utils.performance_monitor import PerformanceMonitor
 
 logger = get_logger()
 
-# ──────────────────────────────────────────────────────────────────────────────
-# RabbitMQ → Queue callback (kept for legacy import)
-# ──────────────────────────────────────────────────────────────────────────────
 
-def _push_frame(ch, method, properties, body, q: Queue) -> None:
+# ---------------------------------------------------------------------------
+# RabbitMQ frame parser
+# ---------------------------------------------------------------------------
+
+def _parse_frame(body: bytes) -> Dict[str, Any]:
+    """Decode a YAML frame received from RabbitMQ."""
     try:
-        q.put(yaml.safe_load(body))
-    except Exception as exc:
+        return yaml.safe_load(body)
+    except Exception as exc:  # pragma: no cover - logging only
         logger.error("[INTERACTIVE] Bad frame: %s", exc)
+        return {}
 
-handle_interactive_input = _push_frame  # backward-compat
 
-# ──────────────────────────────────────────────────────────────────────────────
-# TCP helper (JSON-lines)
-# ──────────────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# TCP server utilities
+# ---------------------------------------------------------------------------
 
 class _TcpServer:
     def __init__(self, host: str, port: int) -> None:
-        self.addr = (host, port)
+        self.host = host
+        self.port = port
         self._srv: Optional[socket.socket] = None
         self._conn: Optional[socket.socket] = None
-        self.matlab_proc: Optional[subprocess.Popen] = None  # solo per OUT
+        self._buffer = b""
+        self.matlab_proc: Optional[subprocess.Popen] = None
 
     def start(self) -> None:
         self._srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._srv.bind(self.addr)
+        self._srv.bind((self.host, self.port))
         self._srv.listen()
 
-    def accept_blocking(self) -> None:
+    def accept(self) -> None:
+        if not self._srv:
+            raise RuntimeError("Server not started")
         self._conn, _ = self._srv.accept()
         self._conn.setblocking(False)
 
-    def send(self, data: dict) -> None:
+    def send(self, data: Dict[str, Any]) -> None:
         if self._conn:
-            self._conn.sendall((json.dumps(data) + "\n").encode())
+            payload = json.dumps(data).encode() + b"\n"
+            self._conn.sendall(payload)
 
-    def recv_all(self) -> list[dict]:
+    def recv_all(self) -> list[Dict[str, Any]]:
         if not self._conn or not select([self._conn], [], [], 0)[0]:
             return []
-        chunk = self._conn.recv(4096)
-        return [json.loads(line.decode()) for line in chunk.split(b"\n") if line.strip()]
+
+        self._buffer += self._conn.recv(4096)
+        lines = self._buffer.split(b"\n")
+        self._buffer = lines[-1]
+        messages: list[Dict[str, Any]] = []
+        for line in lines[:-1]:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                messages.append(json.loads(line.decode()))
+            except json.JSONDecodeError as exc:  # pragma: no cover - logging only
+                logger.error("[INTERACTIVE] Invalid JSON: %s", exc)
+        return messages
 
     def close(self) -> None:
         if self._conn:
@@ -83,11 +89,15 @@ class _TcpServer:
             self._srv.close()
         if self.matlab_proc and self.matlab_proc.poll() is None:
             self.matlab_proc.terminate()
-            self.matlab_proc.wait(timeout=5)
+            try:
+                self.matlab_proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:  # pragma: no cover - best effort
+                self.matlab_proc.kill()
 
-# ──────────────────────────────────────────────────────────────────────────────
+
+# ---------------------------------------------------------------------------
 # Controller
-# ──────────────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
 
 class MatlabInteractiveController:
     def __init__(
@@ -96,7 +106,7 @@ class MatlabInteractiveController:
         file: str,
         source: str,
         broker: IMessageBroker,
-        tmpl: Dict[str, Any],
+        templates: Dict[str, Any],
         tcp_cfg: Dict[str, Any],
         bridge_meta: str,
         request_id: str,
@@ -109,102 +119,126 @@ class MatlabInteractiveController:
 
         self.source = source
         self.broker = broker
-        self.tmpl = tmpl
+        self.templates = templates
         self.bridge_meta = bridge_meta
         self.request_id = request_id
         self.agent_id = agent_id
 
-        self.out_srv = _TcpServer(tcp_cfg.get("output_host", "localhost"), tcp_cfg.get("output_port", 5678))
-        self.in_srv  = _TcpServer(tcp_cfg.get("input_host", "localhost"),  tcp_cfg.get("input_port", 5679))
+        self.out_srv = _TcpServer(
+            tcp_cfg.get("output_host", "localhost"),
+            tcp_cfg.get("output_port", 5678),
+        )
+        self.in_srv = _TcpServer(
+            tcp_cfg.get("input_host", "localhost"),
+            tcp_cfg.get("input_port", 5679),
+        )
 
         self.start_time: Optional[float] = None
-        self._seq = 0
+        self.sequence = 0
 
-    # -------- bootstrap --------
+    # ------------------------------------------------------------------
     def _start_matlab(self) -> None:
         cmd = [
             "matlab",
             "-batch",
-            f"addpath('{self.sim_path}');port={self.out_srv.addr[1]};cd('{self.sim_path}');run('{self.sim_file}');",
+            f"addpath('{self.sim_path}');cd('{self.sim_path}');run('{self.sim_file}');",
         ]
-        self.out_srv.matlab_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.out_srv.matlab_proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
 
     def start(self, pm: PerformanceMonitor) -> None:
+        """Start the TCP servers and MATLAB process.
+        Args:
+            pm (PerformanceMonitor): Performance monitor instance.
+        """
         self.start_time = time.time()
-        self.out_srv.start(); self.in_srv.start()
+        self.out_srv.start()
+        self.in_srv.start()
         self._start_matlab()
         pm.record_matlab_startup_complete()
-        self.out_srv.accept_blocking(); self.in_srv.accept_blocking()
+        self.out_srv.accept()
+        self.in_srv.accept()
+        # Perform a handshake with MATLAB
+        self.out_srv.send({})  # handshake
 
-    # -------- helpers --------
-    def _relay(self, msg: dict) -> None:
+    # ------------------------------------------------------------------
+    def _relay(self, payload: Dict[str, Any]) -> None:
+        """Relay a response from the MATLAB process to the broker."""
         self.broker.send_result(
             self.source,
             create_response(
                 "interactive",
                 self.sim_file,
                 "interactive",
-                self.tmpl,
-                data=msg,
-                sequence=self._seq,
+                self.templates,
+                data=payload,
+                sequence=self.sequence,
                 bridge_meta=self.bridge_meta,
                 request_id=self.request_id,
             ),
         )
-        self._seq += 1
+        self.sequence += 1
 
-    # -------- main event loop --------
-    def run(self, init_inputs: Dict[str, Any], pm: PerformanceMonitor, msg_dict: Dict[str, Any]) -> None:
+    @staticmethod
+    def _only_inputs(frame: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract only the inputs from the frame."""
+        if isinstance(frame, dict):
+            sim = frame.get("simulation")
+            if isinstance(sim, dict) and "inputs" in sim:
+                logger.info("[INTERACTIVE] Received inputs: %s", sim["inputs"])
+                return sim["inputs"]
+        return frame
+
+    # ------------------------------------------------------------------
+    def run(self, pm: PerformanceMonitor, msg_dict: Dict[str, Any]) -> None:
+        """Run the interactive simulation loop."""
         sim = msg_dict["simulation"]
         stream_key = sim["inputs"]["stream_source"].replace("rabbitmq://", "")
-        q_in: Queue = Queue()
 
         ch = self.broker.channel
         qname = f"Q.{self.agent_id}.interactive.{self.request_id}"
         ch.exchange_declare("ex.input.stream", exchange_type="topic", durable=True)
         ch.queue_declare(queue=qname, durable=True)
         ch.queue_bind(exchange="ex.input.stream", queue=qname, routing_key=stream_key)
-        ch.basic_consume(queue=qname, on_message_callback=partial(_push_frame, q=q_in), auto_ack=True)
-
-        # handshake
-        self.out_srv.send(init_inputs)
 
         try:
             while True:
-                # 1) pompaggio RabbitMQ
-                self.broker.connection.process_data_events(time_limit=0)
+                method, properties, body = ch.basic_get(queue=qname, auto_ack=True)
+                while method:
+                    frame = _parse_frame(body)
+                    if frame:
+                        # Send the inputs to MATLAB
+                        self.in_srv.send(self._only_inputs(frame))
+                    method, properties, body = ch.basic_get(queue=qname, auto_ack=True)
 
-                # 2) inoltra tutti i frame disponibili a MATLAB
-                while True:
-                    try:
-                        frame = q_in.get_nowait()
-                    except Empty:
-                        break
-                    self.in_srv.send(frame)
-
-                # 3) inoltra tutte le risposte MATLAB → broker
+                # Receive Responses from MATLAB
                 for resp in self.out_srv.recv_all():
+                    # Send the response to the broker
                     self._relay(resp)
-
+                # Wait 10ms to avoid spin-locking
                 time.sleep(0.01)
         finally:
             pm.record_simulation_complete()
-            self.close()
 
-    # -------- cleanup --------
     def close(self) -> None:
-        self.out_srv.close(); self.in_srv.close()
+        """Close the TCP servers"""
+        self.out_srv.close()
+        self.in_srv.close()
 
     def metadata(self) -> Dict[str, Any]:
-        meta = {}
+        meta: Dict[str, Any] = {}
         if self.start_time:
             meta["execution_time"] = time.time() - self.start_time
         meta["memory_usage"] = psutil.Process().memory_info().rss // (1024 * 1024)
         return meta
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Public entry
-# ──────────────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Public entry point
+# ---------------------------------------------------------------------------
 
 def handle_interactive_simulation(
     msg_dict: Dict[str, Any],
@@ -218,7 +252,7 @@ def handle_interactive_simulation(
     sim = msg_dict["simulation"]
     pm.start_operation(sim["request_id"])
 
-    ctrl = MatlabInteractiveController(
+    controller = MatlabInteractiveController(
         path_simulation or sim.get("path"),
         sim["file"],
         source,
@@ -230,9 +264,9 @@ def handle_interactive_simulation(
         agent_id=sim.get("simulator", "agent"),
     )
     try:
-        ctrl.start(pm)
-        ctrl.run(sim.get("inputs", {}), pm, msg_dict)
-    except Exception as exc:
+        controller.start(pm)
+        controller.run(pm, msg_dict)
+    except Exception as exc:  # pragma: no cover - runtime errors
         logger.error("[INTERACTIVE] Fatal: %s", exc)
         rabbitmq_manager.send_result(
             source,
@@ -248,4 +282,4 @@ def handle_interactive_simulation(
         )
     finally:
         pm.complete_operation()
-        ctrl.close()
+        controller.close()
