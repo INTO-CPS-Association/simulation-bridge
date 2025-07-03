@@ -110,7 +110,8 @@ def generate_default_project():
     # Descriptions for each file
     file_descriptions = {
         'config.yaml': "Configuration file for the MATLAB agent",
-        'SimulationWrapper.m': "Helper class for handling streaming simulations",
+        'SimulationWrapperStreaming.m': "Helper class for handling streaming simulations",
+        'SimulationWrapperInteractive.m': "Helper class for handling interactive simulations",
         'SimulationBatch.m': "Template for batch-mode simulations",
         'SimulationStreaming.m': "Template for streaming-mode simulations",
         'client/use_matlab_agent_interactive.py':

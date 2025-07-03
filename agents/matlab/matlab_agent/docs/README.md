@@ -58,14 +58,14 @@ An Streaming simulation is designed to receive a predefined input configuration 
 
 ### Streaming Requirements
 
-For this type of simulation, you must use the `SimulationWrapper` class, which should be placed in the same folder as the `Simulation.m` file. The `SimulationWrapper.m` handles the TCP/IP connection and communication with the MATLAB agent script.
+For this type of simulation, you must use the `SimulationWrapperStreaming` class, which should be placed in the same folder as the `SimulationStreaming.m` file. The `SimulationWrapperStreaming.m` handles the TCP/IP connection and communication with the MATLAB agent script.
 
 The simulation logic must be entirely contained within the main function, defined at the top level as `Simulation()`. This function is responsible for managing both inputs and outputs in the following format:
 
 ```matlab
 function Simulation()
   % 🔌 Initialize the wrapper
-  wrapper = SimulationWrapper();
+  wrapper = SimulationWrapperStreaming();
 
   % Receive input from the MATLAB agent (via JSON)
   inputs = wrapper.get_inputs();
@@ -94,3 +94,33 @@ These files provide reference implementations to help you structure your simulat
 #### Notes
 
 No additional files are handled. All data is transmitted exclusively through the TCP socket.
+
+---
+
+## Interactive Simulation
+
+An interactive simulation continuously exchanges data with the MATLAB Agent. The MATLAB code reacts to new input frames and can send updated outputs at any time during execution.
+
+### Interactive Requirements
+
+Use the `SimulationWrapperInteractive` class located alongside your `InteractiveSimulation.m` file. This wrapper manages two TCP connections, one for outputs and one for incoming frames.
+
+The main function structure is:
+
+```matlab
+function InteractiveSimulation()
+  wrapper = SimulationWrapperInteractive();
+  while true
+      data_in = wrapper.get_input();
+      if ~isempty(data_in)
+          % ... update simulation state ...
+          wrapper.send_output(struct('inputs', data_in));
+      end
+      pause(0.01);
+  end
+end
+```
+
+The corresponding API payload must specify `inputs.stream_source` with a RabbitMQ URL pointing to the topic where input frames will be published.
+
+Refer to `examples/interactive-simulation` for a full example.

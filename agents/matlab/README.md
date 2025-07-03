@@ -4,6 +4,7 @@ The MATLAB Agent is a Python-based connector designed to interface with MATLAB s
 
 - **Batch Simulation**: Executes predefined MATLAB routines with specified input parameters, collecting the final results upon completion.
 - **Streaming Simulation (Agent-Based)**: Allows sending input once, with the output being received in real-time during the simulation.
+- **Interactive Simulation**: Continuously exchanges data with MATLAB, reacting to new inputs during the simulation loop.
 
 The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
 
@@ -182,8 +183,10 @@ logging:
   file: logs/matlab_agent.log # The file path where logs will be stored.
 
 tcp:
-  host: localhost # The hostname or IP address for TCP communication.
-  port: 5678 # The port number for TCP communication.
+  input_host: localhost # Host for receiving input stream
+  input_port: 5679 # Port for receiving input stream
+  output_host: localhost # Host for output stream
+  output_port: 5678 # Port for output stream
 
 response_templates:
   success:
@@ -245,7 +248,8 @@ This command creates the following structure in your current directory (existing
 ├── config.yaml                 # Agent configuration settings
 ├── SimulationBatch.m           # Template for batch simulations
 ├── SimulationStreaming.m       # Template for streaming simulations
-├── SimulationWrapper.m         # MATLAB class for easy communication with the MATLAB Agent during streaming simulations
+├── SimulationWrapperStreaming.m  # MATLAB class for streaming simulations
+├── SimulationWrapperInteractive.m  # MATLAB class for interactive simulations
 └── client/
   ├── simulation.yaml         # Example simulation request payload
   ├── use.yaml                # Client configuration file

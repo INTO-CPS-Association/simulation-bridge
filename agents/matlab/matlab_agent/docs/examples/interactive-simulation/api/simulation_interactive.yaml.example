@@ -1,0 +1,10 @@
+simulation:
+  request_id: njdsnjkdsnjakjnsa
+  client_id: dt
+  simulator: matlab
+  type: interactive
+  file: InteractiveSimulation.m
+  inputs:
+    stream_source: "rabbitmq://streaming.inputs.sim123"
+  outputs:
+    

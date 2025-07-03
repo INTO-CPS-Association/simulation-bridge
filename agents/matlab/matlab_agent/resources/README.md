@@ -7,6 +7,7 @@ This Python module provides a simple RabbitMQ client to send simulation requests
 - [Use Matlab Agent](#use-matlab-agent)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
+  - [Clients](#clients)
   - [Configuration](#configuration)
   - [Usage](#usage)
   - [Example](#example)
@@ -21,6 +22,16 @@ Before using this agent, ensure the required Python packages are installed:
 ```bash
 pip install pika pyyaml
 ```
+
+## Clients
+
+Two Python scripts are provided:
+
+- **use_matlab_agent.py** – Simple client that sends a simulation request and
+  waits for results. Use this for _batch_ and _streaming_ simulations.
+- **use_matlab_agent_interactive.py** – Async client for _interactive_
+  simulations. It streams input frames to MATLAB and prints outputs as they
+  arrive.
 
 ## Configuration
 
@@ -50,11 +61,15 @@ Command-Line Options:
 
 If this option is omitted, the script will look for a file named `simulation.yaml` in the default location as configured in `use.yaml` (by default in the same directory or as specified in the `simulation_request` field).
 
-- **Without CLI option:**  
+- **Without CLI option:**
   The script loads the simulation payload from the default path specified in `use.yaml`. This is by default a `simulation.yaml` file located in the working directory or as configured.
 
-- **With CLI option:**  
+- **With CLI option:**
   You can override the default by specifying a custom path to the simulation payload YAML file using the `--api-payload` option.
+
+For interactive simulations, use `use_matlab_agent_interactive.py` with the same
+`--api-payload` flag. This client streams input frames based on the
+`inputs.stream_source` field and prints outputs as they arrive.
 
 ## Example
 
@@ -63,6 +78,7 @@ In the directory
 you will find several folders containing practical examples. Each example folder includes a `README.md` with detailed instructions:
 
 - [Streaming Simulation](../docs/examples/streaming-simulation/README.md)
+- [Interactive Simulation](../docs/examples/interactive-simulation/InteractiveSimulation.m)
 - [Batch Simulation](../docs/examples/batch-simulation/README.md)
 - [Industrial Cooling Fan Anomaly Detection](../docs/examples/industrial-cooling-fan-anomaly-detection/README.md)
 
@@ -90,8 +106,11 @@ Each example folder contains an `api/` subfolder with example simulation payload
 - Batch Simulation:  
   `docs/examples/batch-simulation/api/simulation_batch.yaml.example`
 
-- Streaming Simulation:  
+- Streaming Simulation:
   `docs/examples/streaming-simulation/api/simulation_streaming.yaml.example`
+
+- Interactive Simulation:
+  `docs/examples/interactive-simulation/api/simulation_interactive.yaml.example`
 
 ### Example usage
 
