@@ -129,6 +129,8 @@ class TestHandleInputMessage:
                 'simulator': 'simX',
                 'type': 'typeA',
                 'file': 'file1',
+                'timestamp': '2024-01-01T00:00:00Z',
+                'timeout': 60,
                 'inputs': {},
                 'outputs': {}
             }
@@ -173,8 +175,8 @@ class TestHandleInputMessage:
         bridge_core_instance.handle_input_message(None, **kwargs)
         patch_basic_publish.assert_called_once()
         mock_logger.info.assert_called_once()
-        
-    
+
+
     def test_handle_input_message_invalid_dataset_uri(self, bridge_core_instance,
                                                       patch_basic_publish, mock_logger):
         """Abort processing when dataset URI is invalid."""
@@ -185,6 +187,8 @@ class TestHandleInputMessage:
                 'simulator': 's',
                 'type': 't',
                 'file': 'f',
+                'timestamp': '2024-01-01T00:00:00Z',
+                'timeout': 60,
                 'inputs': {
                     'external_dataset': {'uri': 'sftp://bad'}
                 },

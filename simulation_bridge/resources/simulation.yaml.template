@@ -2,6 +2,12 @@ simulation:
   request_id: abcdef12345
   # (RequestID) to identify each request.
 
+  timestamp: "2024-01-01T00:00:00Z" 
+  # Timestamp for the simulation request in ISO 8601 format
+
+  timeout: 30 
+  # Timeout for the simulation in seconds
+
   client_id: dt
   # Unique identifier of the sender of this simulation request
 
@@ -14,13 +20,18 @@ simulation:
   # Options:
   #   - 'batch': runs the simulation in batch mode, where results are returned only after the entire computation is complete.
   #   - 'streaming': runs the simulation in streaming mode, providing real-time updates at each computation step.
-
+  #   - 'interactive': same as 'streaming', where you need to provide a continuous stream of inputs and outputs.
+  
   file: SimulationStreaming.m
   # The name of the MATLAB script or function file to execute for this simulation.
 
   inputs:
     # Input variables to be passed to the simulation.
-    # Customize these key-value pairs as needed for your specific simulation.
+    # If the simulation type is 'streaming' or 'interactive', it is mandatory to specify 'stream_source' to indicate the source of the input stream.
+    # stream_source: The source of the input stream, e.g., RabbitMQ, which streams real-time input data to the simulation.
+    # This is required for interactive or streaming simulations.
+    stream_source: # Source of the input stream, typically RabbitMQ for streaming mode.
+
     i1: ..
     i2: ..
     i3: ..

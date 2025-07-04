@@ -38,6 +38,8 @@ Requests must follow the standard simulation schema:
         "simulator": str,      # Target simulator ("matlab", etc.)
         "type": str,          # Execution type ("batch", "streaming")
         "file": str,          # Simulation file path
+        "timestamp": str | None, # Optional ISO 8601 timestamp
+        "timeout": int | None,   # Optional max processing time (seconds)
         "inputs": dict,       # Input parameters
         "outputs": dict       # Expected output structure
     }
@@ -69,6 +71,8 @@ sim.send({  # Send simulation request with message payload
         "simulator": "matlab",  # Target simulator type
         "type": "batch",  # Execution type specification
         "file": "SimulationBatch.m",  # Simulation file to execute
+        "timestamp": "2024-01-01T00:00:00Z",  # Optional timestamp
+        "timeout": 600,  # Optional timeout in seconds
         "inputs": {"x_i": 10, "y_i": 9, "z_i": 0, "v_x": 1, "v_y": 14, "v_z": 3, "t": 10},  # Input parameters
         "outputs": {"x_f": "Final x", "y_f": "Final y", "z_f": "Final z"}  # Expected output structure
     }

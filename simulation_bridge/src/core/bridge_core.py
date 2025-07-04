@@ -5,8 +5,9 @@ This module handles message routing between RabbitMQ, MQTT, and REST protocols,
 providing a unified interface for cross-protocol communication.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
+from datetime import datetime
 import ssl
 import pika
 from pydantic import BaseModel
@@ -24,15 +25,20 @@ RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
 
 logger = get_logger()
 
+def datetime_serializer(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()  # It converts datetime to ISO 8601 string format
+    raise TypeError(f"Type {obj.__class__.__name__} not serializable")
+
 # Pydantic models for message validation
-
-
 class SimulationModel(BaseModel):
     "Represents the details of a simulation request."
     request_id: str
     client_id: str
     simulator: str
     type: str
+    timestamp: Optional[datetime] = None
+    timeout: Optional[int] = None
     file: str
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
@@ -158,7 +164,8 @@ class BridgeCore:
         else:
             request_id = simulation.request_id if simulation.request_id else 'unknown'
         # Validate the dataset URI if provided
-        dataset_uri = simulation.inputs.get('external_dataset', {}).get('uri') if simulation.inputs else None
+        dataset_uri = simulation.inputs.get('external_dataset',
+                                            {}).get('uri') if simulation.inputs else None
         if dataset_uri and not is_valid_dataset_uri(dataset_uri):
             logger.error("Invalid external dataset URI: %s", dataset_uri)
             return
@@ -237,7 +244,7 @@ class BridgeCore:
             self.channel.basic_publish(
                 exchange=exchange,
                 routing_key=routing_key,
-                body=json.dumps(message),
+                body=json.dumps(message, default=datetime_serializer),
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                 )

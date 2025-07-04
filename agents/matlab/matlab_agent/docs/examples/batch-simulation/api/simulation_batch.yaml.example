@@ -4,6 +4,8 @@ simulation:
   simulator: matlab                    # Specifies MATLAB as the simulation engine
   type: batch                         # Simulation type: 'batch' means a one-time execution, not continuous/streaming
   file: SimulationBatch.m              # Name of the MATLAB file to run for the simulation
+  timestamp: "2024-01-01T00:00:00Z" # Timestamp for the simulation request in ISO 8601 format
+  timeout: 60 # Timeout for the simulation in seconds
   inputs:
     x_i: 10                          # Initial x-coordinate of the ball
     y_i: 9                           # Initial y-coordinate of the ball
