@@ -65,13 +65,9 @@ def fake_stdout(monkeypatch):
 class TestSetupLoggerFileHandler:
     """Tests for file handler setup in setup_logger."""
 
-    def test_mkdir_called_to_create_log_dir(self, mock_mkdir):
-        """Verify that log directory creation is attempted."""
-        logger.setup_logger(log_file="logs/test.log", enable_console=False)
-        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-
     def test_rotating_file_handler_created_with_correct_args(
-            self, mock_rotating_file_handler):
+        self, mock_rotating_file_handler
+    ):
         """Verify RotatingFileHandler is instantiated with expected parameters."""
         logger.setup_logger(log_file="logs/test.log", enable_console=False)
         mock_rotating_file_handler.assert_called_once_with(

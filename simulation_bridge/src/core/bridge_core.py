@@ -7,6 +7,7 @@ providing a unified interface for cross-protocol communication.
 
 from typing import Dict, Any
 import json
+import ssl
 import pika
 from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
@@ -22,6 +23,8 @@ RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
 logger = get_logger()
 
 # Pydantic models for message validation
+
+
 class SimulationModel(BaseModel):
     "Represents the details of a simulation request."
     request_id: str
@@ -65,22 +68,46 @@ class BridgeCore:
             if self.connection and not self.connection.is_closed:
                 self.connection.close()
 
-            credentials = pika.PlainCredentials(
-                self.config['username'],
-                self.config['password']
-            )
-            self.connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host=self.config['host'],
-                    port=self.config['port'],
-                    virtual_host=self.config['virtual_host'],
-                    credentials=credentials,
-                    heartbeat=RABBITMQ_HEARTBEAT,
-                    blocked_connection_timeout=RABBITMQ_BLOCKED_CONNECTION_TIMEOUT,
-                    connection_attempts=RABBITMQ_CONNECTION_ATTEMPTS,
-                    retry_delay=RABBITMQ_RETRY_DELAY
+            try:
+                credentials = pika.PlainCredentials(
+                    self.config['username'],
+                    self.config['password']
                 )
-            )
+
+                if self.config.get('tls', False):
+                    context = ssl.create_default_context()
+                    ssl_options = pika.SSLOptions(context, self.config['host'])
+                    connection_params = pika.ConnectionParameters(
+                        host=self.config['host'],
+                        port=self.config['port'],
+                        virtual_host=self.config['vhost'],
+                        credentials=credentials,
+                        ssl_options=ssl_options
+                    )
+                else:
+                    connection_params = pika.ConnectionParameters(
+                        host=self.config['host'],
+                        port=self.config['port'],
+                        virtual_host=self.config['vhost'],
+                        credentials=credentials
+                    )
+
+                self.connection = pika.BlockingConnection(connection_params)
+
+            except (pika.exceptions.AMQPConnectionError, ssl.SSLError) as e:
+                logger.error(
+                    "Failed to connect to RabbitMQ at %s:%s with TLS=%s",
+                    self.config['host'], self.config['port'], self.config.get(
+                        'tls', False)
+                )
+                logger.error("Error: %s", e)
+                raise RuntimeError(
+                    "Connection failed. Check TLS settings and port.") from e
+
+            except Exception as e:
+                logger.error(
+                    "Unexpected error while connecting to RabbitMQ: %s", e)
+                raise
             self.channel = self.connection.channel()
             logger.debug("RabbitMQ connection established successfully")
         except pika.exceptions.AMQPConnectionError as e:
@@ -112,7 +139,7 @@ class BridgeCore:
         message_dict = kwargs.get('message', {})
         try:
             message = MessageModel.model_validate(message_dict)
-        except Exception as e: # pylint: disable=broad-exception-caught
+        except Exception as e:  # pylint: disable=broad-exception-caught
             logger.error("Invalid message format: %s", e)
             return
         simulation = message.simulation
@@ -125,7 +152,11 @@ class BridgeCore:
         protocol = kwargs.get('protocol', 'unknown')
         logger.info(
             "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
-        self._publish_message(producer, consumer, message.model_dump(), protocol=protocol)
+        self._publish_message(
+            producer,
+            consumer,
+            message.model_dump(),
+            protocol=protocol)
 
     def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -155,7 +186,7 @@ class BridgeCore:
         logger.error(
             "Received error result message with unknown protocol: %s", message['error'])
 
-    def _publish_message(self, producer, consumer, message, # pylint: disable=too-many-arguments
+    def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments, too-many-positional-arguments
                          exchange='ex.bridge.output', protocol='unknown'):
         """
         Publish message to RabbitMQ exchange.

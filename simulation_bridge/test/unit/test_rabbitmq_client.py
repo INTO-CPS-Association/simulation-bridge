@@ -1,7 +1,7 @@
 """Tests for RabbitMQ client in simulation bridge."""
 
 # pylint: disable=too-many-arguments,unused-argument,protected-access,redefined-outer-name
-
+# pylint: disable=too-many-positional-arguments
 from unittest.mock import MagicMock
 from unittest import mock
 import pytest
@@ -13,7 +13,14 @@ from simulation_bridge.resources.rabbitmq import rabbitmq_client
 def mock_config():
     """Mock configuration dictionary for RabbitMQClient."""
     return {
-        'rabbitmq_host': 'localhost',
+        'rabbitmq':
+            {
+                'host': 'localhost',
+                'port': 5672,
+                'vhost': '/',
+                'username': 'guest',
+                'password': 'guest'
+            },
         'digital_twin': {
             'dt_id': 'dt123',
             'routing_key_send': 'dt.send'
@@ -55,14 +62,19 @@ def mock_connection(mock_channel):
 
 @pytest.fixture
 def mock_pika(monkeypatch, mock_connection):
-    """Patch pika.BlockingConnection to return mock connection."""
-    monkeypatch.setattr(rabbitmq_client.pika, "BlockingConnection", lambda _: mock_connection)
+    """Patch pika.BlockingConnection to return mock connection and avoid real connection errors."""
+    monkeypatch.setattr(
+        rabbitmq_client.pika,
+        "BlockingConnection",
+        lambda params: mock_connection
+    )
 
 
-class TestRabbitMQClientInitialization: # pylint: disable=too-few-public-methods
+class TestRabbitMQClientInitialization:  # pylint: disable=too-few-public-methods
     """Test RabbitMQClient initialization and infrastructure setup."""
 
-    def test_initialization_sets_up_infrastructure(self, mock_config, mock_pika, mock_channel):
+    def test_initialization_sets_up_infrastructure(
+            self, mock_config, mock_pika, mock_channel):
         """Ensure __init__ sets up exchanges, queues, and bindings correctly."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -75,7 +87,7 @@ class TestRabbitMQClientInitialization: # pylint: disable=too-few-public-methods
         mock_channel.queue_bind.assert_called_once()
 
 
-class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
+class TestSendSimulationRequest:  # pylint: disable=too-few-public-methods
     """Test the send_simulation_request method."""
 
     def test_send_simulation_request_calls_basic_publish(
@@ -88,7 +100,7 @@ class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
         client.send_simulation_request(payload)
 
         mock_channel.basic_publish.assert_called_once()
-        args, kwargs = mock_channel.basic_publish.call_args # pylint: disable=unused-variable
+        args, kwargs = mock_channel.basic_publish.call_args  # pylint: disable=unused-variable
         assert kwargs['exchange'] == 'input_ex'
         assert kwargs['routing_key'] == 'dt.send'
         assert 'temperature' in kwargs['body']
@@ -97,7 +109,8 @@ class TestSendSimulationRequest: # pylint: disable=too-few-public-methods
 class TestHandleResult:
     """Test handling of incoming messages."""
 
-    def test_handle_result_acknowledges_valid_yaml(self, mock_config, mock_pika, mock_channel):
+    def test_handle_result_acknowledges_valid_yaml(
+            self, mock_config, mock_pika, mock_channel):
         """Should acknowledge a valid YAML result message."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -109,7 +122,8 @@ class TestHandleResult:
         client.handle_result(mock_channel, method, None, body)
         mock_channel.basic_ack.assert_called_once_with(10)
 
-    def test_handle_result_handles_yaml_error(self, mock_config, mock_pika, mock_channel):
+    def test_handle_result_handles_yaml_error(
+            self, mock_config, mock_pika, mock_channel):
         """Should nack message if YAML is invalid."""
         client = rabbitmq_client.RabbitMQClient(mock_config)
 
@@ -122,7 +136,7 @@ class TestHandleResult:
         mock_channel.basic_nack.assert_called_once_with(11)
 
 
-class TestStartListening: # pylint: disable=too-few-public-methods
+class TestStartListening:  # pylint: disable=too-few-public-methods
     """Test listener behavior."""
 
     def test_start_listening_calls_basic_consume_and_start(self,
@@ -137,7 +151,7 @@ class TestStartListening: # pylint: disable=too-few-public-methods
         mock_channel.start_consuming.assert_called_once()
 
 
-class TestYamlLoading: # pylint: disable=too-few-public-methods
+class TestYamlLoading:  # pylint: disable=too-few-public-methods
     """Test static YAML loading."""
 
     def test_load_yaml_file_returns_parsed_data(self, tmp_path):
@@ -164,43 +178,53 @@ class TestLoadConfig:
     def test_load_config_file_not_found(self, monkeypatch):
         """Should exit if config file is missing."""
         mock_exit = mock.MagicMock()
-        monkeypatch.setattr(rabbitmq_client, "sys", mock.MagicMock(exit=mock_exit))
+        monkeypatch.setattr(
+            rabbitmq_client,
+            "sys",
+            mock.MagicMock(
+                exit=mock_exit))
 
         rabbitmq_client.load_config("nonexistent.yaml")
         mock_exit.assert_called_once_with(1)
 
 
-class TestMainFunction: # pylint: disable=too-few-public-methods
+class TestMainFunction:  # pylint: disable=too-few-public-methods
     """Test main function behavior and CLI entry."""
 
-    def test_main_keyboard_interrupt(self, mock_config, monkeypatch):
+    @mock.patch("simulation_bridge.resources.rabbitmq.rabbitmq_client.RabbitMQClient")
+    def test_main_keyboard_interrupt(
+            self, mock_rmq_client, mock_config, monkeypatch, mock_pika):
         """Simulate KeyboardInterrupt in main."""
-        monkeypatch.setattr(rabbitmq_client, "load_config",
-                            lambda: mock_config)
-        monkeypatch.setattr(rabbitmq_client, "start_dt_listener",
-                            lambda config: None)
-        monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "load_yaml_file",
-                            lambda self, path: {})
-        monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "send_simulation_request",
-                            lambda self, data: None)
-        monkeypatch.setattr(rabbitmq_client.time, "sleep",
-                            mock.Mock(side_effect=KeyboardInterrupt))
+        monkeypatch.setattr(rabbitmq_client, "load_config", lambda: mock_config)
+        monkeypatch.setattr(
+            rabbitmq_client,
+            "start_dt_listener",
+            lambda config: None)
+        monkeypatch.setattr(
+            rabbitmq_client.time, "sleep", mock.Mock(
+                side_effect=KeyboardInterrupt))
 
         rabbitmq_client.main()
 
+        mock_rmq_client.assert_called_once_with(mock_config)
 
-@pytest.mark.parametrize("error_type", [ValueError("fail"), OSError("fail")])
-def test_main_unexpected_exceptions(mock_config, monkeypatch, error_type):
-    """Ensure main handles unexpected errors gracefully."""
-    monkeypatch.setattr(rabbitmq_client, "load_config",
-                        lambda: mock_config)
-    monkeypatch.setattr(rabbitmq_client, "start_dt_listener",
-                        lambda config: None)
-    monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "load_yaml_file",
-                        lambda self, path: {})
-    monkeypatch.setattr(rabbitmq_client.RabbitMQClient, "send_simulation_request",
-                        lambda self, data: (_ for _ in ()).throw(error_type))
-    monkeypatch.setattr(rabbitmq_client.time, "sleep",
-                        mock.Mock(side_effect=KeyboardInterrupt))
+    @pytest.mark.parametrize("error_type",
+                             [ValueError("fail"), OSError("fail")])
+    @mock.patch("simulation_bridge.resources.rabbitmq.rabbitmq_client.RabbitMQClient")
+    def test_main_unexpected_exceptions(
+            self, mock_rmq_client, mock_config, monkeypatch, mock_pika, error_type):
+        """Ensure main handles unexpected errors gracefully."""
+        instance = mock_rmq_client.return_value
+        instance.load_yaml_file.return_value = {}
+        instance.send_simulation_request.side_effect = error_type
 
-    rabbitmq_client.main()
+        monkeypatch.setattr(rabbitmq_client, "load_config", lambda: mock_config)
+        monkeypatch.setattr(
+            rabbitmq_client,
+            "start_dt_listener",
+            lambda config: None)
+        monkeypatch.setattr(
+            rabbitmq_client.time, "sleep", mock.Mock(
+                side_effect=KeyboardInterrupt))
+
+        rabbitmq_client.main()

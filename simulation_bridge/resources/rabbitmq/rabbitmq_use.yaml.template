@@ -1,4 +1,10 @@
-rabbitmq_host: "localhost"
+rabbitmq:
+  host: localhost
+  port: 5672
+  vhost: /
+  username: guest
+  password: guest
+  tls: false 
 
 exchanges:
   input_bridge:

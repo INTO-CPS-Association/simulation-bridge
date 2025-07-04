@@ -59,9 +59,10 @@ class RabbitMQConfig(BaseModel):
     """Configuration for RabbitMQ connection."""
     host: str
     port: int
-    virtual_host: str
+    vhost: str
     username: str
     password: str
+    tls: bool
     infrastructure: RabbitMQInfrastructure
 
 
@@ -75,6 +76,7 @@ class MQTTConfig(BaseModel):
     qos: int
     username: str
     password: str
+    tls: bool
 
 
 class RESTConfig(BaseModel):
@@ -83,6 +85,8 @@ class RESTConfig(BaseModel):
     port: int
     endpoint: str
     debug: bool
+    certfile: Optional[str]
+    keyfile: Optional[str]
 
 
 class LoggingConfig(BaseModel):
@@ -146,9 +150,10 @@ class Config(BaseModel):
         rabbit_config = RabbitMQConfig(
             host=rabbitmq_dict.get('host', 'localhost'),
             port=rabbitmq_dict.get('port', 5672),
-            virtual_host=rabbitmq_dict.get('virtual_host', '/'),
+            vhost=rabbitmq_dict.get('vhost', '/'),
             username=rabbitmq_dict.get('username', 'guest'),
             password=rabbitmq_dict.get('password', 'guest'),
+            tls=rabbitmq_dict.get('tls', False),
             infrastructure=infrastructure
         )
 
@@ -217,9 +222,10 @@ class ConfigManager:
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,
-                virtual_host="/",
+                vhost="/",
                 username="guest",
                 password="guest",
+                tls=False,
                 infrastructure=RabbitMQInfrastructure(
                     exchanges=[],
                     queues=[],
@@ -234,13 +240,16 @@ class ConfigManager:
                 output_topic="bridge/output",
                 qos=0,
                 username="guest",
-                password="guest"
+                password="guest",
+                tls=False,
             ),
             rest=RESTConfig(
                 host="0.0.0.0",
                 port=5000,
                 endpoint="/message",
-                debug=False
+                debug=False,
+                certfile=None,
+                keyfile=None
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,

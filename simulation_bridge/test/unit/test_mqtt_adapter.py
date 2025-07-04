@@ -39,12 +39,12 @@ def adapter(config_manager_mock):
         return mqtt_adapter.MQTTAdapter(config_manager_mock)
 
 
-class TestMQTTAdapterInitialization: # pylint: disable=too-few-public-methods
+class TestMQTTAdapterInitialization:  # pylint: disable=too-few-public-methods
     """Tests for MQTTAdapter initialization."""
 
     def test_init_sets_client_config(self, config_manager_mock):
         """Should set username and password for both MQTT clients."""
-        with patch('simulation_bridge.src.protocol_adapters.mqtt.mqtt_adapter.mqtt.Client') as client_mock: # pylint: disable=line-too-long
+        with patch('simulation_bridge.src.protocol_adapters.mqtt.mqtt_adapter.mqtt.Client') as client_mock:  # pylint: disable=line-too-long
             adapter = mqtt_adapter.MQTTAdapter(config_manager_mock)
             assert client_mock.return_value.username_pw_set.call_count == 2
             assert adapter.topic == 'test/input'
@@ -122,7 +122,10 @@ class TestMQTTAdapterStartStop:
     def test_start_creates_thread(self, adapter, monkeypatch):
         """Should start a client thread."""
         thread_mock = MagicMock()
-        monkeypatch.setattr(mqtt_adapter.threading, 'Thread', lambda **kwargs: thread_mock)
+        monkeypatch.setattr(
+            mqtt_adapter.threading,
+            'Thread',
+            lambda **kwargs: thread_mock)
         adapter._run_client = MagicMock()
 
         adapter.start()

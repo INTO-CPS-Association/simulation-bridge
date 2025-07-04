@@ -5,7 +5,7 @@ Utility functions for generating default project files and configuration.
 import os
 
 try:
-    from importlib.resources import files # only available in Python 3.9+
+    from importlib.resources import files  # only available in Python 3.9+
     pkg_resources = None  # pylint: disable=invalid-name
 except ImportError:
     files = None
@@ -109,14 +109,22 @@ def get_files_to_generate():
                                        'mqtt_client.py'),
         'client/mqtt/mqtt_use.yaml': ('simulation_bridge.resources.mqtt',
                                       'mqtt_use.yaml.template'),
+        'client/mqtt/requirements.txt': ('simulation_bridge.resources.mqtt',
+                                         'requirements.txt'),
         'client/rabbitmq/rabbitmq_client.py': ('simulation_bridge.resources.rabbitmq',
                                                'rabbitmq_client.py'),
         'client/rabbitmq/rabbitmq_use.yaml': ('simulation_bridge.resources.rabbitmq',
                                               'rabbitmq_use.yaml.template'),
+        'client/rabbitmq/requirements.txt': ('simulation_bridge.resources.rabbitmq',
+                                             'requirements.txt'),
         'client/rest/rest_client.py': ('simulation_bridge.resources.rest',
                                        'rest_client.py'),
         'client/rest/rest_use.yaml': ('simulation_bridge.resources.rest',
                                       'rest_use.yaml.template'),
+        'client/rest/requirements.txt': ('simulation_bridge.resources.rest',
+                                         'requirements.txt'),
+        'client/README.md': ('simulation_bridge.resources',
+                             'README.md'),
     }
 
 
@@ -127,10 +135,14 @@ def get_file_descriptions():
         'client/simulation.yaml': "Example payload for simulation requests",
         'client/mqtt/mqtt_client.py': "MQTT protocol client implementation",
         'client/mqtt/mqtt_use.yaml': "MQTT usage configuration (example)",
+        'client/mqtt/requirements.txt': "MQTT protocol client requirements",
         'client/rabbitmq/rabbitmq_client.py': "RabbitMQ protocol client implementation",
         'client/rabbitmq/rabbitmq_use.yaml': "RabbitMQ usage configuration (example)",
+        'client/rabbitmq/requirements.txt': "RabbitMQ protocol client requirements",
         'client/rest/rest_client.py': "REST protocol client implementation",
         'client/rest/rest_use.yaml': "REST usage configuration (example)",
+        'client/rest/requirements.txt': "REST protocol client requirements",
+        'client/README.md': "Documentation for the Clients",
     }
 
 
@@ -148,7 +160,8 @@ def copy_config_template(config_path):
             with open(config_path, 'wb') as dst:
                 dst.write(template_content)
     except (ImportError, AttributeError, FileNotFoundError) as e:
-        raise FileNotFoundError(f"Template configuration file not found: {e}") from e
+        raise FileNotFoundError(
+            f"Template configuration file not found: {e}") from e
 
 
 def generate_default_config():

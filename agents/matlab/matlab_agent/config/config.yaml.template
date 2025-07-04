@@ -9,6 +9,7 @@ rabbitmq:
   password: guest
   heartbeat: 600
   vhost: /
+  tls: false
 
 simulation:
   path: /Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples

@@ -60,7 +60,8 @@ def test_main_with_config_file(monkeypatch, mock_config_file):  # pylint: disabl
     run_mock = mock.Mock()
     monkeypatch.setattr(main_module, "run_bridge", run_mock)
 
-    main_module.main.main(["--config-file", mock_config_file], standalone_mode=False)
+    main_module.main.main(
+        ["--config-file", mock_config_file], standalone_mode=False)
 
     run_mock.assert_called_once_with(mock_config_file)
 
@@ -90,7 +91,10 @@ def test_main_fallback_config(monkeypatch, tmp_path):
     default_config_path.write_text("logging:\n  level: INFO\n  file: log.txt")
 
     monkeypatch.setattr(main_module.os.path, "exists", lambda _: True)
-    monkeypatch.setattr(main_module, "CONFIG_FILENAME", str(default_config_path))
+    monkeypatch.setattr(
+        main_module,
+        "CONFIG_FILENAME",
+        str(default_config_path))
 
     run_mock = mock.Mock()
     monkeypatch.setattr(main_module, "run_bridge", run_mock)
@@ -105,8 +109,14 @@ def test_run_bridge_success(monkeypatch, mock_config_file, mock_config_data, moc
     mock_bridge = mock.Mock()
 
     monkeypatch.setattr(main_module, "load_config", lambda _: mock_config_data)
-    monkeypatch.setattr(main_module, "setup_logger", lambda **kwargs: mock_logger)
-    monkeypatch.setattr(main_module, "BridgeOrchestrator", lambda config_path: mock_bridge)
+    monkeypatch.setattr(
+        main_module,
+        "setup_logger",
+        lambda **kwargs: mock_logger)
+    monkeypatch.setattr(
+        main_module,
+        "BridgeOrchestrator",
+        lambda config_path: mock_bridge)
 
     main_module.run_bridge(mock_config_file)
 
@@ -120,8 +130,14 @@ def test_run_bridge_keyboard_interrupt(monkeypatch, mock_config_file, mock_confi
     mock_bridge.start.side_effect = KeyboardInterrupt
 
     monkeypatch.setattr(main_module, "load_config", lambda _: mock_config_data)
-    monkeypatch.setattr(main_module, "setup_logger", lambda **kwargs: mock_logger)
-    monkeypatch.setattr(main_module, "BridgeOrchestrator", lambda config_path: mock_bridge)
+    monkeypatch.setattr(
+        main_module,
+        "setup_logger",
+        lambda **kwargs: mock_logger)
+    monkeypatch.setattr(
+        main_module,
+        "BridgeOrchestrator",
+        lambda config_path: mock_bridge)
 
     main_module.run_bridge(mock_config_file)
 
@@ -135,12 +151,19 @@ def test_run_bridge_os_error(monkeypatch, mock_config_file, mock_config_data, mo
     mock_bridge.start.side_effect = OSError("disk full")
 
     monkeypatch.setattr(main_module, "load_config", lambda _: mock_config_data)
-    monkeypatch.setattr(main_module, "setup_logger", lambda **kwargs: mock_logger)
-    monkeypatch.setattr(main_module, "BridgeOrchestrator", lambda config_path: mock_bridge)
+    monkeypatch.setattr(
+        main_module,
+        "setup_logger",
+        lambda **kwargs: mock_logger)
+    monkeypatch.setattr(
+        main_module,
+        "BridgeOrchestrator",
+        lambda config_path: mock_bridge)
 
     main_module.run_bridge(mock_config_file)
 
-    mock_logger.error.assert_called_with("OS error: %s", "disk full", exc_info=True)
+    mock_logger.error.assert_called_with(
+        "OS error: %s", "disk full", exc_info=True)
     mock_bridge.stop.assert_called_once()
 
 
@@ -150,10 +173,19 @@ def test_run_bridge_value_error(monkeypatch, mock_config_file, mock_config_data,
     mock_bridge.start.side_effect = ValueError("invalid format")
 
     monkeypatch.setattr(main_module, "load_config", lambda _: mock_config_data)
-    monkeypatch.setattr(main_module, "setup_logger", lambda **kwargs: mock_logger)
-    monkeypatch.setattr(main_module, "BridgeOrchestrator", lambda config_path: mock_bridge)
+    monkeypatch.setattr(
+        main_module,
+        "setup_logger",
+        lambda **kwargs: mock_logger)
+    monkeypatch.setattr(
+        main_module,
+        "BridgeOrchestrator",
+        lambda config_path: mock_bridge)
 
     main_module.run_bridge(mock_config_file)
 
-    mock_logger.error.assert_called_with("Configuration error: %s", "invalid format", exc_info=True)
+    mock_logger.error.assert_called_with(
+        "Configuration error: %s",
+        "invalid format",
+        exc_info=True)
     mock_bridge.stop.assert_called_once()

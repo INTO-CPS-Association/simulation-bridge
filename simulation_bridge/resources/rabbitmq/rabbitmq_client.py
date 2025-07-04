@@ -1,5 +1,6 @@
 """RabbitMQ client for simulation bridge."""
 import os
+import ssl
 import sys
 import threading
 import uuid
@@ -28,9 +29,35 @@ class RabbitMQClient:
         """Initialize the Digital Twin with the given configuration."""
         self.config = config
         self.dt_id = config['digital_twin']['dt_id']
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(config['rabbitmq_host'])
+
+        rabbitmq_cfg = config['rabbitmq']
+        credentials = pika.PlainCredentials(
+            username=rabbitmq_cfg['username'],
+            password=rabbitmq_cfg['password']
         )
+        use_tls = rabbitmq_cfg.get('tls', False)
+
+        if use_tls:
+            context = ssl.create_default_context()
+            ssl_options = pika.SSLOptions(context, rabbitmq_cfg['host'])
+            parameters = pika.ConnectionParameters(
+                host=rabbitmq_cfg['host'],
+                port=rabbitmq_cfg.get('port', 5671),
+                virtual_host=rabbitmq_cfg.get('vhost', '/'),
+                credentials=credentials,
+                ssl_options=ssl_options,
+                heartbeat=rabbitmq_cfg.get('heartbeat', 600)
+            )
+        else:
+            parameters = pika.ConnectionParameters(
+                host=rabbitmq_cfg['host'],
+                port=rabbitmq_cfg.get('port', 5672),
+                virtual_host=rabbitmq_cfg.get('vhost', '/'),
+                credentials=credentials,
+                heartbeat=rabbitmq_cfg.get('heartbeat', 600)
+            )
+
+        self.connection = pika.BlockingConnection(parameters)
         self.channel = self.connection.channel()
         self.result_queue_name = None
         self.setup_infrastructure()

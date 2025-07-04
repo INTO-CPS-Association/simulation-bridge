@@ -1,6 +1,7 @@
 """MQTT Client for simulation bridge."""
 
 import os
+import ssl
 import json
 import sys
 import yaml
@@ -42,6 +43,16 @@ class MQTTClient:
         self.config = config['mqtt']
         self.payload_file = config.get('payload_file', 'simulation.yaml')
         self.client = mqtt.Client()
+        self.client.username_pw_set(
+            self.config['username'],
+            self.config['password']
+        )
+        if self.config.get('tls', False):
+            self.client.tls_set(
+                cert_reqs=ssl.CERT_REQUIRED,
+                tls_version=ssl.PROTOCOL_TLS_CLIENT
+            )
+            self.client.tls_insecure_set(False)
         self.client.on_message = self.on_message
 
     def on_message(self, client, userdata, msg):  # pylint: disable=unused-argument

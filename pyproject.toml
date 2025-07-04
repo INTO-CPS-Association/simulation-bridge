@@ -31,13 +31,15 @@ uvicorn = "^0.34.2"
 cryptography = "^45.0.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
+autopep8 = "^2.3.2"
 black = "^25.1.0"
+flake8 = "^7.2.0"
 isort = "^6.0.1"
 mypy = "^1.15.0"
+pytest = "^8.3.5"
 pytest-asyncio = "^1.0.0"
-flake8 = "^7.2.0"
 types-pyyaml = "^6.0.12.20250402"
+pytest-cov = "^6.1.1"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

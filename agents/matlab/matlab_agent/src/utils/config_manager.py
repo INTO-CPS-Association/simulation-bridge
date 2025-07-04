@@ -36,6 +36,7 @@ class Config(BaseModel):
     rabbitmq_password: str = Field(default="guest")
     rabbitmq_heartbeat: int = Field(default=600)
     rabbitmq_virtual_host: str = Field(default="/")
+    rabbitmq_tls: bool = Field(default=False)
 
     # Simulation folder path
     simulation_path: str = Field(default=".")
@@ -105,7 +106,8 @@ class Config(BaseModel):
                 "username": self.rabbitmq_username,
                 "password": self.rabbitmq_password,
                 "heartbeat": self.rabbitmq_heartbeat,
-                "vhost": self.rabbitmq_virtual_host
+                "vhost": self.rabbitmq_virtual_host,
+                "tls": self.rabbitmq_tls
             },
             "simulation": {
                 "path": self.simulation_path
@@ -179,6 +181,7 @@ class Config(BaseModel):
             flat_config["rabbitmq_heartbeat"] = rabbitmq.get("heartbeat", 600)
             flat_config["rabbitmq_virtual_host"] = rabbitmq.get(
                 "vhost", "/")
+            flat_config["rabbitmq_tls"] = rabbitmq.get("tls", False)
 
         if simulation := config_dict.get("simulation", {}):
             flat_config["simulation_path"] = simulation.get(

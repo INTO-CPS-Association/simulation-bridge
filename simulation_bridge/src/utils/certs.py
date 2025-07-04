@@ -46,7 +46,7 @@ class CertificateGenerator:
             key_size=self.key_size,
         )
 
-    def _build_certificate_name( # pylint: disable=too-many-arguments
+    def _build_certificate_name(  # pylint: disable=too-many-arguments
         self,
         country: str = "US",
         state: str = "California",
@@ -130,7 +130,7 @@ class CertificateGenerator:
         key_file = Path(key_path)
         return cert_file.exists() and key_file.exists()
 
-    def _validate_certificates( #pylint: disable=too-many-locals
+    def _validate_certificates(  # pylint: disable=too-many-locals
             self, cert_path: str, key_path: str) -> Tuple[bool, str]:
         """
         Validate existing certificate and key files.
@@ -189,7 +189,7 @@ class CertificateGenerator:
 
         except FileNotFoundError as exc:
             return False, f"Certificate file not found: {exc}"
-        except Exception as exc: # pylint: disable=broad-except
+        except Exception as exc:  # pylint: disable=broad-except
             return False, f"Certificate validation error: {exc}"
 
     def _ensure_directory_exists(self, file_path: str) -> None:
@@ -263,7 +263,7 @@ class CertificateGenerator:
         try:
             # Check if files already exist
             if self.files_exist(cert_path, key_path) and not force_overwrite:
-                return False, f"Files already exist: {cert_path}, {key_path}. Use force_overwrite=True to overwrite." # pylint: disable=line-too-long
+                return False, f"Files already exist: {cert_path}, {key_path}. Use force_overwrite=True to overwrite."  # pylint: disable=line-too-long
 
             # Generate private key
             private_key = self._generate_private_key()
@@ -280,7 +280,7 @@ class CertificateGenerator:
 
             return True, f"Certificate and key generated successfully: {cert_path}, {key_path}"
 
-        except Exception as exc: # pylint: disable=broad-except
+        except Exception as exc:  # pylint: disable=broad-except
             return False, f"Error generating certificate: {str(exc)}"
 
 
@@ -313,7 +313,7 @@ def ensure_certificates(
     # Check if certificates already exist
     if generator.files_exist(cert_path, key_path):
         # Validate existing certificates
-        is_valid, reason = generator._validate_certificates( # pylint: disable=protected-access
+        is_valid, reason = generator._validate_certificates(  # pylint: disable=protected-access
             cert_path, key_path)
 
         if is_valid and not force_overwrite:

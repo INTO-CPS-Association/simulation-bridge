@@ -19,7 +19,7 @@ def config_manager_mock():
         'password': 'pass',
         'host': 'localhost',
         'port': 5672,
-        'virtual_host': '/',
+        'vhost': '/',
         'infrastructure': {'queues': [{'name': 'Q.bridge.input'}, {'name': 'Q.bridge.result'}]}
     }
     return mock_cfg
@@ -32,31 +32,46 @@ def pika_connection_mock(monkeypatch):
     mock_conn = mock.MagicMock()
     mock_conn.channel.return_value = mock_channel
 
-    monkeypatch.setattr(rabbitmq_adapter.pika, "BlockingConnection", lambda params: mock_conn)
-    monkeypatch.setattr(rabbitmq_adapter.pika, "PlainCredentials", lambda u, p: None)
-    monkeypatch.setattr(rabbitmq_adapter.pika, "ConnectionParameters", lambda **kwargs: None)
+    monkeypatch.setattr(
+        rabbitmq_adapter.pika,
+        "BlockingConnection",
+        lambda params: mock_conn)
+    monkeypatch.setattr(
+        rabbitmq_adapter.pika,
+        "PlainCredentials",
+        lambda u,
+        p: None)
+    monkeypatch.setattr(
+        rabbitmq_adapter.pika,
+        "ConnectionParameters",
+        lambda **kwargs: None)
     return mock_conn, mock_channel
 
 
 class TestRabbitMQAdapterInit:
     """Tests for RabbitMQAdapter initialization and queue subscription."""
 
-    def test_init_subscribes_to_configured_queues(self, config_manager_mock, pika_connection_mock):
+    def test_init_subscribes_to_configured_queues(
+            self, config_manager_mock, pika_connection_mock):
         """RabbitMQAdapter should subscribe to queues defined in config."""
         _conn_mock, chan_mock = pika_connection_mock
-        adapter = rabbitmq_adapter.RabbitMQAdapter(config_manager_mock) # pylint: disable=unused-variable
+        adapter = rabbitmq_adapter.RabbitMQAdapter(   # pylint: disable=unused-variable
+            config_manager_mock)
         # Should call basic_consume for each queue
         assert chan_mock.basic_consume.call_count == 2
-        calls = [call.kwargs['queue'] for call in chan_mock.basic_consume.call_args_list]
+        calls = [call.kwargs['queue']
+                 for call in chan_mock.basic_consume.call_args_list]
         assert 'Q.bridge.input' in calls
         assert 'Q.bridge.result' in calls
 
-    def test_init_logger_debug_called(self, config_manager_mock, pika_connection_mock):
+    def test_init_logger_debug_called(
+            self, config_manager_mock, pika_connection_mock):
         """Initialization logs debug messages."""
         with mock.patch.object(rabbitmq_adapter.logger, "debug") as log_debug:
             rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
             log_debug.assert_any_call("RabbitMQ adapter initialized")
-            log_debug.assert_any_call("RabbitMQ adapter initialized and subscribed to queues")
+            log_debug.assert_any_call(
+                "RabbitMQ adapter initialized and subscribed to queues")
 
 
 class TestProcessMessage:
@@ -80,7 +95,8 @@ class TestProcessMessage:
         """Process JSON message correctly and ack message."""
         ch = mock.MagicMock()
         method = mock.MagicMock()
-        body = json.dumps({"simulation": {"client_id": "client", "simulator": "sim"}}).encode()
+        body = json.dumps(
+            {"simulation": {"client_id": "client", "simulator": "sim"}}).encode()
         adapter._process_message(ch, method, None, body, 'Q.bridge.input')
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
@@ -100,10 +116,12 @@ class TestProcessMessage:
         body = b"[]"
         with mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             adapter._process_message(ch, method, None, body, 'Q.bridge.input')
-            ch.basic_nack.assert_called_once_with(delivery_tag=method.delivery_tag, requeue=False)
+            ch.basic_nack.assert_called_once_with(
+                delivery_tag=method.delivery_tag, requeue=False)
             log_error.assert_called_once()
 
-    def test_process_message_bridge_meta_malformed_json_logs_warning(self, adapter):
+    def test_process_message_bridge_meta_malformed_json_logs_warning(
+            self, adapter):
         """Malformed JSON in bridge_meta logs warning but does not raise."""
         ch = mock.MagicMock()
         method = mock.MagicMock()
@@ -114,7 +132,8 @@ class TestProcessMessage:
         body = json.dumps(msg).encode()
         with mock.patch.object(rabbitmq_adapter.logger, "warning") as log_warn:
             adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-            ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
+            ch.basic_ack.assert_called_once_with(
+                delivery_tag=method.delivery_tag)
             log_warn.assert_called_once()
 
     def test_process_message_unknown_queue_does_not_send_signal(self, adapter):
@@ -126,7 +145,8 @@ class TestProcessMessage:
             adapter._process_message(ch, method, None, body, 'unknown_queue')
             # Signal should not be called with None or any
             assert mock_signal.call_count in (0, 1)
-            ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
+            ch.basic_ack.assert_called_once_with(
+                delivery_tag=method.delivery_tag)
 
 
 class TestRunConsumer:
@@ -148,7 +168,8 @@ class TestRunConsumer:
     def test_run_consumer_logs_error_on_exception(self, adapter):
         """Logs error if start_consuming raises exception while running."""
         adapter._running = True
-        adapter.channel.start_consuming = mock.Mock(side_effect=RuntimeError("fail"))
+        adapter.channel.start_consuming = mock.Mock(
+            side_effect=RuntimeError("fail"))
         with mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             adapter._run_consumer()
             log_error.assert_called_once()
@@ -174,8 +195,8 @@ class TestStartStopAdapter:
     def test_start_logs_and_raises_on_exception(self, adapter):
         """Start logs error and raises if thread creation fails."""
         with mock.patch("threading.Thread", side_effect=RuntimeError("fail")), \
-             mock.patch.object(rabbitmq_adapter.logger, "error") as log_error, \
-             mock.patch.object(adapter, "stop") as stop_mock:
+                mock.patch.object(rabbitmq_adapter.logger, "error") as log_error, \
+                mock.patch.object(adapter, "stop") as stop_mock:
             with pytest.raises(RuntimeError):
                 adapter.start()
             log_error.assert_called_once()
@@ -186,7 +207,8 @@ class TestStartStopAdapter:
         adapter._running = True
         adapter.channel.is_open = True
         adapter.connection.is_open = True
-        adapter._consumer_thread = mock.Mock(is_alive=mock.Mock(return_value=True))
+        adapter._consumer_thread = mock.Mock(
+            is_alive=mock.Mock(return_value=True))
         adapter.connection.add_callback_threadsafe = mock.Mock()
         adapter.connection.close = mock.Mock()
 
@@ -200,14 +222,15 @@ class TestStartStopAdapter:
         """Stop method handles exceptions without raising."""
         adapter.channel = mock.Mock(is_open=True)
         adapter.connection = mock.Mock(is_open=True)
-        adapter.connection.add_callback_threadsafe = mock.Mock(side_effect=Exception("fail"))
+        adapter.connection.add_callback_threadsafe = mock.Mock(
+            side_effect=Exception("fail"))
         adapter._consumer_thread = mock.Mock()
         adapter._consumer_thread.is_alive = mock.Mock(return_value=True)
         adapter._consumer_thread.join = mock.Mock(side_effect=Exception("fail"))
         adapter.connection.close = mock.Mock(side_effect=Exception("fail"))
 
         with mock.patch.object(rabbitmq_adapter.logger, "warning") as log_warn, \
-             mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
+                mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             adapter.stop()
             assert log_warn.call_count >= 1
             # error log might be called due to add_callback_threadsafe
@@ -228,7 +251,8 @@ class TestHandleMessageAndStartAdapter:
         with mock.patch.object(adapter, "_process_message") as process_mock:
             msg = {"some": "data"}
             adapter._handle_message(msg)
-            process_mock.assert_called_once_with(None, None, None, msg, 'Q.bridge.input')
+            process_mock.assert_called_once_with(
+                None, None, None, msg, 'Q.bridge.input')
 
     def test_start_adapter_starts_consuming(self, adapter):
         """_start_adapter calls channel.start_consuming and handles exceptions."""
@@ -238,7 +262,8 @@ class TestHandleMessageAndStartAdapter:
 
     def test_start_adapter_logs_error_on_exception(self, adapter):
         """_start_adapter logs error and raises if start_consuming fails."""
-        adapter.channel.start_consuming = mock.Mock(side_effect=RuntimeError("fail"))
+        adapter.channel.start_consuming = mock.Mock(
+            side_effect=RuntimeError("fail"))
         with mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             with pytest.raises(RuntimeError):
                 adapter._start_adapter()

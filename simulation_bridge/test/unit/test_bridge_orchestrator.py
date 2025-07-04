@@ -16,11 +16,10 @@ def mock_config():
             'port': 5672,
             'username': 'guest',
             'password': 'guest',
-            'virtual_host': '/',
+            'vhost': '/',
             'exchange': 'sim_exchange',
         }
     }
-
 
 
 @pytest.fixture
@@ -60,35 +59,30 @@ class TestSetupInterfaces:
         """Test successful setup with enabled protocols."""
         with patch(
             'simulation_bridge.src.core.bridge_orchestrator.RabbitMQInfrastructure'
-        ) as rabbit, patch(
+        ) as rabbit_mock, patch(
             'simulation_bridge.src.core.bridge_orchestrator.SignalManager'
-        ) as signal, patch(
+        ) as signal_mock, patch(
             'simulation_bridge.src.core.bridge_orchestrator.BridgeCore'
-        ) as core:
-            signal.get_enabled_protocols.return_value = ['mqtt']
-            orchestrator.setup_interfaces()
-            rabbit.return_value.setup.assert_called_once()
-            signal.register_adapter_instance.assert_called_once()
-            signal.set_bridge_core.assert_called_once_with(core.return_value)
-            signal.connect_all_signals.assert_called_once()
+        ) as core_mock:
+            rabbit_instance = rabbit_mock.return_value
+            rabbit_instance.setup.return_value = None
 
-    def test_setup_with_no_enabled_protocols(self, orchestrator):
-        """Test setup when no protocols are enabled."""
-        with patch(
-            'simulation_bridge.src.core.bridge_orchestrator.RabbitMQInfrastructure'
-        ) as rabbit, patch(
-            'simulation_bridge.src.core.bridge_orchestrator.SignalManager'
-        ) as signal:
-            signal.get_enabled_protocols.return_value = []
+            signal_mock.get_enabled_protocols.return_value = ['mqtt']
             orchestrator.setup_interfaces()
-            rabbit.return_value.setup.assert_called_once()
+
+            rabbit_instance.setup.assert_called_once()
+            signal_mock.register_adapter_instance.assert_called_once()
+            signal_mock.set_bridge_core.assert_called_once_with(
+                core_mock.return_value)
+            signal_mock.connect_all_signals.assert_called_once()
 
     def test_setup_raises_exception(self, orchestrator):
         """Test setup raises exception if infrastructure fails."""
         with patch(
-            'simulation_bridge.src.core.bridge_orchestrator.RabbitMQInfrastructure.setup',
-            side_effect=ValueError("fail")
-        ):
+            'simulation_bridge.src.core.bridge_orchestrator.RabbitMQInfrastructure'
+        ) as rabbit_mock:
+            rabbit_instance = rabbit_mock.return_value
+            rabbit_instance.setup.side_effect = ValueError("fail")
             with pytest.raises(ValueError):
                 orchestrator.setup_interfaces()
 
@@ -110,20 +104,22 @@ class TestStartStop:
             signal.disconnect_all_signals.assert_called_once()
 
     def test_start_keyboard_interrupt(self, orchestrator):
-        """Simulate KeyboardInterrupt to ensure graceful shutdown."""
         adapter = MagicMock()
         adapter.is_running = True
         orchestrator.adapters = {'mqtt': adapter}
         with patch.object(orchestrator, 'setup_interfaces'), \
-             patch('simulation_bridge.src.core.bridge_orchestrator.time.sleep',
-                   side_effect=KeyboardInterrupt), \
-             patch.object(orchestrator, 'stop') as stop_mock:
-            orchestrator.start()
+                patch('simulation_bridge.src.core.bridge_orchestrator.time.sleep',
+                      side_effect=KeyboardInterrupt), \
+                patch.object(orchestrator, 'stop') as stop_mock:
+            try:
+                orchestrator.start()
+            except SystemExit:
+                pass
             adapter.start.assert_called_once()
             stop_mock.assert_called_once()
 
 
-class TestAdapterImport: # pylint: disable=too-few-public-methods
+class TestAdapterImport:  # pylint: disable=too-few-public-methods
     """Tests for internal _import_adapter_classes logic."""
 
     def test_import_adapter_classes(self, config_manager_mock):

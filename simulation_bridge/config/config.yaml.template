@@ -4,9 +4,11 @@ simulation_bridge:
 rabbitmq:
   host: localhost
   port: 5672
-  virtual_host: /
+  vhost: /
   username: guest
   password: guest
+  tls: false
+
   infrastructure:
     exchanges:
       - name: ex.input.bridge
@@ -62,12 +64,15 @@ mqtt:
   qos: 0
   username: guest
   password: guest
+  tls: false
 
 rest:
   host: localhost
   port: 5000
   endpoint: /message
   debug: false
+  certfile: certs/cert.pem
+  keyfile: certs/key.pem
 
 logging:
   level: INFO

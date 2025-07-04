@@ -49,7 +49,8 @@ def logger_mock():
 class TestLoadConfig:
     """Test cases for load_config function."""
 
-    def test_load_default_config_success(self, sample_yaml, logger_mock, monkeypatch):
+    def test_load_default_config_success(
+            self, sample_yaml, logger_mock, monkeypatch):
         """Test loading default config from package resources successfully."""
         mock_file = io.StringIO(sample_yaml)
         monkeypatch.setattr(
@@ -59,7 +60,8 @@ class TestLoadConfig:
         config = config_loader.load_config()
         assert config["database"]["host"] == "localhost"
         assert config["database"]["user"] == "defaultuser"
-        logger_mock.debug.assert_called_with("Loading default configuration file")
+        logger_mock.debug.assert_called_with(
+            "Loading default configuration file")
 
     def test_load_default_config_file_not_found(self, monkeypatch):
         """Test FileNotFoundError when default config file missing in package."""
@@ -73,7 +75,8 @@ class TestLoadConfig:
         with pytest.raises(FileNotFoundError, match="Default configuration file not found"):
             config_loader.load_config()
 
-    def test_load_config_from_path_success(self, sample_yaml, tmp_path, logger_mock):
+    def test_load_config_from_path_success(
+            self, sample_yaml, tmp_path, logger_mock):
         """Test loading config from a specified path successfully."""
         config_file = tmp_path / "config.yaml"
         config_file.write_text(sample_yaml, encoding="utf-8")
@@ -117,7 +120,8 @@ class TestEnvVarSubstitution:
 
     def test_substitute_env_vars_string_no_env(self):
         """Test string without environment variables remains unchanged."""
-        assert config_loader._substitute_env_vars("plainstring") == "plainstring"
+        assert config_loader._substitute_env_vars(
+            "plainstring") == "plainstring"
 
     def test_substitute_env_vars_partial_env_string(self, monkeypatch):
         """Test string with embedded environment variable replaced correctly."""
