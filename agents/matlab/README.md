@@ -3,10 +3,10 @@
 The MATLAB Agent is a Python-based connector designed to interface with MATLAB simulations through various methods. It provides the following functionalities:
 
 - **Batch Simulation**: Executes predefined MATLAB routines with specified input parameters, collecting the final results upon completion.
-- **Streaming Simulation (Agent-Based)**: Allows sending input once, with the output being received in real-time during the simulation.
-- **Interactive Simulation**: Continuously exchanges data with MATLAB, reacting to new inputs during the simulation loop.
+- **Streaming Simulation**: Executes MATLAB simulations where input parameters are sent once at the beginning, and results are transmitted continuously in real-time as the simulation progresses.
+- **Interactive Simulation**: Enables bidirectional communication with MATLAB during simulation execution, allowing continuous exchange of data, both input parameters and output results flow in real-time throughout the simulation process.
 
-The MATLAB Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
+The MATLAB Agent is primarily built to integrate with the Simulation Bridge [_sim_bridge_](../../README.md) but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
 
 <div align="center">
   <img src="matlab_agent/images/structure.png" alt="MATLAB Agent Structure" width="600" style="border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
@@ -295,8 +295,8 @@ Example output:
 
 ```bash
 dist/
-├── matlab_agent-0.2.0-py3-none-any.whl
-└── matlab_agent-0.2.0.tar.gz
+├── matlab_agent-0.3.0-py3-none-any.whl
+└── matlab_agent-0.3.0.tar.gz
 ```
 
 ### Verifying the Package (Optional but Recommended)
@@ -304,7 +304,7 @@ dist/
 You can verify that the package works by installing it locally:
 
 ```bash
-pip install dist/matlab_agent-0.2.0-py3-none-any.whl
+pip install dist/matlab_agent-0.3.0-py3-none-any.whl
 ```
 
 Then, run the command defined in the script:
@@ -318,7 +318,7 @@ matlab-agent
 When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
 
 ```toml
-version = "0.3.0"
+version = "0.4.0"
 ```
 
 Then rebuild the package:
@@ -352,6 +352,7 @@ Inside this folder, you'll find:
 - `use.yaml` — Configuration file for the communication protocol (e.g., RabbitMQ settings)
 - `simulation.yaml` — The simulation request payload that will be sent to the MATLAB Agent
 - `use_matlab_agent.py` — Python script to send the request and receive the results
+- `use_matlab_agent_interactive.py` — Python script to interact with the MATLAB Agent in real-time
 
 For detailed instructions on how to configure and use the client, refer to the [Use Matlab Agent](./matlab_agent/resources/README.md) in the `agents/matlab/matlab_agent/resources/` folder.
 
