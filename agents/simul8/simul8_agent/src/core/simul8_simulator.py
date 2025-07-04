@@ -105,6 +105,7 @@ class Simul8Simulator:
         class EventHandler:
             def OnS8SimulationOpened(self):
                 logger.info("The Simulation has been opened.")
+                # simulation.s8.RunSim(simulation.run_time)
                 simulation.s8.RunSim(simulation.run_time)
                 
             def OnS8SimulationEndRun(self):
@@ -154,9 +155,7 @@ class Simul8Simulator:
             
             # Change working directory to simulation file directory
             sim_directory = os.path.dirname(self.actual_file_path)
-            print(f"DEBUG: Changing working directory to: {sim_directory}")
             os.chdir(sim_directory)
-            print(f"DEBUG: Current working directory is now: {os.getcwd()}")
                 
             logger.debug("Opening simulation file: %s", self.actual_file_path)
             logger.info("inputs: %s", inputs)
@@ -164,8 +163,6 @@ class Simul8Simulator:
             # Set input parameters if provided
             self._set_simulation_inputs(inputs)
             
-            # Open the simulation file
-            print(f"DEBUG: Opening simulation file from directory: {os.getcwd()}")
             self.s8.Open(self.actual_file_path)
     
             while self.listen_for_messages:
@@ -179,7 +176,6 @@ class Simul8Simulator:
             raise Simul8SimulationError(f"Simulation error: {str(e)}") from e
         finally:
             # Restore original working directory
-            print(f"DEBUG: Restoring working directory to: {original_cwd}")
             os.chdir(original_cwd)
             
             # Close the simulation
@@ -203,7 +199,6 @@ class Simul8Simulator:
             )
         
         logger.info(f"Processing {len(inputs)} input parameters")
-        print(f"DEBUG: Input data received: {inputs}")
         
         try:
             # Validate that inputs have the correct CSV structure
@@ -215,10 +210,8 @@ class Simul8Simulator:
             
             if hasattr(self, 'actual_file_path') and self.actual_file_path:
                 sim_directory = os.path.dirname(self.actual_file_path)
-                print(f"DEBUG: Using actual_file_path directory: {sim_directory}")
             elif self.sim_path and self.sim_file:
                 sim_directory = str(self.sim_path)
-                print(f"DEBUG: Using sim_path directory: {sim_directory}")
             else:
                 # Load config to get simulation path
                 try:
@@ -226,7 +219,6 @@ class Simul8Simulator:
                     config_sim_path = config.get('simulation', {}).get('path')
                     if config_sim_path and os.path.exists(config_sim_path):
                         sim_directory = config_sim_path
-                        print(f"DEBUG: Using config simulation path: {sim_directory}")
                     else:
                         # Fallback to examples directory
                         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -234,10 +226,8 @@ class Simul8Simulator:
                         
                         if os.path.exists(examples_dir):
                             sim_directory = examples_dir
-                            print(f"DEBUG: Using examples directory: {sim_directory}")
                         else:
                             sim_directory = os.getcwd()
-                            print(f"DEBUG: Using current directory: {sim_directory}")
                 except Exception as e:
                     logger.warning(f"Could not load config: {e}")
                     # Fallback to examples directory
@@ -246,29 +236,23 @@ class Simul8Simulator:
                     
                     if os.path.exists(examples_dir):
                         sim_directory = examples_dir
-                        print(f"DEBUG: Using examples directory fallback: {sim_directory}")
                     else:
                         sim_directory = os.getcwd()
-                        print(f"DEBUG: Using current directory fallback: {sim_directory}")
             
             input_file_path = os.path.join(sim_directory, "input.csv")
-            print(f"DEBUG: Target input file path: {input_file_path}")
             
             # Create the CSV file from the validated inputs
             logger.info("Processing structured CSV data for Simul8")
-            print(f"DEBUG: Creating CSV file using yaml_csv_to_file")
 
             yaml_csv_to_file(inputs, file_path=input_file_path)
 
-            print(f"SUCCESS: Created input.csv at: {input_file_path}")
-            logger.info(f"Created input file at: {input_file_path}")
+            logger.debug(f"Created input file at: {input_file_path}")
             
             # Verify the file was created
             if os.path.exists(input_file_path):
-                print(f"DEBUG: Successfully verified input.csv exists at: {input_file_path}")
                 with open(input_file_path, 'r') as f:
                     content = f.read()
-                    print(f"DEBUG: File content:\n{content}")
+                    logger.debug(f"File content:\n{content}")
             else:
                 raise Simul8SimulationError(f"Failed to create input.csv at: {input_file_path}")
             
@@ -304,18 +288,15 @@ class Simul8Simulator:
         
         for filename, directory in possible_files:
             potential_path = os.path.join(directory, filename)
-            print(f"DEBUG: Checking for output file at: {potential_path}")
             
             if os.path.exists(potential_path):
                 output_file_path = potential_path
-                print(f"DEBUG: Found output file at: {output_file_path}")
                 break
         
         if not output_file_path:
             logger.warning("Output file not found in any location")
-            print("DEBUG: No output file found. Checked locations:")
             for filename, directory in possible_files:
-                print(f"  - {os.path.join(directory, filename)}")
+                logger.debug(f"  - {os.path.join(directory, filename)}")
             self.results = {"error": "No output file found"}
             return
         
@@ -325,10 +306,8 @@ class Simul8Simulator:
             # Read and display the raw file content
             with open(output_file_path, 'r') as f:
                 content = f.read()
-                print(f"DEBUG: Output file content:\n'{content}'")
             
             # Create output mapping from expected outputs (from YAML)
-            print(f"DEBUG: Expected outputs from YAML: {self.expected_outputs}")
             
             # Create mapping from CSV headers to YAML output names
             output_mapping = {}
@@ -340,25 +319,20 @@ class Simul8Simulator:
                     csv_headers = next(reader, [])
                     csv_headers = [header.strip() for header in csv_headers if header.strip()]
                 
-                print(f"DEBUG: CSV headers found: {csv_headers}")
                 
                 # Get YAML output names in order
                 yaml_output_names = list(self.expected_outputs.keys())
-                print(f"DEBUG: YAML output names: {yaml_output_names}")
                 
                 # Map CSV headers to YAML output names in order
                 for i, csv_header in enumerate(csv_headers):
                     if i < len(yaml_output_names):
                         yaml_name = yaml_output_names[i]
                         output_mapping[csv_header] = yaml_name
-                        print(f"DEBUG: Mapped CSV header '{csv_header}' -> YAML output '{yaml_name}'")
                     else:
-                        print(f"DEBUG: No YAML output for CSV header '{csv_header}', using as-is")
                         output_mapping[csv_header] = csv_header
                         
-                print(f"DEBUG: Final output mapping: {output_mapping}")
+                    print(f"DEBUG: Final output mapping: {output_mapping}")
             else:
-                print("DEBUG: No expected outputs, using headers as-is")
                 output_mapping = {} 
             # Parse the CSV file with header-based approach
             results = read_csv_to_dict(output_file_path, output_mapping=output_mapping)
@@ -402,13 +376,11 @@ class Simul8Simulator:
                 try:
                     if os.path.exists(temp_file):
                         os.remove(temp_file)
-                        print(f"DEBUG: Deleted temporary file: {temp_file}")
                         logger.debug(f"Deleted temporary file: {temp_file}")
                     else:
-                        print(f"DEBUG: Temporary file not found (already deleted?): {temp_file}")
+                        logger.debug(f"Temporary file not found (already deleted?): {temp_file}")
                 except Exception as e:
                     logger.warning(f"Failed to delete temporary file {temp_file}: {str(e)}")
-                    print(f"WARNING: Failed to delete temporary file {temp_file}: {str(e)}")
             
             # Clear the list
             self._temp_files = []
@@ -417,20 +389,16 @@ class Simul8Simulator:
         if self.s8:
             try:
                 self.s8.Close()
-                print("DEBUG: Closed Simul8 COM object")
                 logger.debug("Closed Simul8 COM object")
                 time.sleep(1)
             except Exception as e:
                 logger.warning("Error closing Simul8: %s", str(e))
-                print(f"WARNING: Error closing Simul8: {str(e)}")
             finally:
                 self.s8 = None
     
         try:
             pythoncom.CoUninitialize()
-            print("DEBUG: COM uninitialized")
             logger.debug("COM uninitialized")
         except Exception as e:
             logger.warning("Error uninitializing COM: %s", str(e))
-            print(f"WARNING: Error uninitializing COM: {str(e)}")
             

@@ -8,4 +8,4 @@ rabbitmq:
 
 # Default path to the simulation YAML payload
 # Pbsolute or relative path of the file in single quotes
-simulation_request: 'simulation.yaml'
+simulation_request: simulation.yaml

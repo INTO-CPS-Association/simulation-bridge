@@ -28,78 +28,68 @@ def handle_batch_simulation(
     path_simulation: str,
     response_templates: Dict[str, Any]
 ) -> None:
-    """
-    Handle a batch simulation request.
-
-    Args:
-        msg_dict (Dict[str, Any]): The message dictionary
-        source (str): The source of the message
-        rabbitmq_manager (IMessageBroker): The RabbitMQ manager instance
-        path_simulation (str): Path to the simulation files
-        response_templates (Dict[str, Any]): Response templates
-    """
+    """Handle a batch simulation request."""
+    sim_file: Optional[str] = None  # Initialize this first!
+    
+    logger.debug(f"Starting handle_batch_simulation with msg_dict keys: {list(msg_dict.keys())}")
+    
     # Initialize performance monitor
     performance_monitor = PerformanceMonitor()
     operation_id = msg_dict.get('simulation', {}).get('request_id', 'unknown')
+    logger.debug(f"Operation ID: {operation_id}")
     performance_monitor.start_operation(operation_id)
 
     try:
-        # Record Simul8 start
-        performance_monitor.record_simul8_start()
-
+        logger.debug(f"About to record simul8 start")
+        # Record Simul8 start (update this from matlab_start)
+        performance_monitor.record_matlab_start()  # Change this method name if you have a simul8 equivalent
+        
+        logger.debug(f"Getting simulation data from message")
         data: Dict[str, Any] = msg_dict.get('simulation', {})
+        logger.debug(f"Simulation data keys: {list(data.keys())}")
+        
         bridge_meta = data.get('bridge_meta', 'unknown')
         request_id = data.get('request_id', 'unknown')
         sim_file = data.get('file')
-        function_name = _validate_simulation_data(data)
-        sim_path = path_simulation
-        inputs, outputs = _extract_io_specs(data)
-        logger.info("Starting simulation '%s'", sim_file)
-        sim = Simul8Simulator(sim_path, sim_file, function_name, run_time=200)
-        # Record simul8 startup complete
-        performance_monitor.record_simul8_startup_complete()
-        _send_progress(rabbitmq_manager,
-                       source,
-                       sim_file,
-                       0,
-                       response_templates,
-                       bridge_meta,
-                       request_id)
+        
+        logger.debug(f"bridge_meta={bridge_meta}, request_id={request_id}, sim_file={sim_file}")
+        logger.debug(f"path_simulation={path_simulation}")
+        
+        if not sim_file:
+            raise ValueError("No simulation file specified in request")
         try:
             # Handle Simul8 simulation
             _handle_simulation(data, source, rabbitmq_manager, path_simulation,
-                               response_templates, function_name)
-        finally:
-            sim.cleanup()
+                               response_templates, sim_file=sim_file)
+        except Simul8SimulationError as e:
+            logger.error(f"DEBUG: Simul8 simulation error: {str(e)}")
+            raise e
+        logger.debug(f"validating simulation data")
+        function_name = _validate_simulation_data(data)
+        logger.debug(f"Validation complete, function_name={function_name}")
+
+        sim_path = path_simulation
+        logger.debug(f"extracting I/O specs")
+        inputs, outputs = _extract_io_specs(data)
+        logger.debug(f"I/O extraction complete, inputs={inputs}, outputs={outputs}")
         
-        results = sim.run(inputs, outputs)
-        metadata = _get_metadata(sim) if response_templates.get(
-            'success', {}).get('include_metadata', False) else None
-        # Record simulation complete
-        performance_monitor.record_simulation_complete()
-        # Record Simul8 stop
-        performance_monitor.record_matlab_stop()
-        # Create and send success response
-        success_response = create_response(
-            'success', sim_file, 'batch', response_templates,
-            outputs=results, metadata=metadata, bridge_meta=bridge_meta,
-            request_id=request_id
-        )
+        logger.debug(f"Starting simulation '{sim_file}' at path '{sim_path}'")
+        sim = Simul8Simulator(sim_path, sim_file, function_name)
 
-        # Send result and record it
-        if rabbitmq_manager.send_result(source, success_response):
-            performance_monitor.record_result_sent()
-
-        logger.info("Simulation '%s' completed successfully", sim_file)
-
-    except Exception as e:  # pylint: disable=broad-except
+        logger.debug("Simulator created, about to record startup complete")
+        # Record startup complete
+        performance_monitor.record_matlab_startup_complete()  # Update method name if needed
+                
+    except Exception as e:
+        logger.error(f"Exception caught in handle_batch_simulation: {type(e).__name__}: {str(e)}")
+        logger.error(f"sim_file value at exception: {sim_file}")
+        logger.error(f"Exception traceback:", exc_info=True)
+        
+        # Now call your error handler
         _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
     finally:
-        # Always complete the operation to record metrics
+        # Stop performance monitoring
         performance_monitor.complete_operation()
-        if 'sim' in locals():
-            sim.close()
-
 def _handle_simulation(
     data: Dict[str, Any],
     source: str,
@@ -108,22 +98,23 @@ def _handle_simulation(
     response_templates: Dict[str, Any],
     sim_file: str
 ) -> None:
+    sim: Optional[Simul8Simulator] = None  # Initialize sim to None
+
     """Process a Simul8 simulation request."""
-    sim = None
     try:
-        run_time = data.get('run_time')
+        # Extract run_time from inputs if present
+        bridge_meta = data.get('bridge_meta', 'unknown')
+        request_id = data.get('request_id', 'unknown')
         inputs, outputs = _extract_io_specs(data)
-        
-        print(f"DEBUG: Extracted inputs: {inputs}")
-        print(f"DEBUG: Extracted outputs: {outputs}")
+        run_time = int(inputs.get('run_time', 500))
         
         logger.info("Starting Simul8 simulation '%s'", sim_file)
         sim = Simul8Simulator(run_time=run_time)
         
         # Set the expected outputs from YAML
         sim.expected_outputs = outputs if outputs else {}
-        print(f"DEBUG: Set expected outputs on simulator: {sim.expected_outputs}")
-        
+        logger.debug(f"Expected outputs set to: {sim.expected_outputs}")
+
         _send_progress(message_broker, source, sim_file, 25, response_templates)
         
         # Create full file path
@@ -137,14 +128,22 @@ def _handle_simulation(
             'success', {}).get('include_metadata', False) else None
         success_response = create_response(
             'success', sim_file, 'batch', response_templates,
-            outputs=results, metadata=metadata
+            outputs=results, metadata=metadata, bridge_meta=bridge_meta,
+            request_id=request_id
         )
         _send_response(message_broker, source, success_response)
         logger.info("Simul8 simulation '%s' completed successfully", sim_file)
     finally:
-        if sim:
-            print("CLEANING UP")
-            sim.cleanup()
+        # Only cleanup if sim was actually created
+        if sim is not None:
+            try:
+                sim.cleanup()
+                logger.debug("Simulator cleanup completed")
+            except Exception as cleanup_error:
+                logger.error(f"Error during cleanup: {cleanup_error}")
+        
+        
+        
 def _validate_simulation_data(
         data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
     """Validate and extract simulation parameters."""
@@ -158,10 +157,13 @@ def _extract_io_specs(data: Dict[str, Any]
                       ) -> Tuple[Dict[str, Any], List[str]]:
     """Extract input and output specifications from data."""
     inputs = data.get('inputs', {})
+    # Filter out run_time and other non-CSV parameters
+    filtered_inputs = {k: v for k, v in inputs.items() if k not in ['run_time', 'runtime']}
     outputs = data.get('outputs', [])
+    
     if not outputs:
         raise ValueError("No outputs specified in simulation config")
-    return inputs, outputs
+    return filtered_inputs, outputs
 
 
 

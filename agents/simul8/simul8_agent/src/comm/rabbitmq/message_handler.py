@@ -143,11 +143,13 @@ class MessageHandler(IRabbitMQMessageHandler):
                 return
             # Validate the message structure using Pydantic
             try:
+                
                 # Validate the message against our expected schema
                 payload = MessagePayload(**msg_dict)
                 logger.debug("Message validation successful")
                 # Access the validated data
                 simulation_data = payload.simulation
+                print(simulation_data)
                 sim_type = simulation_data.type
                 sim_file = simulation_data.file
                 bridge_meta = simulation_data.bridge_meta or 'unknown'
