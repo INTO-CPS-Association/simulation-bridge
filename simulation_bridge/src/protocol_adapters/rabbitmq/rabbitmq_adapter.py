@@ -1,5 +1,4 @@
 """RabbitMQ adapter for message transport between simulation components."""
-from email.mime import message
 import json
 import threading
 import functools
