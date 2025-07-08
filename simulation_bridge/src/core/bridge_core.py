@@ -14,7 +14,6 @@ from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
-from ..utils.validation import is_valid_dataset_uri
 
 # Constants for RabbitMQ connection parameters
 RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
@@ -163,12 +162,6 @@ class BridgeCore:
             request_id = 'unknown'
         else:
             request_id = simulation.request_id if simulation.request_id else 'unknown'
-        # Validate the dataset URI if provided
-        dataset_uri = simulation.inputs.get('external_dataset',
-                                            {}).get('uri') if simulation.inputs else None
-        if dataset_uri and not is_valid_dataset_uri(dataset_uri):
-            logger.error("Invalid external dataset URI: %s", dataset_uri)
-            return
         producer = kwargs.get('producer', 'unknown')
         consumer = kwargs.get('consumer', 'unknown')
         protocol = kwargs.get('protocol', 'unknown')
