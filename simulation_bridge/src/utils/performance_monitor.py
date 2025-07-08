@@ -127,7 +127,7 @@ class PerformanceMonitor:
 
         if operation_id in self.metrics_by_operation_id:
             logger.warning(
-                "PERFORMANCE - Operation %s è già in corso, skip start_operation",
+                "PERFORMANCE - Operation %s is already in progress, skip start_operation",
                 operation_id
             )
             return
