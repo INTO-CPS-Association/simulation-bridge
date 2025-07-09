@@ -85,7 +85,7 @@ def generate_default_project():
     # Mapping from output filename to importlib resource location
     files_to_generate = {
         'config.yaml': ('simul8_agent.config', 'config.yaml.template'),
-        'SimulationBatch.s8': ('simul8_agent.resources', 'SimulationBatch.s8'),
+        'simulation_batch.s8': ('simul8_agent.resources', 'simulation_batch.s8'),
         'client/use_simul8_agent.py': ('simul8_agent.resources', 'use_simul8_agent.py'),
         'client/use.yaml': ('simul8_agent.resources', 'use.yaml.template'),
         'client/simulation.yaml': ('simul8_agent.api', 'simulation.yaml.template'),
@@ -95,7 +95,7 @@ def generate_default_project():
     # Descriptions for each file
     file_descriptions = {
         'config.yaml': "Configuration file for the simul8 agent",
-        'SimulationBatch.s8':  "A simulation file for simul8",
+        'simulation_batch.s8':  "A simulation file for simul8",
         'client/use_simul8_agent.py': "Python script to use the simul8 agent",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
         'client/simulation.yaml': "Example API payload to communicate with the simul8 agent",
