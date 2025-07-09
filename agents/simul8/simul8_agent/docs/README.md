@@ -1,4 +1,4 @@
-# MATLAB Simulation – Guidelines and Best Practices
+# Simul8 Simulation – Guidelines and Best Practices
 
 ## Batch Simulation
 
@@ -7,90 +7,59 @@ A batch simulation is executed by providing a complete set of input parameters a
 This mode is suitable for scenarios where real-time observation is not required and the focus is on analyzing the final state or aggregated outcomes of the simulation.
 
 ### Batch Requirements
+The inputs must be used via. Visual Logic defined within the simulation.
 
-The simulation logic must reside entirely within the main function, defined at the top level as `simulation()`. This function is responsible for handling both inputs and outputs in the following format:
+The the simulation file used must be configured for this type of invocation. 
+- ``inputSheet``and `outputSheet` must be created manually in the simulation.
+- A "On Simulation Open" visual logic block must be created, which contains: `File to Sheet    "input.csv" ,  inputSheet[1,1]`
+- The data which the simulation manipulates should be put into `outputSheet`
+- A "End Run Logic" Visual Logic Block must be created containing the wanted logic for creating the data which you want exported. Hence it needs to contain `Sheet to File    "output.csv" ,  outputSheet[1,1]
 
-```matlab
-function [output1, output2, output3] = simulation(input1, input2, input3, input4, input5)
-  % Simulation logic here
-end
-```
 
 The order of parameters in the YAML file must align **precisely** with the order of the function arguments. The Simulation Bridge extracts these parameters from the YAML file and passes them directly to the function without any intermediate processing. Each YAML parameter corresponds to a specific function argument, ensuring a direct and automatic binding.
 
 #### Example
-
-Below is an example of a simple simulation function:
-
-```matlab
-function [x_f, y_f, z_f] = simulation(x_i, y_i, z_i, v_x, v_y, v_z, t)
-  x_f = x_i + v_x * t;
-  y_f = y_i + v_y * t;
-  z_f = z_i + v_z * t;
-end
-```
-
+#### Input in simulation.yaml 
 In this example:
 
-- Inputs: `x_i`, `y_i`, `z_i`, `v_x`, `v_y`, `v_z`, `t`
-- Outputs: `x_f`, `y_f`, `z_f`
+- Inputs: 
+columns: [co2, energy]
+    r1: [25, 100]
+    r2: [25, 200]
+- Outputs: 
+total_co2: Total CO2
+total_energy: Total Energy <br>
 
-The names of the inputs and outputs can be customized as needed, provided they follow the required function signature.
+Below is an example of the "On Simulation Open" Visual Logic  :
 
-#### References
+```python
+File to Sheet "input.csv" , inputSheet[1,1]
+``` 
+<br>
 
-For additional guidance, refer to the example files located in the `examples/` folder:
-
-- `simulation_batch_1.m`
-- `simulation_batch.m`
-
-These files provide reference implementations that can help in structuring your simulation logic.
-
-#### Notes
-
-No additional constraints are imposed on the implementation. The function should be designed to meet the specific requirements of the simulation scenario.
-
----
-
-## Streaming Simulation
-
-An Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
-
-### Streaming Requirements
-
-For this type of simulation, you must use the `SimulationWrapper` class, which should be placed in the same folder as the `Simulation.m` file. The `SimulationWrapper.m` handles the TCP/IP connection and communication with the MATLAB agent script.
-
-The simulation logic must be entirely contained within the main function, defined at the top level as `Simulation()`. This function is responsible for managing both inputs and outputs in the following format:
-
-```matlab
-function Simulation()
-  % 🔌 Initialize the wrapper
-  wrapper = SimulationWrapper();
-
-  % Receive input from the MATLAB agent (via JSON)
-  inputs = wrapper.get_inputs();
-
-  % Prepare a dummy output structure (basic example)
-  output_data = struct();
-  output_data.step = 0;
-  output_data.status = "Simulation initialized";
-
-  % Send the output to the MATLAB agent
-  wrapper.send_output(output_data);
-
-  % Final cleanup
-  delete(wrapper);
-end
+Below is an example of visual logic in the "End Run Logic" :
+##### Visual Logic
+```py
+SET outputSheet[1,1]  =  "Total CO2"
+SET outputSheet[2,1]  =  "Total Energy"
+SET outputSheet[1,2]  =  inputSheet[1,2]+inputSheet[1,3]
+SET outputSheet[2,2]  =  inputSheet[2,2]+inputSheet[2,3]
+Sheet to File    "output.csv" ,  outputSheet[1,1]
 ```
 
+
+
+This structure is needed to convert the input data to a csv file.
+
 #### References
 
 For additional guidance, refer to the example files located in the `examples/` folder:
 
-- `simulation_streaming.m`
+- `simulation_batch.s8`
 
-These files provide reference implementations to help you structure your simulation logic.
+This file provide reference implementations that can help in structuring your simulation logic.
 
 #### Notes
 
-No additional files are handled. All data is transmitted exclusively through the TCP socket.
+No additional constraints are imposed on the implementation. The simulation file should be designed to meet the specific requirements of the simulation scenario.
+

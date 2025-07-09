@@ -1,0 +1,14 @@
+simulation:
+  request_id: simul8_1
+  client_id: dt
+  simulator: simul8
+  type: batch
+  file: simulation_batch.s8
+  inputs:
+    run_time: 500
+    columns: [co2, energy]
+    r1: [25, 100]
+    r2: [25, 200]
+  outputs:
+    total_co2: Total CO2
+    total_energy: Total Energy
