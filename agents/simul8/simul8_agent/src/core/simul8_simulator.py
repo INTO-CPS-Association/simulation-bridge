@@ -155,7 +155,11 @@ class Simul8Simulator:
             
             # Change working directory to simulation file directory
             sim_directory = os.path.dirname(self.actual_file_path)
+            logger.info(f"Original working directory: {original_cwd}")
+            logger.info(f"Actual file path: {self.actual_file_path}")
+            logger.info(f"Sim directory: {sim_directory}")
             os.chdir(sim_directory)
+            logger.info(f"Changed working directory to: {os.getcwd()}")
                 
             logger.debug("Opening simulation file: %s", self.actual_file_path)
             logger.info("inputs: %s", inputs)
@@ -273,6 +277,8 @@ class Simul8Simulator:
         
         # Look for the output file in multiple locations
         sim_directory = os.path.dirname(self.actual_file_path)
+        logger.info(f"Looking for output files. Sim directory: {sim_directory}")
+        logger.info(f"Current working directory: {os.getcwd()}")
         
         # Try different file names and locations
         possible_files = [
@@ -288,9 +294,11 @@ class Simul8Simulator:
         
         for filename, directory in possible_files:
             potential_path = os.path.join(directory, filename)
+            logger.debug(f"Checking for output file: {potential_path}")
             
             if os.path.exists(potential_path):
                 output_file_path = potential_path
+                logger.info(f"Found output file: {output_file_path}")
                 break
         
         if not output_file_path:
@@ -388,17 +396,89 @@ class Simul8Simulator:
         # Clean up COM resources
         if self.s8:
             try:
-                self.s8.Close()
-                logger.debug("Closed Simul8 COM object")
-                time.sleep(1)
+                # Try to quit the application properly
+                try:
+                    # First try to close any open simulation
+                    try:
+                        
+                        self.s8.Close()
+                        logger.debug("Closed Simul8 simulation")
+                    except Exception as close_error:
+                        logger.debug(f"Error closing simulation: {str(close_error)}")
+                    
+                    time.sleep(0.5)
+                    
+                except Exception as quit_error:
+                    logger.warning("Error quitting Simul8 application: %s", str(quit_error))
+
+                finally:
+                    try:
+                        del self.s8
+                        logger.debug("Released Simul8 COM object reference")
+                    except Exception as del_error:
+                        logger.warning("Error deleting COM object: %s", str(del_error))
+                    
             except Exception as e:
-                logger.warning("Error closing Simul8: %s", str(e))
+                logger.warning("Error during COM cleanup: %s", str(e))
             finally:
                 self.s8 = None
+                if hasattr(self, 'events'):
+                    self.events = None
     
+        # Uninitialize COM (this should match the CoInitialize call)
         try:
+            # Force garbage collection to release any remaining COM references
+            import gc
+            gc.collect()
+            time.sleep(0.2)
+            
             pythoncom.CoUninitialize()
             logger.debug("COM uninitialized")
         except Exception as e:
             logger.warning("Error uninitializing COM: %s", str(e))
             
+        # As a last resort, if cleanup seems to have failed, try force killing processes
+        # This can be enabled via configuration if needed
+        try:
+            self.force_kill_simul8_processes()
+        except Exception as config_error:
+            logger.debug(f"Could not check force cleanup config: {str(config_error)}")
+            # Optionally, you can uncomment the next line for development/testing:
+            # self.force_kill_simul8_processes()
+    
+    def force_kill_simul8_processes(self) -> None:
+        """Force kill any remaining Simul8 processes as a last resort."""
+        try:
+            import subprocess
+            import psutil
+            
+            # Find and terminate Simul8 processes
+            killed_processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'exe']):
+                try:
+                    # Check for Simul8 executable names (common variations)
+                    proc_name = proc.info['name'].lower()
+                    if any(s8_name in proc_name for s8_name in ['simul8', 's8.exe', 'simul8.exe']):
+                        proc.terminate()
+                        killed_processes.append(proc.info['pid'])
+                        logger.warning(f"Terminated Simul8 process: {proc.info['name']} (PID: {proc.info['pid']})")
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+            
+            if killed_processes:
+                time.sleep(1)  # Give processes time to terminate gracefully
+                
+                # Force kill any that didn't terminate
+                for proc in psutil.process_iter(['pid', 'name']):
+                    try:
+                        if proc.info['pid'] in killed_processes:
+                            if proc.is_running():
+                                proc.kill()
+                                logger.warning(f"Force killed Simul8 process PID: {proc.info['pid']}")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        pass
+                        
+        except ImportError:
+            logger.warning("psutil not available - cannot force kill Simul8 processes")
+        except Exception as e:
+            logger.error(f"Error force killing Simul8 processes: {str(e)}")

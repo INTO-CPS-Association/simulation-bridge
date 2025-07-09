@@ -5,6 +5,7 @@ This module provides functionality to process Simul8 simulation requests receive
 the Connect messaging abstraction layer.
 """
 
+import os
 import sys
 import time
 from typing import Dict, List, Any, Tuple, Optional
@@ -15,7 +16,6 @@ from ..utils.logger import get_logger
 from ..utils.create_response import create_response
 from ..comm.interfaces import IMessageBroker
 from .simul8_simulator import Simul8Simulator, Simul8SimulationError
-from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
 logger = get_logger()
@@ -34,15 +34,12 @@ def handle_batch_simulation(
     logger.debug(f"Starting handle_batch_simulation with msg_dict keys: {list(msg_dict.keys())}")
     
     # Initialize performance monitor
-    performance_monitor = PerformanceMonitor()
     operation_id = msg_dict.get('simulation', {}).get('request_id', 'unknown')
     logger.debug(f"Operation ID: {operation_id}")
-    performance_monitor.start_operation(operation_id)
 
     try:
         logger.debug(f"About to record simul8 start")
-        # Record Simul8 start (update this from matlab_start)
-        performance_monitor.record_matlab_start()  # Change this method name if you have a simul8 equivalent
+        
         
         logger.debug(f"Getting simulation data from message")
         data: Dict[str, Any] = msg_dict.get('simulation', {})
@@ -78,7 +75,6 @@ def handle_batch_simulation(
 
         logger.debug("Simulator created, about to record startup complete")
         # Record startup complete
-        performance_monitor.record_matlab_startup_complete()  # Update method name if needed
                 
     except Exception as e:
         logger.error(f"Exception caught in handle_batch_simulation: {type(e).__name__}: {str(e)}")
@@ -87,9 +83,7 @@ def handle_batch_simulation(
         
         # Now call your error handler
         _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
-    finally:
-        # Stop performance monitoring
-        performance_monitor.complete_operation()
+   
 def _handle_simulation(
     data: Dict[str, Any],
     source: str,
@@ -115,10 +109,10 @@ def _handle_simulation(
         sim.expected_outputs = outputs if outputs else {}
         logger.debug(f"Expected outputs set to: {sim.expected_outputs}")
 
-        _send_progress(message_broker, source, sim_file, 25, response_templates)
+        _send_progress(message_broker, source, sim_file, 0, response_templates)
         
         # Create full file path
-        file_path = f"{path_simulation}/{sim_file}" if path_simulation else sim_file
+        file_path = os.path.join(path_simulation, sim_file) if path_simulation else sim_file
         
         # Run the simulation
         results = sim.run(file_path=file_path, inputs=inputs)
