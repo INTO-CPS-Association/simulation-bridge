@@ -16,10 +16,10 @@ BACKUP_COUNT: int = 3
 
 
 def setup_logger(
-    name: str = 'MATLAB-AGENT',
+    name: str = 'SIMUL8-AGENT',
     level: int = DEFAULT_LOG_LEVEL,
     log_format: str = DEFAULT_LOG_FORMAT,
-    log_file: str = 'logs/matlab-agent.log',
+    log_file: str = 'logs/simul8-agent.log',
     enable_console: bool = True
 ) -> logging.Logger:
     """
@@ -86,7 +86,7 @@ def setup_logger(
     return logger
 
 
-def get_logger(name: str = 'MATLAB-AGENT') -> logging.Logger:
+def get_logger(name: str = 'SIMUL8-AGENT') -> logging.Logger:
     """
     Returns an instance of the already configured logger.
 

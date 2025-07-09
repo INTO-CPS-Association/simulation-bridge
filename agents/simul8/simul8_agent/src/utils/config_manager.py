@@ -1,5 +1,5 @@
 """
-Configuration manager for the MATLAB Agent using Pydantic for validation.
+Configuration manager for the Simul8 Agent using Pydantic for validation.
 """
 
 from pathlib import Path
@@ -27,7 +27,7 @@ class Config(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
     # Agent configuration
-    agent_id: str = Field(default="matlab")
+    agent_id: str = Field(default="simul8")
 
     # RabbitMQ configuration
     rabbitmq_host: str = Field(default="localhost")
@@ -51,16 +51,12 @@ class Config(BaseModel):
 
     # Logging configuration
     log_level: LogLevel = Field(default=LogLevel.INFO)
-    log_file: str = Field(default="logs/matlab_agent.log")
+    log_file: str = Field(default="logs/simul8_agent.log")
 
     # Performance configuration
     performance_enabled: bool = Field(default=False)
     performance_log_dir: str = Field(default="performance_logs")
     performance_log_filename: str = Field(default="performance_metrics.csv")
-
-    # TCP configuration
-    tcp_host: str = Field(default="localhost")
-    tcp_port: int = Field(default=5678)
 
     # Response templates
     # Success template
@@ -69,7 +65,7 @@ class Config(BaseModel):
     success_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
     success_include_metadata: bool = Field(default=True)
     success_metadata_fields: list[str] = Field(
-        default=["execution_time", "memory_usage", "matlab_version"]
+        default=["execution_time", "memory_usage", "simul8_version"]
     )
 
     # Error template
@@ -79,7 +75,7 @@ class Config(BaseModel):
     error_codes: Dict[str, int] = Field(
         default={
             "invalid_config": 400,
-            "matlab_start_failure": 500,
+            "simul8_start_failure": 500,
             "execution_error": 500,
             "timeout": 504,
             "missing_file": 404
@@ -127,10 +123,7 @@ class Config(BaseModel):
                 "log_dir": self.performance_log_dir,
                 "log_filename": self.performance_log_filename
             },
-            "tcp": {
-                "host": self.tcp_host,
-                "port": self.tcp_port
-            },
+            
             "response_templates": {
                 "success": {
                     "status": self.success_status,
@@ -164,7 +157,7 @@ class Config(BaseModel):
 
         # Extract agent section if present
         if agent := config_dict.get("agent", {}):
-            flat_config["agent_id"] = agent.get("agent_id", "matlab")
+            flat_config["agent_id"] = agent.get("agent_id", "simul8")
 
         # Extract rabbitmq section if present
         if rabbitmq := config_dict.get("rabbitmq", {}):
@@ -200,7 +193,7 @@ class Config(BaseModel):
         if logging := config_dict.get("logging", {}):
             flat_config["log_level"] = logging.get("level", LogLevel.INFO)
             flat_config["log_file"] = logging.get(
-                "file", "logs/matlab_agent.log")
+                "file", "logs/simul8_agent.log")
 
         # Extract performance section if present
         if performance := config_dict.get("performance", {}):
@@ -211,11 +204,7 @@ class Config(BaseModel):
             flat_config["performance_log_filename"] = performance.get(
                 "log_filename", "performance_metrics.csv")
 
-        # Extract tcp section if present
-        if tcp := config_dict.get("tcp", {}):
-            flat_config["tcp_host"] = tcp.get("host", "localhost")
-            flat_config["tcp_port"] = tcp.get("port", 5678)
-
+        
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
             # Success template
@@ -232,7 +221,7 @@ class Config(BaseModel):
                 flat_config["success_metadata_fields"] = success.get("metadata_fields",
                                                                      ["execution_time",
                                                                       "memory_usage",
-                                                                      "matlab_version"])
+                                                                      "simul8_version"])
 
             # Error template
             if error := templates.get("error", {}):
@@ -243,7 +232,7 @@ class Config(BaseModel):
                     "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
                 flat_config["error_codes"] = error.get("error_codes", {
                     "invalid_config": 400,
-                    "matlab_start_failure": 500,
+                    "simul8_start_failure": 500,
                     "execution_error": 500,
                     "timeout": 504,
                     "missing_file": 404

@@ -13,7 +13,6 @@ from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.batch import handle_batch_simulation
-from ...core.streaming import handle_streaming_simulation
 
 logger = get_logger()
 
@@ -196,17 +195,6 @@ class MessageHandler(IRabbitMQMessageHandler):
                     self.path_simulation,
                     self.response_templates)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
-            elif sim_type == 'streaming':
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                tcp_settings = self.config.get(
-                    'tcp', {})
-                handle_streaming_simulation(
-                    msg_dict, source,
-                    self.rabbitmq_manager,
-                    self.path_simulation,
-                    self.response_templates,
-                    tcp_settings
-                )
             else:
                 # This shouldn't happen due to Pydantic validation, but just in
                 # case

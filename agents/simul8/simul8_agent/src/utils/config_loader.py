@@ -68,7 +68,7 @@ def load_config(
     if config_path is None:
         try:
             logger.debug("Loading default configuration file")
-            with resources.open_text("matlab_agent.config", "config.yaml.template") as f:
+            with resources.open_text("simul8_agent.config", "config.yaml.template") as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError as exc:
             raise FileNotFoundError(
