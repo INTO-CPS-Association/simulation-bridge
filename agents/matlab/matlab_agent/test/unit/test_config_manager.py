@@ -18,8 +18,8 @@ def mock_config_data():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest",
+            "username": "xxxx",
+            "password": "xxxx",
             "heartbeat": 600
         },
         "exchanges": {
@@ -121,8 +121,8 @@ def test_config_manager_initialization():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest",
+            "username": "xxxx",
+            "password": "xxxx",
             "heartbeat": 600
         },
         "exchanges": {
@@ -212,8 +212,8 @@ def test_validate_config_success():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest",
+            "username": "xxxx",
+            "password": "xxxx",
             "heartbeat": 600
         }
     }

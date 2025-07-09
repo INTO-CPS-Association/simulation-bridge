@@ -16,8 +16,8 @@ def mock_config() -> dict:
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest",
+            "username": "xxxx",
+            "password": "xxxx",
             "heartbeat": 600,
         },
         "exchanges": {

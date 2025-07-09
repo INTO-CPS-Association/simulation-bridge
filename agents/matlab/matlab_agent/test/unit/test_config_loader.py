@@ -26,8 +26,8 @@ def sample_config_dict():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest"
+            "username": "xxxx",
+            "password": "xxxx"
         },
         "nested": {
             "deep": {
@@ -46,8 +46,8 @@ def sample_yaml_content():
     rabbitmq:
       host: "${HOSTNAME:localhost}"
       port: 5672
-      username: "${USERNAME:guest}"
-      password: "${PASSWORD:guest}"
+      username: "${USERNAME:xxxx}"
+      password: "${PASSWORD:xxxx}"
     nested:
       deep:
         value: 42

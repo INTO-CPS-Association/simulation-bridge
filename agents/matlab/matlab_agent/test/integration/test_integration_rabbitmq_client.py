@@ -220,8 +220,8 @@ class IntegrationTest(unittest.TestCase):
             'rabbitmq': {
                 'host': 'localhost',
                 'port': 5672,
-                'username': 'test_user',
-                'password': 'test_pass',
+                'username': 'xxxx',
+                'password': 'xxxx',
                 'vhost': '/test',
                 'heartbeat': 600
             }
