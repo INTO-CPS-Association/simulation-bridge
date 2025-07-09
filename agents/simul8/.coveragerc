@@ -4,8 +4,8 @@ omit =
     */venv/*
     */.venv/*
     */__init__.py
-    */matlab_agent/docs/*
-    */matlab_agent/resources/*
+    */simul8_agent/docs/*
+    */simul8_agent/resources/*
 
 [report]
 exclude_lines =
