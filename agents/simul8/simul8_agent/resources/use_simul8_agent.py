@@ -1,7 +1,7 @@
 """
-use_matlab_agent.py
+use_simul8_agent.py
 
-A simple RabbitMQ client to send simulation requests to a MATLAB agent,
+A simple RabbitMQ client to send simulation requests to a Simul8 agent,
 and listen asynchronously for the simulation results.
 """
 
@@ -164,7 +164,7 @@ class SimpleUsageSimul8Agent:
 
 def start_listener(agent_identifier: str) -> None:
     """
-    Initialize and start the Matlab agent listener in a separate thread.
+    Initialize and start the Simul8 agent listener in a separate thread.
 
     Args:
         agent_identifier (str): Agent identifier for the listener.
