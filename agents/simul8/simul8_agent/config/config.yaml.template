@@ -12,7 +12,7 @@ rabbitmq:
   tls: false
 
 simulation:
-  path: /Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples
+  path: /Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples
 
 exchanges:
   input: ex.bridge.output # Exchange to receive commands from
@@ -24,7 +24,7 @@ queue:
 
 logging:
   level: INFO # Log level (DEBUG, INFO, ERROR)
-  file: logs/matlab_agent.log
+  file: logs/simul8_agent.log
 
 performance:
   enabled: false  # Enable/disable performance monitoring
@@ -45,14 +45,14 @@ response_templates:
     metadata_fields:
       - execution_time
       - memory_usage
-      - matlab_version
+      - simul8_version
 
   error:
     status: error
     include_stacktrace: false # For security, don't include full stack traces in production
     error_codes:
       invalid_config: 400
-      matlab_start_failure: 500
+      simul8_start_failure: 500
       execution_error: 500
       timeout: 504
       missing_file: 404
