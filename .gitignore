@@ -195,6 +195,8 @@ agents/matlab/dist/
 **/resources/*.yml
 **/matlab/*.yaml
 **/matlab/*.yml
+**/simul8/*.yml
+**/simul8/*.yaml
 config*.yaml
 simulation*.yaml
 *.csv
@@ -204,6 +206,7 @@ interactive.py
 # SIMUL8 agent
 agents/simul8/client
 agents/simul8/logs
+
 #SIMULATION BRIDGE 
 /logs
 /certs
