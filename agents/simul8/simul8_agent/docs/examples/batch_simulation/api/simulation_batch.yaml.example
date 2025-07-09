@@ -1,5 +1,5 @@
 simulation:
-  request_id: simul8_1
+  request_id: abcd1234
   client_id: dt
   simulator: simul8
   type: batch

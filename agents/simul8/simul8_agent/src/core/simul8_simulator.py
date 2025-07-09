@@ -115,7 +115,6 @@ class Simul8Simulator:
                 n = 1
                 logger.debug("Total results count: %d", simulation.s8.ResultsCount)
                 while n <= simulation.s8.ResultsCount:
-                    print(simulation.s8.Results(n))
                     # try:
                     result = simulation.s8.Results(n)
                     #     simulation.results[result.Name] = result.Value
@@ -134,9 +133,7 @@ class Simul8Simulator:
         if self.s8 is None:
             self.start()
         
-        print(f"inputs: {inputs}")
-        print(f"inputs type: {type(inputs)}")
-        
+       
         # Reset results
         self.results = {}
         self.listen_for_messages = True
@@ -155,14 +152,14 @@ class Simul8Simulator:
             
             # Change working directory to simulation file directory
             sim_directory = os.path.dirname(self.actual_file_path)
-            logger.info(f"Original working directory: {original_cwd}")
-            logger.info(f"Actual file path: {self.actual_file_path}")
-            logger.info(f"Sim directory: {sim_directory}")
+            logger.debug(f"Original working directory: {original_cwd}")
+            logger.debug(f"Actual file path: {self.actual_file_path}")
+            logger.debug(f"Sim directory: {sim_directory}")
             os.chdir(sim_directory)
-            logger.info(f"Changed working directory to: {os.getcwd()}")
+            logger.debug(f"Changed working directory to: {os.getcwd()}")
                 
             logger.debug("Opening simulation file: %s", self.actual_file_path)
-            logger.info("inputs: %s", inputs)
+            logger.debug("inputs: %s", inputs)
             
             # Set input parameters if provided
             self._set_simulation_inputs(inputs)
@@ -267,7 +264,6 @@ class Simul8Simulator:
             
         except Exception as e:
             logger.error(f"Failed to create input file: {str(e)}", exc_info=True)
-            print(f"ERROR: Exception in _set_simulation_inputs: {str(e)}")
             raise Simul8SimulationError(f"Error creating input file: {str(e)}")
     def _collect_simulation_results(self) -> None:
         """
@@ -277,8 +273,8 @@ class Simul8Simulator:
         
         # Look for the output file in multiple locations
         sim_directory = os.path.dirname(self.actual_file_path)
-        logger.info(f"Looking for output files. Sim directory: {sim_directory}")
-        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.debug(f"Looking for output files. Sim directory: {sim_directory}")
+        logger.debug(f"Current working directory: {os.getcwd()}")
         
         # Try different file names and locations
         possible_files = [
@@ -298,7 +294,7 @@ class Simul8Simulator:
             
             if os.path.exists(potential_path):
                 output_file_path = potential_path
-                logger.info(f"Found output file: {output_file_path}")
+                logger.debug(f"Found output file: {output_file_path}")
                 break
         
         if not output_file_path:
@@ -309,7 +305,7 @@ class Simul8Simulator:
             return
         
         try:
-            logger.info(f"Reading results from: {output_file_path}")
+            logger.debug(f"Reading results from: {output_file_path}")
             
             # Read and display the raw file content
             with open(output_file_path, 'r') as f:
@@ -339,7 +335,6 @@ class Simul8Simulator:
                     else:
                         output_mapping[csv_header] = csv_header
                         
-                    print(f"DEBUG: Final output mapping: {output_mapping}")
             else:
                 output_mapping = {} 
             # Parse the CSV file with header-based approach
@@ -359,7 +354,6 @@ class Simul8Simulator:
                 
         except Exception as e:
             logger.error(f"Failed to read output file: {str(e)}")
-            print(f"ERROR: Failed to parse output file: {str(e)}")
             self.results['error'] = f"Error reading results: {str(e)}"
     def get_metadata(self) -> Dict[str, Any]:
         """Get metadata about the simulation execution."""

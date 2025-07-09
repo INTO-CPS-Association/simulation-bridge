@@ -148,7 +148,6 @@ class MessageHandler(IRabbitMQMessageHandler):
                 logger.debug("Message validation successful")
                 # Access the validated data
                 simulation_data = payload.simulation
-                print(simulation_data)
                 sim_type = simulation_data.type
                 sim_file = simulation_data.file
                 bridge_meta = simulation_data.bridge_meta or 'unknown'
