@@ -232,7 +232,7 @@ def test_controller_start_success(
     args = mock_rabbit_client.send_result.call_args[0]
     assert len(args) >= 2
     success_data = args[1]
-    assert success_data['status'] == 'completed'
+    assert success_data['status'] == 'Simulation Started'
     assert 'metadata' in success_data
     assert 'simulation' in success_data
     assert success_data['simulation']['type'] == 'streaming'
