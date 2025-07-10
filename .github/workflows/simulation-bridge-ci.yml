@@ -31,7 +31,7 @@ jobs:
       - name: Add Poetry to PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        run: echo "${{ runner.temp }}\poetry\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -64,7 +64,7 @@ jobs:
       - name: Add Poetry to PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        run: echo "${{ runner.temp }}\poetry\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -101,7 +101,7 @@ jobs:
       - name: Add Poetry to PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        run: echo "${{ runner.temp }}\poetry\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -165,7 +165,7 @@ jobs:
       - name: Add Poetry to PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        run: echo "${{ runner.temp }}\poetry\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install runtime deps
         run: poetry install --only main
