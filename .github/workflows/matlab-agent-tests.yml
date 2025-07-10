@@ -1,26 +1,23 @@
 name: MATLAB Agent Tests
 
 on:
-  push:
-    paths:
-      - "agents/matlab/**"
-      - ".github/workflows/matlab-agent-tests.yml"
   pull_request:
     paths:
       - "agents/matlab/**"
+      - ".github/workflows/matlab-agent-tests.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: agents/matlab # directory del progetto Poetry
+        working-directory: agents/matlab
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
@@ -31,13 +28,26 @@ jobs:
           curl -sSL https://install.python-poetry.org | python -
         env:
           POETRY_HOME: ${{ runner.temp }}/poetry
+
       - name: Add Poetry to PATH
         run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies (dev incluse)
+      - name: Install dependencies (dev included)
         run: poetry install --with dev
 
-      - name: Run pytest (unit + integration) con coverage
+      - name: Inject dummy matlab.engine stub (CI only)
+        run: |
+          python - <<'PY'
+          import types, sys
+          # Create empty 'matlab' and 'matlab.engine' modules
+          matlab_mod = types.ModuleType("matlab")
+          engine_mod = types.ModuleType("matlab.engine")
+          matlab_mod.engine = engine_mod
+          sys.modules["matlab"] = matlab_mod
+          sys.modules["matlab.engine"] = engine_mod
+          PY
+
+      - name: Run pytest (unit + integration) with coverage
         run: poetry run pytest
 
       - name: Upload coverage to Codecov

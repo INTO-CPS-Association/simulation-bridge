@@ -1,6 +1,6 @@
 name: Simulation Bridge Lint (pylint & autopep8)
 
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   lint:
