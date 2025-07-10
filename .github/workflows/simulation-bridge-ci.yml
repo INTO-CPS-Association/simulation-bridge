@@ -7,7 +7,6 @@ on:
       - ".github/workflows/simulation-bridge-ci.yml"
 
 jobs:
-  # ─────────────── 1. Formatting (autopep8) ───────────────
   format:
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +32,6 @@ jobs:
       - name: Check formatting (non-blocking)
         run: poetry run autopep8 --recursive --diff simulation_bridge
 
-  # ───────────────── 2. Lint (pylint) ──────────────────
   lint:
     needs: format
     runs-on: ubuntu-latest
@@ -95,7 +93,6 @@ jobs:
       - name: Install dev dependencies
         run: poetry install --with dev
 
-      # ---- Ubuntu runner: tests con coverage da pytest.ini ----
       - name: Run pytest with coverage (Ubuntu)
         if: runner.os == 'Linux'
         run: poetry run pytest
@@ -108,12 +105,10 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      # ---- Windows/Mac runners: test senza coverage ----
       - name: Run pytest (no coverage)
         if: runner.os != 'Linux'
         run: poetry run pytest -q
 
-  # ──────── 4. Build wheel + sdist & upload artefatti ────────
   build:
     needs: test
     runs-on: ubuntu-latest
