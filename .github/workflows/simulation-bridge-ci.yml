@@ -7,19 +7,17 @@ on:
       - ".github/workflows/simulation-bridge-ci.yml"
 
 jobs:
-  # ────────────────────────── 1. Formatting (autopep8) ──────────────────────────
+# ────────────────────────── 1. Formatting (autopep8) ──────────────────────────
   format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Poetry
-        env:
-          POETRY_HOME: ${{ runner.temp }}/poetry
+        env: { POETRY_HOME: ${{ runner.temp }}/poetry }
         run: |
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
@@ -39,20 +37,18 @@ jobs:
       - name: Check formatting (non-blocking)
         run: poetry run autopep8 --recursive --diff simulation_bridge
 
-  # ───────────────────────────── 2. Lint (pylint) ───────────────────────────────
+# ───────────────────────────── 2. Lint (pylint) ───────────────────────────────
   lint:
     needs: format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Poetry
-        env:
-          POETRY_HOME: ${{ runner.temp }}/poetry
+        env: { POETRY_HOME: ${{ runner.temp }}/poetry }
         run: |
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
@@ -69,10 +65,10 @@ jobs:
       - name: Install dev deps
         run: poetry install --with dev
 
-      - name: Run pylint (threshold 8.0)
+      - name: Run pylint (≥ 8.0)
         run: poetry run pylint simulation_bridge --fail-under=8
 
-  # ─────────────────── 3. Tests (matrix on 3 OS) + coverage xml ──────────────────
+# ─────────────────── 3. Tests (matrix) + per-OS coverage db ────────────────────
   test:
     needs: lint
     runs-on: ${{ matrix.os }}
@@ -82,14 +78,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Poetry
-        env:
-          POETRY_HOME: ${{ runner.temp }}/poetry
+        env: { POETRY_HOME: ${{ runner.temp }}/poetry }
         run: |
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
@@ -106,16 +100,21 @@ jobs:
       - name: Install dev deps
         run: poetry install --with dev
 
-      - name: Run pytest + coverage
-        run: poetry run pytest --cov=simulation_bridge --cov-report=xml
+      - name: Run tests & create coverage db + xml
+        run: |
+          poetry run coverage run -m pytest
+          mv .coverage ".coverage.${{ matrix.os }}"
+          poetry run coverage xml -o coverage.xml
 
-      - name: Upload coverage file (per-OS)
+      - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.os }}
-          path: coverage.xml
+          path: |
+            .coverage.${{ matrix.os }}
+            coverage.xml
 
-  # ───────────────────── 4. Merge coverage & send to Codecov ─────────────────────
+# ─────────────────── 4. Merge coverage & upload to Codecov ────────────────────
   coverage:
     needs: test
     runs-on: ubuntu-latest
@@ -127,10 +126,11 @@ jobs:
         with:
           path: coverages
 
-      - name: Combine xml files
+      - name: Combine coverage databases
         run: |
           python -m pip install coverage
-          coverage combine coverages/**/coverage.xml
+          find coverages -name ".coverage.*" -exec mv {} . \;
+          coverage combine
           coverage xml -o coverage.xml
 
       - name: Upload to Codecov
@@ -140,20 +140,18 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # ────────────────── 5. Build wheel/zip & upload as artifacts ───────────────────
+# ───────────────── 5. Build wheel/sdist & upload artifacts ────────────────────
   build:
     needs: coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install Poetry
-        env:
-          POETRY_HOME: ${{ runner.temp }}/poetry
+        env: { POETRY_HOME: ${{ runner.temp }}/poetry }
         run: |
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
