@@ -141,4 +141,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: simulation-bridge-dist
-          path: dist/*.whl,dist/*.tar.gz
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
