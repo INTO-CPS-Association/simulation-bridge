@@ -24,8 +24,14 @@ jobs:
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
 
-      - name: Add Poetry to PATH
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
         run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -51,8 +57,14 @@ jobs:
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
 
-      - name: Add Poetry to PATH
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
         run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -82,8 +94,14 @@ jobs:
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
 
-      - name: Add Poetry to PATH
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
         run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install dev deps
         run: poetry install --with dev
@@ -140,8 +158,14 @@ jobs:
           python -m pip install -U pip
           curl -sSL https://install.python-poetry.org | python -
 
-      - name: Add Poetry to PATH
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
         run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "$env:POETRY_HOME\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
 
       - name: Install runtime deps
         run: poetry install --only main
