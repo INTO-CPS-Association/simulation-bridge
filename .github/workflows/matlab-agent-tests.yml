@@ -3,11 +3,11 @@ name: MATLAB Agent Tests
 on:
   push:
     paths:
-      - "agent/matlab/**"
+      - "agents/matlab/**"
       - ".github/workflows/matlab-agent-tests.yml"
   pull_request:
     paths:
-      - "agent/matlab/**"
+      - "agents/matlab/**"
 
 jobs:
   test:

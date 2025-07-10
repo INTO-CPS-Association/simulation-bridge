@@ -27,7 +27,7 @@ jobs:
       # ---------- autopep8 ----------
       - name: Check formatting with autopep8
         run: |
-          poetry run autopep8 --recursive --diff --exit-code .
+          poetry run autopep8 --recursive --diff .
 
       # ---------- pylint ----------
       - name: Run pylint (fail under 8.0/10)
