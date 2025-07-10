@@ -1,0 +1,98 @@
+name: MATLAB Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "agents/matlab/**"
+      - ".github/workflows/matlab-agent-ci.yml"
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    # All commands run inside the agent directory
+    defaults:
+      run:
+        working-directory: agents/matlab
+
+    steps:
+      # ───── 1. Checkout ─────
+      - uses: actions/checkout@v4
+
+      # ───── 2. Python + Poetry ─────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        env:
+          POETRY_HOME: ${{ runner.temp }}/poetry
+        run: |
+          python -m pip install --upgrade pip
+          curl -sSL https://install.python-poetry.org | python -
+
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "${{ runner.temp }}\poetry\bin" |
+          Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
+      # ───── 3. Install dev deps once ─────
+      - name: Install dev dependencies
+        run: poetry install --with dev
+
+      # ───── 4. Format check (non-blocking, Linux only) ─────
+      - name: Check formatting (non-blocking)
+        if: matrix.os == 'ubuntu-latest'
+        continue-on-error: true
+        run: poetry run autopep8 --recursive --diff matlab_agent
+
+      # ───── 5. Lint (Linux only) ─────
+      - name: Run pylint (min score 8.0)
+        if: matrix.os == 'ubuntu-latest'
+        run: poetry run pylint matlab_agent --fail-under=8
+
+      # ───── 6. Tests ─────
+      # - name: Run pytest with coverage (Linux)
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: poetry run pytest
+
+      # - name: Upload coverage to Codecov
+      #   if: matrix.os == 'ubuntu-latest'
+      #   uses: codecov/codecov-action@v5
+      #   with:
+      #     files: coverage.xml
+      #     fail_ci_if_error: true
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+
+      # - name: Run pytest (no coverage)
+      #   if: matrix.os != 'ubuntu-latest'
+      #   run: poetry run pytest -q
+
+      # ───── 7. Build + dist artefacts (Linux only) ─────
+      - name: Install runtime dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: poetry install --only main
+
+      - name: Build wheel and sdist
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          poetry build --format wheel
+          poetry build --format sdist
+
+      - name: Upload dist artefacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: matlab-agent-dist
+          path: |
+            agents/matlab/dist/*.whl
+            agents/matlab/dist/*.tar.gz
+          retention-days: 1 # minimum allowed (≈24 h)
