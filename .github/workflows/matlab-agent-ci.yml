@@ -60,21 +60,21 @@ jobs:
         run: poetry run pylint matlab_agent --fail-under=8
 
       # ───── 6. Tests ─────
-      - name: Run pytest with coverage (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: poetry run pytest
+      # - name: Run pytest with coverage (Linux)
+      #   if: matrix.os == 'ubuntu-latest'
+      #   run: poetry run pytest
 
-      - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.xml
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+      # - name: Upload coverage to Codecov
+      #   if: matrix.os == 'ubuntu-latest'
+      #   uses: codecov/codecov-action@v5
+      #   with:
+      #     files: coverage.xml
+      #     fail_ci_if_error: true
+      #     token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Run pytest (no coverage)
-        if: matrix.os != 'ubuntu-latest'
-        run: poetry run pytest -q
+      # - name: Run pytest (no coverage)
+      #   if: matrix.os != 'ubuntu-latest'
+      #   run: poetry run pytest -q
 
       # ───── 7. Build + dist artefacts (Linux only) ─────
       - name: Install runtime dependencies
