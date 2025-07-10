@@ -207,6 +207,7 @@ interactive.py
 *.pem
 *_use.yaml
 client/
+client_ripetitive/
 dist/
 .venv*
 certs
