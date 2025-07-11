@@ -50,12 +50,10 @@ jobs:
 
       # ───── 5. Lint ─────
       - name: Run pylint (min score 9.0)
-        if: matrix.os == 'ubuntu-latest'
         run: poetry run pylint simulation_bridge --fail-under=9
 
       # ───── 6. Tests ─────
-      - name: Run pytest with coverage (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Run pytest with coverage
         run: poetry run pytest
 
       - name: Upload coverage to Codecov
@@ -65,9 +63,6 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Run pytest (no coverage)
-        run: poetry run pytest -q
 
       # ───── 7. Build + dist artefacts ─────
       - name: Install runtime dependencies
