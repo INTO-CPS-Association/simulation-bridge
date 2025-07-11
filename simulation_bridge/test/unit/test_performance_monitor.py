@@ -74,8 +74,8 @@ def test_start_operation_creates_metric(monitor_enabled):
     monitor_enabled.start_operation(
         op_id, client_id="c1", protocol="rest", simulation_type="batch")
 
-    assert op_id in monitor_enabled.metrics_by_operation_id
-    metric = monitor_enabled.metrics_by_operation_id[op_id]
+    metric = monitor_enabled.get_metric(op_id)
+    assert metric is not None
     assert metric.operation_id == op_id
     assert metric.timestamp > 0
     assert metric.client_id == "c1"
@@ -90,10 +90,12 @@ def test_record_timestamps_update_fields(monitor_enabled):
 
     with patch("time.time", return_value=1234.5):
         monitor_enabled.record_core_received_input(op_id)
-        assert monitor_enabled.metrics_by_operation_id[op_id].core_received_input_time == pytest.approx(1234.5)
+        metric = monitor_enabled.get_metric(op_id)
+        assert metric and metric.core_received_input_time == pytest.approx(1234.5)
 
         monitor_enabled.record_core_sent_input(op_id)
-        assert monitor_enabled.metrics_by_operation_id[op_id].core_sent_input_time == pytest.approx(1234.5)
+        metric = monitor_enabled.get_metric(op_id)
+        assert metric and metric.core_sent_input_time == pytest.approx(1234.5)
 
 
 def test_record_core_received_result_appends_time_and_updates_metrics(monitor_enabled):
@@ -105,7 +107,7 @@ def test_record_core_received_result_appends_time_and_updates_metrics(monitor_en
         patch.object(monitor_enabled, "_update_system_metrics") as mock_update,
     ):
         monitor_enabled.record_core_received_result(op_id)
-        metric = monitor_enabled.metrics_by_operation_id[op_id]
+        metric = monitor_enabled.get_metric(op_id)
         assert metric.result_times[-1] == pytest.approx(1000.0)
         mock_update.assert_called_once_with(metric)
 
@@ -114,7 +116,7 @@ def test_finalize_operation_calculates_metrics_and_saves(monitor_enabled):
     op_id = "op4"
     monitor_enabled.start_operation(
         op_id, client_id="c1", protocol="rest", simulation_type="batch")
-    metric = monitor_enabled.metrics_by_operation_id[op_id]
+    metric = monitor_enabled.get_metric(op_id)
 
     metric.request_received_time = 1.0
     metric.core_sent_input_time = 2.0
@@ -128,7 +130,7 @@ def test_finalize_operation_calculates_metrics_and_saves(monitor_enabled):
     ):
         monitor_enabled.finalize_operation(op_id)
 
-        assert op_id not in monitor_enabled.metrics_by_operation_id
+        assert monitor_enabled.get_metric(op_id) is None
         assert metric.total_duration == pytest.approx(9.0, abs=0.1)
         assert metric.input_overhead == pytest.approx(1.0, abs=0.1)
         assert metric.total_overheads == [2.0, 2.0, 2.0]
@@ -146,5 +148,5 @@ def test_disabled_monitor_skips_methods(monitor_disabled):
     monitor_disabled.record_core_received_result(op_id)
     monitor_disabled.finalize_operation(op_id)
 
-    assert op_id not in monitor_disabled.metrics_by_operation_id
-    assert len(monitor_disabled.metrics_history) == 0
+    assert monitor_disabled.get_metric(op_id) is None
+    assert len(monitor_disabled.history) == 0
