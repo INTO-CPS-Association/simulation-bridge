@@ -63,7 +63,8 @@ def test_initialization_creates_dir_and_file(tmp_path, config_enabled):
         PerformanceMonitor._instance = None
         PerformanceMonitor._initialized = False
 
-        monitor = PerformanceMonitor(config_enabled) # pylint: disable=unused-variable
+        monitor = PerformanceMonitor(
+            config_enabled)  # pylint: disable=unused-variable
 
         mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
         mock_file.assert_called()
@@ -91,14 +92,16 @@ def test_record_timestamps_update_fields(monitor_enabled):
     with patch("time.time", return_value=1234.5):
         monitor_enabled.record_core_received_input(op_id)
         metric = monitor_enabled.get_metric(op_id)
-        assert metric and metric.core_received_input_time == pytest.approx(1234.5)
+        assert metric and metric.core_received_input_time == pytest.approx(
+            1234.5)
 
         monitor_enabled.record_core_sent_input(op_id)
         metric = monitor_enabled.get_metric(op_id)
         assert metric and metric.core_sent_input_time == pytest.approx(1234.5)
 
 
-def test_record_core_received_result_appends_time_and_updates_metrics(monitor_enabled):
+def test_record_core_received_result_appends_time_and_updates_metrics(
+        monitor_enabled):
     op_id = "op3"
     monitor_enabled.start_operation(
         op_id, client_id="c1", protocol="rest", simulation_type="batch")
@@ -137,6 +140,7 @@ def test_finalize_operation_calculates_metrics_and_saves(monitor_enabled):
 
         mock_save.assert_called_once_with(metric)
         mock_update.assert_called()
+
 
 def test_disabled_monitor_skips_methods(monitor_disabled):
     op_id = "op_disabled"
