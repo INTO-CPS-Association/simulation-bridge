@@ -144,7 +144,14 @@ class RabbitMQAdapter(ProtocolAdapter):
                 operation_id = message.get(
                     'simulation', {}).get(
                     'request_id', 'unknown')
-                performance_monitor.start_operation(operation_id)
+                simulation_type = message.get(
+                    'simulation', {}).get('type', 'unknown')
+                performance_monitor.start_operation(
+                    operation_id,
+                    client_id=producer,
+                    protocol='rabbitmq',
+                    simulation_type=simulation_type
+                )
             elif queue_name == 'Q.bridge.result':
                 operation_id = message.get('request_id', 'unknown')
                 performance_monitor.record_core_received_result(operation_id)

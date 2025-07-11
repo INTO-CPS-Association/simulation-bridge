@@ -16,7 +16,10 @@ logger = get_logger()
 
 @dataclass
 class PerformanceMetrics:
+    client_id: str
+    client_protocol: str
     operation_id: str
+    simulation_type: str
     timestamp: float
     request_received_time: float
     core_received_input_time: float
@@ -30,7 +33,6 @@ class PerformanceMetrics:
     input_overhead: float = 0.0
     output_overheads: List[float] = field(default_factory=list)
     total_overheads: List[float] = field(default_factory=list)
-
 
 class PerformanceMonitor:
     _instance: Optional[PerformanceMonitor] = None
@@ -82,8 +84,11 @@ class PerformanceMonitor:
             with self.csv_path.open("w", newline="", encoding="utf-8") as fh:
                 writer = csv.writer(fh)
                 writer.writerow([
-                    "Operation ID",
                     "Timestamp",
+                    "Client ID",
+                    "Client Protocol",
+                    "Operation ID",
+                    "Simulation Type",
                     "Request Received Time",
                     "Core Received Input Time",
                     "Core Sent Input Time",
@@ -111,13 +116,18 @@ class PerformanceMonitor:
     def _is_valid_operation(self, operation_id: str) -> bool:
         return self.enabled and operation_id in self.metrics_by_operation_id
 
-    def start_operation(self, operation_id: str) -> None:
+    def start_operation(self, operation_id: str, client_id: str = "unknown",
+                        protocol: str = "unknown",
+                        simulation_type: str = "unknown") -> None:
         if not self.enabled or operation_id in self.metrics_by_operation_id:
             return
 
         now = time.time()
         self.metrics_by_operation_id[operation_id] = PerformanceMetrics(
+            client_id=client_id,
+            client_protocol=protocol,
             operation_id=operation_id,
+            simulation_type=simulation_type,
             timestamp=now,
             request_received_time=now,
             core_received_input_time=0.0,
@@ -186,8 +196,11 @@ class PerformanceMonitor:
             with self.csv_path.open("a", newline="", encoding="utf-8") as fh:
                 writer = csv.writer(fh)
                 writer.writerow([
-                    metric.operation_id,
                     metric.timestamp,
+                    metric.client_id,
+                    metric.client_protocol,
+                    metric.operation_id,
+                    metric.simulation_type,
                     metric.request_received_time,
                     metric.core_received_input_time,
                     metric.core_sent_input_time,

@@ -71,17 +71,22 @@ def test_initialization_creates_dir_and_file(tmp_path, config_enabled):
 
 def test_start_operation_creates_metric(monitor_enabled):
     op_id = "op1"
-    monitor_enabled.start_operation(op_id)
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch")
 
     assert op_id in monitor_enabled.metrics_by_operation_id
     metric = monitor_enabled.metrics_by_operation_id[op_id]
     assert metric.operation_id == op_id
     assert metric.timestamp > 0
+    assert metric.client_id == "c1"
+    assert metric.client_protocol == "rest"
+    assert metric.simulation_type == "batch"
 
 
 def test_record_timestamps_update_fields(monitor_enabled):
     op_id = "op2"
-    monitor_enabled.start_operation(op_id)
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch")
 
     with patch("time.time", return_value=1234.5):
         monitor_enabled.record_core_received_input(op_id)
@@ -93,7 +98,8 @@ def test_record_timestamps_update_fields(monitor_enabled):
 
 def test_record_core_received_result_appends_time_and_updates_metrics(monitor_enabled):
     op_id = "op3"
-    monitor_enabled.start_operation(op_id)
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch")
     with (
         patch("time.time", return_value=1000.0),
         patch.object(monitor_enabled, "_update_system_metrics") as mock_update,
@@ -106,7 +112,8 @@ def test_record_core_received_result_appends_time_and_updates_metrics(monitor_en
 
 def test_finalize_operation_calculates_metrics_and_saves(monitor_enabled):
     op_id = "op4"
-    monitor_enabled.start_operation(op_id)
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch")
     metric = monitor_enabled.metrics_by_operation_id[op_id]
 
     metric.request_received_time = 1.0
@@ -131,7 +138,8 @@ def test_finalize_operation_calculates_metrics_and_saves(monitor_enabled):
 
 def test_disabled_monitor_skips_methods(monitor_disabled):
     op_id = "op_disabled"
-    monitor_disabled.start_operation(op_id)
+    monitor_disabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch")
     monitor_disabled.record_core_received_input(op_id)
     monitor_disabled.record_core_sent_input(op_id)
     monitor_disabled.record_result_sent(op_id)

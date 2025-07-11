@@ -72,7 +72,13 @@ class RESTAdapter(ProtocolAdapter):
                 'consumer': consumer
             }
 
-            performance_monitor.start_operation(operation_id)
+            simulation_type = simulation.get('type', 'unknown')
+            performance_monitor.start_operation(
+                operation_id,
+                client_id=producer,
+                protocol='rest',
+                simulation_type=simulation_type
+            )
 
             signal('message_received_input_rest').send(
                 message=message,

@@ -144,7 +144,13 @@ class MQTTAdapter(ProtocolAdapter):
                 "MQTT - Processing message %s, from producer: %s, simulator: %s",
                 message, producer, consumer)
 
-            performance_monitor.start_operation(operation_id)
+            simulation_type = simulation.get('type', 'unknown')
+            performance_monitor.start_operation(
+                operation_id,
+                client_id=producer,
+                protocol='mqtt',
+                simulation_type=simulation_type
+            )
 
             # Send signal directly
             signal('message_received_input_mqtt').send(
