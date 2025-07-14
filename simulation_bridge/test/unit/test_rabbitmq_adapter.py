@@ -11,12 +11,12 @@ from simulation_bridge.src.protocol_adapters.rabbitmq import rabbitmq_adapter
 
 
 @pytest.fixture
-def config_manager_mock():
+def config_manager_mock(dummy_credentials):
     """Mocked ConfigManager providing RabbitMQ configuration."""
     mock_cfg = mock.MagicMock()
     mock_cfg.get_rabbitmq_config.return_value = {
-        'username': 'user',
-        'password': 'pass',
+        'username': dummy_credentials['user']['username'],
+        'password': dummy_credentials['user']['password'],
         'host': 'localhost',
         'port': 5672,
         'vhost': '/',

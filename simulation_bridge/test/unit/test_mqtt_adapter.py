@@ -10,7 +10,7 @@ from simulation_bridge.src.protocol_adapters.mqtt import mqtt_adapter
 
 
 @pytest.fixture
-def config_mock():
+def config_mock(dummy_credentials):
     """Fixture for MQTT configuration."""
     return {
         'host': 'localhost',
@@ -18,8 +18,8 @@ def config_mock():
         'keepalive': 60,
         'input_topic': 'test/input',
         'output_topic': 'test/output',
-        'username': 'user',
-        'password': 'pass',
+        'username': dummy_credentials['user']['username'],
+        'password': dummy_credentials['user']['password'],
         'qos': 1
     }
 

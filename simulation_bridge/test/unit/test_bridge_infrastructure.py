@@ -14,11 +14,11 @@ from simulation_bridge.src.core import bridge_infrastructure
 
 
 @pytest.fixture
-def config_fixture():
+def config_fixture(dummy_credentials):
     """Returns a mock config manager with valid RabbitMQ config."""
     config = {
-        'username': 'user',
-        'password': 'pass',
+        'username': dummy_credentials['user']['username'],
+        'password': dummy_credentials['user']['password'],
         'host': 'localhost',
         'port': 5672,
         'vhost': '/',
