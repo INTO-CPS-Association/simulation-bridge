@@ -154,7 +154,6 @@ class RabbitMQAdapter(ProtocolAdapter):
                 )
             elif queue_name == 'Q.bridge.result':
                 operation_id = message.get('request_id', 'unknown')
-                performance_monitor.record_core_received_result(operation_id)
                 bridge_meta = message.get('bridge_meta', {})
                 if isinstance(bridge_meta, str):
                     if bridge_meta.strip().startswith('{'):
@@ -169,6 +168,8 @@ class RabbitMQAdapter(ProtocolAdapter):
                                      bridge_meta)
                         bridge_meta = {}
                 protocol = bridge_meta.get('protocol', 'unknown')
+                performance_monitor.record_core_received_result(
+                    operation_id, protocol)
                 destinations = message.get('destinations', [])
                 producer = destinations[0] if destinations else 'unknown'
                 consumer = message.get('source', 'unknown')
