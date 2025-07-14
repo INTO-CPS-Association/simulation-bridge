@@ -53,6 +53,8 @@ Requests must follow the standard simulation schema:
 ```python
 from simulation_bridge import InMemorySimulation  # Import the in-memory adapter
 import time  # Import time module for sleep functionality
+from pathlib import Path # Import Path for file operations
+import yaml # Import YAML for configuration loading
 
 completed = False  # Global flag to track simulation completion
 
@@ -64,19 +66,9 @@ def handle_result(msg):  # Callback function to process simulation results
 
 sim = InMemorySimulation("config.yaml")  # Create simulation instance with config
 
-sim.send({  # Send simulation request with message payload
-    "simulation": {
-        "request_id": "abcdef123455",  # Unique request identifier
-        "client_id": "dt",  # Client identification string
-        "simulator": "matlab",  # Target simulator type
-        "type": "batch",  # Execution type specification
-        "file": "SimulationBatch.m",  # Simulation file to execute
-        "timestamp": "2024-01-01T00:00:00Z",  # Optional timestamp
-        "timeout": 600,  # Optional timeout in seconds
-        "inputs": {"x_i": 10, "y_i": 9, "z_i": 0, "v_x": 1, "v_y": 14, "v_z": 3, "t": 10},  # Input parameters
-        "outputs": {"x_f": "Final x", "y_f": "Final y", "z_f": "Final z"}  # Expected output structure
-    }
-}, handle_result)  # Register callback function for results
+data = yaml.safe_load(Path("simulation.yaml").read_text(encoding=YAML_ENCODING)) # Load simulation data from YAML file
+
+sim.send(data, handle_result)  # Register callback function for results
 
 print("Simulation sent. Waiting...")  # Status message
 try:  # Begin exception handling block

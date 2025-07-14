@@ -10,11 +10,18 @@ import yaml
 from simulation_bridge import InMemorySimulation
 
 
-def load_config(config_path: str = "inmemory_use.yaml") -> Dict[str, Any]:
+DEFAULT_CONFIG_PATH: str = "inmemory_use.yaml"   # CLI / script config file
+DEFAULT_YAML_FILE: str = "../simulation.yaml"   # Simulation request to send
+YAML_ENCODING: str = "utf-8"                # File-I/O charset
+SLEEP_INTERVAL: float = 0.1                  # Polling delay (seconds)
+COMPLETED_STATUS: str = "completed"            # Result status key
+
+
+def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
     """Load YAML configuration file."""
     try:
-        with open(config_path, "r", encoding="utf-8") as file:
-            return yaml.safe_load(file)
+        with open(config_path, "r", encoding=YAML_ENCODING) as fh:
+            return yaml.safe_load(fh)
     except FileNotFoundError:
         print(f"Error: Configuration file '{config_path}' not found.")
         sys.exit(1)
@@ -27,14 +34,14 @@ class InMemoryClient:
     """Simple client using :class:`InMemorySimulation`."""
 
     def __init__(self, config: Dict[str, Any]):
-        self.yaml_file = config.get("yaml_file", "../simulation.yaml")
+        self.yaml_file: str = config.get("yaml_file", DEFAULT_YAML_FILE)
         bridge_cfg = config.get("bridge_config")
         self.simulation = InMemorySimulation(bridge_cfg)
         self._completed = False
 
     def _callback(self, message: Dict[str, Any]) -> None:
         print(f"Received: {message}")
-        if message.get("status") == "completed":
+        if message.get("status") == COMPLETED_STATUS:
             self._completed = True
             self.simulation.stop()
 
@@ -43,15 +50,17 @@ class InMemoryClient:
             data = yaml.safe_load(
                 Path(
                     self.yaml_file).read_text(
-                    encoding="utf-8"))
+                    encoding=YAML_ENCODING))
         except FileNotFoundError:
             print(f"Error: YAML file not found at '{self.yaml_file}'")
             sys.exit(1)
+
         self.simulation.send(data, self._callback)
-        print("Simulation request sent. Waiting for results... (Ctrl+C to quit)")
+        print("Simulation request sent. Waiting for results… (Ctrl+C to quit)")
+
         try:
             while not self._completed:
-                time.sleep(0.1)
+                time.sleep(SLEEP_INTERVAL)
         except KeyboardInterrupt:
             self.simulation.stop()
 
