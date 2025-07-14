@@ -24,12 +24,15 @@ RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
 
 logger = get_logger()
 
+
 def datetime_serializer(obj):
     if isinstance(obj, datetime):
         return obj.isoformat()  # It converts datetime to ISO 8601 string format
     raise TypeError(f"Type {obj.__class__.__name__} not serializable")
 
 # Pydantic models for message validation
+
+
 class SimulationModel(BaseModel):
     "Represents the details of a simulation request."
     request_id: str

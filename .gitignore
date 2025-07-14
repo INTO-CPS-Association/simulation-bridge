@@ -212,3 +212,5 @@ dist/
 certs
 performance_log/
 performance/
+client_ripetitive/
+performance_old/

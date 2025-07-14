@@ -176,6 +176,7 @@ class TestHandleInputMessage:
         patch_basic_publish.assert_called_once()
         mock_logger.info.assert_called_once()
 
+
 class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
     "Tests for handling result messages from RabbitMQ and other protocols."""
 
