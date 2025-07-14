@@ -8,7 +8,9 @@ import pandas as pd
 
 DEFAULT_INPUT  = Path("../performance_log/performance_metrics.csv")
 DEFAULT_OUTPUT = Path("overhead_summary.csv")
-
+AVG_INPUT_OVERHEAD  = "Avg Input Overhead"
+AVG_OUTPUT_OVERHEAD = "Avg Output Overhead"
+AVG_TOTAL_OVERHEAD  = "Avg Total Overhead"
 
 def parse_and_average(cell: str | float | int | pd.NA) -> float | np.float64:
     """
@@ -55,9 +57,9 @@ def main() -> None:
         raise KeyError(f"Missing columns in CSV: {', '.join(sorted(missing))}")
 
     # Convert the three overhead columns to milliseconds (average per row)
-    df["Avg Input Overhead"]   = df["Input Overhead"].apply(parse_and_average)
-    df["Avg Output Overhead"]  = df["Output Overheads"].apply(parse_and_average)
-    df["Avg Total Overhead"]   = df["Total Overheads"].apply(parse_and_average)
+    df[AVG_INPUT_OVERHEAD]   = df["Input Overhead"].apply(parse_and_average)
+    df[AVG_OUTPUT_OVERHEAD]  = df["Output Overheads"].apply(parse_and_average)
+    df[AVG_TOTAL_OVERHEAD]   = df["Total Overheads"].apply(parse_and_average)
 
     # Group by Client Protocol + Simulation Type and calculate statistics
     groups = df.groupby(["Client Protocol", "Simulation Type"])
@@ -65,31 +67,31 @@ def main() -> None:
     summary = groups.agg(
         # Input Overhead
         Input_Median = pd.NamedAgg(
-            column="Avg Input Overhead", aggfunc="median"),
+            column=AVG_INPUT_OVERHEAD, aggfunc="median"),
         Input_StdDev = pd.NamedAgg(
-            column="Avg Input Overhead", aggfunc="std"),
+            column=AVG_INPUT_OVERHEAD, aggfunc="std"),
         Input_Pct5  = pd.NamedAgg(
-            column="Avg Input Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 5)),
+            column=AVG_INPUT_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 5)),
         Input_Pct95 = pd.NamedAgg(
-            column="Avg Input Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 95)),
+            column=AVG_INPUT_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 95)),
         # Output Overhead
         Output_Median = pd.NamedAgg(
-            column="Avg Output Overhead", aggfunc="median"),
+            column=AVG_OUTPUT_OVERHEAD, aggfunc="median"),
         Output_StdDev = pd.NamedAgg(
-            column="Avg Output Overhead", aggfunc="std"),
+            column=AVG_OUTPUT_OVERHEAD, aggfunc="std"),
         Output_Pct5  = pd.NamedAgg(
-            column="Avg Output Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 5)),
+            column=AVG_OUTPUT_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 5)),
         Output_Pct95 = pd.NamedAgg(
-            column="Avg Output Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 95)),
+            column=AVG_OUTPUT_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 95)),
         # Total Overhead
         Total_Median = pd.NamedAgg(
-            column="Avg Total Overhead", aggfunc="median"),
+            column=AVG_TOTAL_OVERHEAD, aggfunc="median"),
         Total_StdDev = pd.NamedAgg(
-            column="Avg Total Overhead", aggfunc="std"),
+            column=AVG_TOTAL_OVERHEAD, aggfunc="std"),
         Total_Pct5  = pd.NamedAgg(
-            column="Avg Total Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 5)),
+            column=AVG_TOTAL_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 5)),
         Total_Pct95 = pd.NamedAgg(
-            column="Avg Total Overhead", aggfunc=lambda x: np.percentile(x.dropna(), 95)),
+            column=AVG_TOTAL_OVERHEAD, aggfunc=lambda x: np.percentile(x.dropna(), 95)),
     ).reset_index()
 
     summary.to_csv(args.output, index=False)
