@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 
 
-# Default paths (modify as needed from CLI with -i / -o)
-DEFAULT_INPUT  = Path("../performance_log/performance_metrics_v5.csv")
+DEFAULT_INPUT  = Path("../performance_log/performance_metrics.csv")
 DEFAULT_OUTPUT = Path("overhead_summary.csv")
 
 
@@ -41,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     df = pd.read_csv(args.input)
-    df.columns = df.columns.str.strip()          # Remove spaces from column names
+    df.columns = df.columns.str.strip()          # Remove spaces in column names
 
     # Check that required columns exist
     required_cols = {
