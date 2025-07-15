@@ -14,6 +14,7 @@ except ImportError:
 CONFIG_FILENAME = 'config.yaml'
 CONFIG_TEMPLATE_FILENAME = 'config.yaml.template'
 CONFIG_PATH = 'simulation_bridge.config'
+INMEMORY_RESOURCES_PATH = 'simulation_bridge.resources.inmemory'
 
 
 def copy_resource(package, resource, target_path):
@@ -123,11 +124,11 @@ def get_files_to_generate():
                                       'rest_use.yaml.template'),
         'client/rest/requirements.txt': ('simulation_bridge.resources.rest',
                                          'requirements.txt'),
-        'client/inmemory/inmemory_client.py': ('simulation_bridge.resources.inmemory',
+        'client/inmemory/inmemory_client.py': (INMEMORY_RESOURCES_PATH,
                                                'inmemory_client.py'),
-        'client/inmemory/inmemory_use.yaml': ('simulation_bridge.resources.inmemory',
+        'client/inmemory/inmemory_use.yaml': (INMEMORY_RESOURCES_PATH,
                                               'inmemory_use.yaml.template'),
-        'client/inmemory/requirements.txt': ('simulation_bridge.resources.inmemory',
+        'client/inmemory/requirements.txt': (INMEMORY_RESOURCES_PATH,
                                              'requirements.txt'),
         'client/README.md': ('simulation_bridge.resources',
                              'README.md'),
