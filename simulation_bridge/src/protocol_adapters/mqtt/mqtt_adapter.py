@@ -138,13 +138,12 @@ class MQTTAdapter(ProtocolAdapter):
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
             operation_id = simulation.get('request_id', 'unknown')
-
+            simulation_type = simulation.get('type', 'unknown')
             # Process message directly - no need for queuing
             logger.debug(
                 "MQTT - Processing message %s, from producer: %s, simulator: %s",
                 message, producer, consumer)
 
-            simulation_type = simulation.get('type', 'unknown')
             performance_monitor.start_operation(
                 operation_id,
                 client_id=producer,
@@ -228,6 +227,11 @@ class MQTTAdapter(ProtocolAdapter):
             # Initialize performance monitor
             performance_monitor = PerformanceMonitor()
             operation_id = message.get('request_id', 'unknown')
+            destinations = message.get('destinations', [])
+            producer = destinations[0] if destinations else 'unknown'
+            simulation_type = message.get(
+                'simulation', {}).get(
+                'type', 'unknown')
             output_topic = self.mqtt_config['output_topic']
             self.mqtt_client.publish(
                 topic=output_topic,
@@ -237,9 +241,11 @@ class MQTTAdapter(ProtocolAdapter):
             logger.debug(
                 "Message published to MQTT topic '%s': %s", output_topic, message)
             status = message.get('status', 'unknown')
-            performance_monitor.record_result_sent(operation_id, 'mqtt')
+            performance_monitor.record_result_sent(
+                operation_id, 'mqtt', producer, simulation_type)
             if status == 'completed':
-                performance_monitor.finalize_operation(operation_id, 'mqtt')
+                performance_monitor.finalize_operation(
+                    operation_id, 'mqtt', producer, simulation_type)
         except (ConnectionError, TimeoutError) as e:
             logger.error("Error publishing MQTT message: %s", e)
 

@@ -3,6 +3,7 @@ from pathlib import Path
 import yaml
 import pytest
 
+
 @pytest.fixture(scope="session")
 def dummy_credentials():
     """Load dummy credentials for tests from YAML file."""

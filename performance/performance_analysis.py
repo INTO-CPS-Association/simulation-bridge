@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 
-DEFAULT_INPUT  = Path("../performance_log/performance_metrics.csv")
+DEFAULT_INPUT  = Path("../performance_log/performance_metrics_test.csv")
 DEFAULT_OUTPUT = Path("overhead_summary.csv")
 AVG_INPUT_OVERHEAD  = "Avg Input Overhead"
 AVG_OUTPUT_OVERHEAD = "Avg Output Overhead"

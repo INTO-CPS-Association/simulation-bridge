@@ -13,7 +13,21 @@ from .logger import get_logger
 
 logger = get_logger()
 
-# pylint: disable=too-many-instance-attributes,too-many-arguments,too-many-locals,too-many-public-methods, broad-exception-caught
+# pylint: disable=too-many-instance-attributes,too-many-arguments, too-many-positional-arguments
+# pylint: disable=too-many-locals,too-many-public-methods,broad-exception-caught
+
+# (operation_id, protocol, client_id, simulation_type)
+KeyT = Tuple[str, str, str, str]
+
+
+def _make_key(
+    operation_id: str,
+    protocol: str,
+    client_id: str,
+    simulation_type: str,
+) -> KeyT:
+    """Helper to build the extended key consistently."""
+    return operation_id, protocol, client_id, simulation_type
 
 
 @dataclass
@@ -43,13 +57,14 @@ class _Paths:
     """Internal storage for output paths."""
     output_dir: Path = Path("performance_logs")
     csv_path: Path = field(
-        default_factory=lambda: Path("performance_logs/performance_metrics.csv"))
+        default_factory=lambda: Path("performance_logs/performance_metrics.csv")
+    )
 
 
 @dataclass
 class _RuntimeState:
     """Internal runtime state for the monitor."""
-    metrics_by_operation_id: Dict[Tuple[str, str], PerformanceMetrics] = field(
+    metrics_by_operation_id: Dict[KeyT, PerformanceMetrics] = field(
         default_factory=dict)
     metrics_history: List[PerformanceMetrics] = field(default_factory=list)
     process: Optional[psutil.Process] = None
@@ -64,10 +79,10 @@ class EventType(Enum):
 
 
 class PerformanceMonitor:
-    _instance: Optional[PerformanceMonitor] = None
+    _instance: Optional["PerformanceMonitor"] = None
     _initialized: bool = False
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, *args, **kwargs):  # noqa: D401  (simple returns)
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
@@ -94,7 +109,7 @@ class PerformanceMonitor:
                 if not self.paths.csv_path.exists():
                     self._write_csv_headers()
                 logger.debug("PERFORMANCE - Logging to %s", self.paths.csv_path)
-            except Exception as exc:
+            except Exception as exc:  # pragma: no cover
                 logger.error(
                     "Failed to initialize performance monitoring: %s", exc)
                 self._enabled = False
@@ -105,18 +120,33 @@ class PerformanceMonitor:
 
     @property
     def enabled(self) -> bool:
-        """Return whether performance monitoring is active."""
         return self._enabled
 
     @property
     def history(self) -> List[PerformanceMetrics]:
-        """Return the list of completed metrics."""
         return list(self._state.metrics_history)
 
-    def get_metric(self, operation_id: str,
-                   protocol: str) -> Optional[PerformanceMetrics]:
-        """Return metrics for an ongoing operation."""
-        return self._state.metrics_by_operation_id.get((operation_id, protocol))
+    def get_metric(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> Optional[PerformanceMetrics]:
+        return self._state.metrics_by_operation_id.get(
+            _make_key(operation_id, protocol, client_id, simulation_type)
+        )
+
+    def _is_valid_operation(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> bool:
+        return self._enabled and _make_key(
+            operation_id, protocol, client_id, simulation_type
+        ) in self._state.metrics_by_operation_id
 
     def _write_csv_headers(self) -> None:
         if not self._enabled:
@@ -145,29 +175,24 @@ class PerformanceMonitor:
                     "Output Overheads",
                     "Total Overheads",
                 ])
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             logger.error("Failed to write CSV headers: %s", exc)
             self._enabled = False
 
     def _update_system_metrics(self, metric: PerformanceMetrics) -> None:
         if self._state.process:
             metric.cpu_percent = self._state.process.cpu_percent()
-            metric.memory_rss_mb = (
-                self._state.process.memory_info().rss / (1024 * 1024)
-            )
-
-    def _is_valid_operation(self, operation_id: str, protocol: str) -> bool:
-        return self._enabled and (
-            operation_id, protocol) in self._state.metrics_by_operation_id
+            metric.memory_rss_mb = self._state.process.memory_info().rss / (1024 * 1024)
 
     def start_operation(
         self,
         operation_id: str,
+        *,
         client_id: str = "unknown",
         protocol: str = "unknown",
         simulation_type: str = "unknown",
     ) -> None:
-        key = (operation_id, protocol)
+        key = _make_key(operation_id, protocol, client_id, simulation_type)
         if not self._enabled or key in self._state.metrics_by_operation_id:
             return
 
@@ -184,30 +209,64 @@ class PerformanceMonitor:
         )
 
     def record_core_received_input(
-            self, operation_id: str, protocol: str) -> None:
-        self.record_event(operation_id, protocol, EventType.CORE_RECEIVED_INPUT)
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> None:
+        self.record_event(
+            operation_id, protocol, client_id, simulation_type, EventType.CORE_RECEIVED_INPUT
+        )
 
-    def record_core_sent_input(self, operation_id: str, protocol: str) -> None:
-        self.record_event(operation_id, protocol, EventType.CORE_SENT_INPUT)
+    def record_core_sent_input(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> None:
+        self.record_event(
+            operation_id, protocol, client_id, simulation_type, EventType.CORE_SENT_INPUT
+        )
 
     def record_core_received_result(
-            self, operation_id: str, protocol: str) -> None:
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> None:
         self.record_event(
-            operation_id,
-            protocol,
-            EventType.CORE_RECEIVED_RESULT)
+            operation_id, protocol, client_id, simulation_type, EventType.CORE_RECEIVED_RESULT
+        )
 
-    def record_result_sent(self, operation_id: str, protocol: str) -> None:
-        self.record_event(operation_id, protocol, EventType.RESULT_SENT)
+    def record_result_sent(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> None:
+        self.record_event(
+            operation_id, protocol, client_id, simulation_type, EventType.RESULT_SENT
+        )
 
-    def record_event(self, operation_id: str, protocol: str,
-                     event: EventType) -> None:
-        """Generic event recorder used by the specialized methods."""
-        if not self._is_valid_operation(operation_id, protocol):
+    def record_event(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+        event: EventType,
+    ) -> None:
+        if not self._is_valid_operation(
+                operation_id, protocol, client_id, simulation_type):
             return
 
+        key = _make_key(operation_id, protocol, client_id, simulation_type)
         now = time.time()
-        metric = self._state.metrics_by_operation_id[(operation_id, protocol)]
+        metric = self._state.metrics_by_operation_id[key]
 
         if event == EventType.CORE_RECEIVED_INPUT:
             metric.core_received_input_time = now
@@ -222,34 +281,48 @@ class PerformanceMonitor:
 
         self._update_system_metrics(metric)
 
-    def finalize_operation(self, operation_id: str, protocol: str) -> None:
-        if not self._is_valid_operation(operation_id, protocol):
+    def finalize_operation(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+    ) -> None:
+        if not self._is_valid_operation(
+                operation_id, protocol, client_id, simulation_type):
             return
-        metric = self._state.metrics_by_operation_id.pop(
-            (operation_id, protocol))
+
+        key = _make_key(operation_id, protocol, client_id, simulation_type)
+        metric = self._state.metrics_by_operation_id.pop(key)
+
         metric.result_completed_time = time.time()
         metric.total_duration = metric.result_completed_time - metric.request_received_time
         if metric.core_sent_input_time:
             metric.input_overhead = metric.core_sent_input_time - metric.request_received_time
+
         metric.total_overheads = [
             metric.input_overhead +
             o for o in metric.output_overheads]
+
         self._update_system_metrics(metric)
         self._state.metrics_history.append(metric)
         self._save_metrics_to_csv(metric)
 
-    def _update_timestamp(self, operation_id: str,
-                          protocol: str, field_name: str) -> None:
-        if not self._is_valid_operation(operation_id, protocol):
+    def _update_timestamp(
+        self,
+        operation_id: str,
+        protocol: str,
+        client_id: str,
+        simulation_type: str,
+        field_name: str,
+    ) -> None:
+        if not self._is_valid_operation(
+                operation_id, protocol, client_id, simulation_type):
             return
+        key = _make_key(operation_id, protocol, client_id, simulation_type)
         now = time.time()
-        setattr(
-            self._state.metrics_by_operation_id[(operation_id, protocol)],
-            field_name,
-            now)
-        self._update_system_metrics(
-            self._state.metrics_by_operation_id[(operation_id, protocol)]
-        )
+        setattr(self._state.metrics_by_operation_id[key], field_name, now)
+        self._update_system_metrics(self._state.metrics_by_operation_id[key])
 
     def _save_metrics_to_csv(self, metric: PerformanceMetrics) -> None:
         if not self._enabled:
@@ -286,7 +359,7 @@ class PerformanceMonitor:
                     ";".join(f"{v:.6f}" for v in metric.output_overheads),
                     ";".join(f"{v:.6f}" for v in metric.total_overheads),
                 ])
-        except Exception as exc:
+        except Exception as exc:  # pragma: no cover
             logger.error(
                 "Failed to save metrics for %s: %s",
                 metric.operation_id,

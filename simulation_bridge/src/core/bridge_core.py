@@ -142,11 +142,15 @@ class BridgeCore:
         # Initialize performance monitor
         performance_monitor = PerformanceMonitor()
         message_dict = kwargs.get('message', {})
+        producer = kwargs.get('producer', 'unknown')
+        simulation_type = message_dict.get(
+            'simulation', {}).get('type', 'unknown')
         protocol = kwargs.get('protocol', 'unknown')
         operation_id = message_dict.get(
             'simulation', {}).get(
             'request_id', 'unknown')
-        performance_monitor.record_core_received_input(operation_id, protocol)
+        performance_monitor.record_core_received_input(
+            operation_id, protocol, producer, simulation_type)
         try:
             message = MessageModel.model_validate(message_dict)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -177,6 +181,9 @@ class BridgeCore:
         # Initialize performance monitor
         performance_monitor = PerformanceMonitor()
         message = kwargs.get('message', {})
+        destinations = message.get('destinations', [])
+        destination = destinations[0] if destinations else 'unknown'
+        simulation_type = message.get('simulation', {}).get('type', 'unknown')
         producer = message.get('source', 'unknown')
         consumer = "result"
         operation_id = message.get('request_id', 'unknown')
@@ -188,9 +195,11 @@ class BridgeCore:
             protocol='rabbitmq',
             operation_id=operation_id)
         status = message.get('status', 'unknown')
-        performance_monitor.record_result_sent(operation_id, 'rabbitmq')
+        performance_monitor.record_result_sent(
+            operation_id, 'rabbitmq', destination, simulation_type)
         if status == 'completed':
-            performance_monitor.finalize_operation(operation_id, 'rabbitmq')
+            performance_monitor.finalize_operation(
+                operation_id, 'rabbitmq', destination, simulation_type)
 
     def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
@@ -222,7 +231,7 @@ class BridgeCore:
 
         # Initialize performance monitor
         performance_monitor = PerformanceMonitor()
-
+        simulation_type = message.get('simulation', {}).get('type', 'unknown')
         routing_key = f"{producer}.{consumer}"
         message['simulation']['bridge_meta'] = {
             'protocol': protocol
@@ -242,7 +251,7 @@ class BridgeCore:
             # Record sent input time in performance monitor
             if exchange == 'ex.bridge.output':
                 performance_monitor.record_core_sent_input(
-                    operation_id, protocol)
+                    operation_id, protocol, producer, simulation_type)
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError) as e:
             logger.error("RabbitMQ connection error: %s", e)
