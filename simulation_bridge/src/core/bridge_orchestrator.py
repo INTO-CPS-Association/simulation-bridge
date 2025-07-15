@@ -31,7 +31,7 @@ class BridgeOrchestrator:
         """
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.get_config()
-        PerformanceMonitor(config=self.config)
+        self.performance_monitor = PerformanceMonitor(config=self.config)
         self.simulation_bridge_id = self.config['simulation_bridge']['bridge_id']
         logger.info("Simulation bridge ID: %s", self.simulation_bridge_id)
         # Validate and ensure SSL certificates are present

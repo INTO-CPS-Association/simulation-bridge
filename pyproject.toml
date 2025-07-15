@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "simulation-bridge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Simulation Bridge"
 authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 license = "ICAPL"

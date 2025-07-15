@@ -7,15 +7,15 @@ from simulation_bridge.src.core import bridge_orchestrator
 
 
 @pytest.fixture
-def mock_config():
+def mock_config(dummy_credentials):
     """Mock base configuration with complete RabbitMQ fields."""
     return {
         'simulation_bridge': {'bridge_id': 'bridge-123'},
         'rabbitmq': {
             'host': 'localhost',
             'port': 5672,
-            'username': 'guest',
-            'password': 'guest',
+            'username': dummy_credentials['guest']['username'],
+            'password': dummy_credentials['guest']['password'],
             'vhost': '/',
             'exchange': 'sim_exchange',
         }

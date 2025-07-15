@@ -207,11 +207,10 @@ interactive.py
 *.pem
 *_use.yaml
 client/
+client_ripetitive/
 dist/
 .venv*
 certs
 performance_log/
-performance/
-client_ripetitive/
 performance_old/
 MagicMock/

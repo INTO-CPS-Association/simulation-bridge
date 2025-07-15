@@ -21,7 +21,7 @@ from simulation_bridge.src.utils.certs import CertificateGenerator, ensure_certi
 
 
 @pytest.fixture
-def mock_config_manager():
+def mock_config_manager(dummy_credentials):
     """Mock configuration manager fixture."""
     mock = MagicMock()
     mock.get_config.return_value = {
@@ -29,8 +29,8 @@ def mock_config_manager():
         'rabbitmq': {
             'host': 'localhost',
             'port': 5672,
-            'username': 'guest',
-            'password': 'guest',
+            'username': dummy_credentials['guest']['username'],
+            'password': dummy_credentials['guest']['password'],
             'vhost': '/',
             'infrastructure': {
                 'exchanges': [],

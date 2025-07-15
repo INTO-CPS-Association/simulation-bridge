@@ -144,10 +144,21 @@ class RabbitMQAdapter(ProtocolAdapter):
                 operation_id = message.get(
                     'simulation', {}).get(
                     'request_id', 'unknown')
-                performance_monitor.start_operation(operation_id)
+                simulation_type = message.get(
+                    'simulation', {}).get('type', 'unknown')
+                performance_monitor.start_operation(
+                    operation_id,
+                    client_id=producer,
+                    protocol='rabbitmq',
+                    simulation_type=simulation_type
+                )
             elif queue_name == 'Q.bridge.result':
                 operation_id = message.get('request_id', 'unknown')
-                performance_monitor.record_core_received_result(operation_id)
+                destinations = message.get('destinations', [])
+                producer = destinations[0] if destinations else 'unknown'
+                simulation_type = message.get(
+                    'simulation', {}).get(
+                    'type', 'unknown')
                 bridge_meta = message.get('bridge_meta', {})
                 if isinstance(bridge_meta, str):
                     if bridge_meta.strip().startswith('{'):
@@ -162,8 +173,8 @@ class RabbitMQAdapter(ProtocolAdapter):
                                      bridge_meta)
                         bridge_meta = {}
                 protocol = bridge_meta.get('protocol', 'unknown')
-                destinations = message.get('destinations', [])
-                producer = destinations[0] if destinations else 'unknown'
+                performance_monitor.record_core_received_result(
+                    operation_id, protocol, producer, simulation_type)
                 consumer = message.get('source', 'unknown')
                 kwargs = {
                     "message": message,

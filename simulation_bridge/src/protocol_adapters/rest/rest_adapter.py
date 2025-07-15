@@ -55,7 +55,9 @@ class RESTAdapter(ProtocolAdapter):
         async def handle_streaming_message() -> Response:
             try:
                 jwt_payload = self._extract_jwt_payload(request)
-                logger.debug("REST - JWT verified for sub=%s", jwt_payload["sub"])
+                logger.debug(
+                    "REST - JWT verified for sub=%s",
+                    jwt_payload["sub"])
             except ValueError as exc:
                 logger.warning("REST - JWT verification failed: %s", exc)
                 return Response(
@@ -85,6 +87,7 @@ class RESTAdapter(ProtocolAdapter):
                     content_type='application/json'
                 )
 
+            # Initialize performance monitor
             performance_monitor = PerformanceMonitor()
 
             simulation = message.get('simulation', {})
@@ -100,7 +103,13 @@ class RESTAdapter(ProtocolAdapter):
                 'jwt_iss': jwt_payload.get("iss"),
             }
 
-            performance_monitor.start_operation(operation_id)
+            simulation_type = simulation.get('type', 'unknown')
+            performance_monitor.start_operation(
+                operation_id,
+                client_id=producer,
+                protocol='rest',
+                simulation_type=simulation_type
+            )
 
             signal('message_received_input_rest').send(
                 message=message,
@@ -246,12 +255,17 @@ class RESTAdapter(ProtocolAdapter):
             performance_monitor = PerformanceMonitor()
             message = kwargs.get('message', {})
             operation_id = message.get('request_id', 'unknown')
+            simulation_type = message.get(
+                'simulation', {}).get(
+                'type', 'unknown')
             destination = message.get('destinations', [])[0]
             self.send_result_sync(destination, message)
             status = message.get('status', 'unknown')
-            performance_monitor.record_result_sent(operation_id)
+            performance_monitor.record_result_sent(
+                operation_id, 'rest', destination, simulation_type)
             if status == 'completed':
-                performance_monitor.finalize_operation(operation_id)
+                performance_monitor.finalize_operation(
+                    operation_id, 'rest', destination, simulation_type)
             logger.debug(
                 "Successfully scheduled result message for REST client: %s",
                 destination)
