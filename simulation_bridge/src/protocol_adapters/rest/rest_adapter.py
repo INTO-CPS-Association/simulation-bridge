@@ -34,25 +34,28 @@ class RESTAdapter(ProtocolAdapter):
         logger.debug("REST - Adapter initialized with config: host=%s, port=%s",
                      self.config['host'], self.config['port'])
 
+    def _extract_jwt_payload(self, req) -> Dict[str, Any]:
+        """Read Authorization header, verify JWT and return payload.
+
+        Raises:
+            ValueError: if the token is missing, malformed or invalid.
+        """
+        auth_header = req.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise ValueError("Missing Bearer token")
+
+        token = auth_header.split(" ", 1)[1]
+        return self._verify_jwt(token)
+
     def _create_app(self) -> Quart:
         """Factory method to create and configure the Quart app."""
         app = Quart("simulation_rest_adapter")
 
         @app.post(self.config['endpoint'])
         async def handle_streaming_message() -> Response:
-            auth_header = request.headers.get("Authorization", "")
-            if not auth_header.startswith("Bearer "):
-                return Response(
-                    response=json.dumps({"error": "Missing Bearer token"}),
-                    status=401,
-                    content_type="application/json",
-                )
-            token = auth_header.split(" ", 1)[1]
             try:
-                jwt_payload = self._verify_jwt(token)
-                logger.debug(
-                    "REST - JWT verified for sub=%s",
-                    jwt_payload["sub"])
+                jwt_payload = self._extract_jwt_payload(request)
+                logger.debug("REST - JWT verified for sub=%s", jwt_payload["sub"])
             except ValueError as exc:
                 logger.warning("REST - JWT verification failed: %s", exc)
                 return Response(
