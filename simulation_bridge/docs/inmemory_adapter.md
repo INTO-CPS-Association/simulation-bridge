@@ -51,7 +51,7 @@ Requests must follow the standard simulation schema:
 ## Usage Example
 
 ```python
-from simulation_bridge import InMemorySimulation  # Import the in-memory adapter
+from simulation_bridge import SimulationBridge  # Import the in-memory adapter
 import time  # Import time module for sleep functionality
 from pathlib import Path # Import Path for file operations
 import yaml # Import YAML for configuration loading
@@ -64,7 +64,7 @@ def handle_result(msg):  # Callback function to process simulation results
     if msg.get("status") == "completed":  # Check if simulation is complete
         completed = True  # Set completion flag
 
-sim = InMemorySimulation("config.yaml")  # Create simulation instance with config
+sim = SimulationBridge("config.yaml")  # Create simulation instance with config
 
 data = yaml.safe_load(Path("simulation.yaml").read_text(encoding=YAML_ENCODING)) # Load simulation data from YAML file
 

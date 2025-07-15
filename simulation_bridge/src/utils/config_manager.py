@@ -92,8 +92,8 @@ class RESTConfig(BaseModel):
     port: int
     endpoint: str
     debug: bool
-    certfile: Optional[str]
-    keyfile: Optional[str]
+    certfile: str
+    keyfile: str
     jwt: Optional[JWTConfig]
 
 

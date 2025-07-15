@@ -1,2 +1,2 @@
 yaml_file: ../simulation.yaml
-bridge_config: ../../config/config.yaml
+bridge_config: ../../config.yaml
