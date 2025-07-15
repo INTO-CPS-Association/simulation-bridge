@@ -16,12 +16,14 @@ def config_manager_mock(dummy_credentials):
     """Mocked ConfigManager providing RabbitMQ configuration."""
     mock_cfg = mock.MagicMock()
     mock_cfg.get_rabbitmq_config.return_value = {
-        'username': dummy_credentials['user']['username'],
-        'password': dummy_credentials['user']['password'],
-        'host': 'localhost',
-        'port': 5672,
-        'vhost': '/',
-        'infrastructure': {'queues': [{'name': 'Q.bridge.input'}, {'name': 'Q.bridge.result'}]}
+        "username": dummy_credentials["user"]["username"],
+        "password": dummy_credentials["user"]["password"],
+        "host": "localhost",
+        "port": 5672,
+        "vhost": "/",
+        "infrastructure": {
+            "queues": [{"name": "Q.bridge.input"}, {"name": "Q.bridge.result"}]
+        },
     }
     return mock_cfg
 
@@ -56,14 +58,13 @@ class TestRabbitMQAdapterInit:
             self, config_manager_mock, pika_connection_mock):
         """RabbitMQAdapter should subscribe to queues defined in config."""
         _conn_mock, chan_mock = pika_connection_mock
-        adapter = rabbitmq_adapter.RabbitMQAdapter(   # pylint: disable=unused-variable
-            config_manager_mock)
+        rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
         # Should call basic_consume for each queue
         assert chan_mock.basic_consume.call_count == 2
-        calls = [call.kwargs['queue']
+        calls = [call.kwargs["queue"]
                  for call in chan_mock.basic_consume.call_args_list]
-        assert 'Q.bridge.input' in calls
-        assert 'Q.bridge.result' in calls
+        assert "Q.bridge.input" in calls
+        assert "Q.bridge.result" in calls
 
     def test_init_logger_debug_called(
             self, config_manager_mock, pika_connection_mock):
@@ -89,7 +90,7 @@ class TestProcessMessage:
         ch = mock.MagicMock()
         method = mock.MagicMock()
         body = b"simulation:\n  client_id: test\n  simulator: sim"
-        adapter._process_message(ch, method, None, body, 'Q.bridge.input')
+        adapter._process_message(ch, method, None, body, "Q.bridge.input")
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
     def test_process_message_json_success(self, adapter):
@@ -98,16 +99,15 @@ class TestProcessMessage:
         method = mock.MagicMock()
         body = json.dumps(
             {"simulation": {"client_id": "client", "simulator": "sim"}}).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.input')
+        adapter._process_message(ch, method, None, body, "Q.bridge.input")
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
     def test_process_message_raw_fallback(self, adapter):
         """Process raw message fallback and ack message."""
         ch = mock.MagicMock()
         method = mock.MagicMock()
-        # Unparsable YAML/JSON
-        body = b"not: valid: yaml"
-        adapter._process_message(ch, method, None, body, 'Q.bridge.input')
+        body = b"not: valid: yaml"  # Unparsable YAML/JSON
+        adapter._process_message(ch, method, None, body, "Q.bridge.input")
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
     def test_process_message_non_dict_raises_nack(self, adapter):
@@ -116,7 +116,7 @@ class TestProcessMessage:
         method = mock.MagicMock()
         body = b"[]"
         with mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
-            adapter._process_message(ch, method, None, body, 'Q.bridge.input')
+            adapter._process_message(ch, method, None, body, "Q.bridge.input")
             ch.basic_nack.assert_called_once_with(
                 delivery_tag=method.delivery_tag, requeue=False)
             log_error.assert_called_once()
@@ -126,13 +126,10 @@ class TestProcessMessage:
         """Malformed JSON in bridge_meta logs warning but does not raise."""
         ch = mock.MagicMock()
         method = mock.MagicMock()
-        msg = {
-            "simulation": {},
-            "bridge_meta": "{not:json}"
-        }
+        msg = {"simulation": {}, "bridge_meta": "{not:json}"}
         body = json.dumps(msg).encode()
         with mock.patch.object(rabbitmq_adapter.logger, "warning") as log_warn:
-            adapter._process_message(ch, method, None, body, 'Q.bridge.result')
+            adapter._process_message(ch, method, None, body, "Q.bridge.result")
             ch.basic_ack.assert_called_once_with(
                 delivery_tag=method.delivery_tag)
             log_warn.assert_called_once()
@@ -222,8 +219,7 @@ class TestStartStopAdapter:
                 mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             adapter.stop()
             assert log_warn.call_count >= 1
-            # error log might be called due to add_callback_threadsafe
-            assert log_error.call_count >= 1
+            assert log_error.call_count >= 1  # may be called by add_callback_threadsafe
 
 
 class TestConnectionErrors:
@@ -232,12 +228,13 @@ class TestConnectionErrors:
     def test_init_amqp_connection_error(self, config_manager_mock):
         """Test initialization with AMQP connection error."""
         with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials"), \
-                mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "BlockingConnection", 
-                    side_effect=rabbitmq_adapter.pika.exceptions.AMQPConnectionError(
-                                      "Connection failed")), \
+            mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
+            mock.patch.object(
+            rabbitmq_adapter.pika,
+            "BlockingConnection",
+            side_effect=rabbitmq_adapter.pika.exceptions.AMQPConnectionError(
+                "Connection failed"),
+        ), \
                 mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             with pytest.raises(RuntimeError,
                                match="Connection failed. Check TLS settings and port."):
@@ -247,9 +244,11 @@ class TestConnectionErrors:
     def test_init_ssl_error(self, config_manager_mock):
         """Test initialization with SSL error."""
         with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials"), \
-                mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
-                mock.patch.object(rabbitmq_adapter.pika, "BlockingConnection",
-                                  side_effect=ssl.SSLError("SSL error")), \
+            mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
+            mock.patch.object(
+            rabbitmq_adapter.pika, "BlockingConnection",
+            side_effect=ssl.SSLError("SSL error")
+        ), \
                 mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             with pytest.raises(RuntimeError,
                                match="Connection failed. Check TLS settings and port."):
@@ -259,46 +258,49 @@ class TestConnectionErrors:
     def test_init_unexpected_error(self, config_manager_mock):
         """Test initialization with unexpected error."""
         with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials"), \
-                mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
-                mock.patch.object(rabbitmq_adapter.pika, "BlockingConnection",
-                                  side_effect=ValueError("Unexpected error")), \
+            mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
+            mock.patch.object(
+            rabbitmq_adapter.pika,
+            "BlockingConnection",
+            side_effect=ValueError("Unexpected error")
+        ), \
                 mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
             with pytest.raises(ValueError):
                 rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
             log_error.assert_called_once()
 
-    def test_init_with_tls_enabled(self, config_manager_mock):
+    def test_init_with_tls_enabled(
+            self, config_manager_mock, dummy_credentials):
         """Test initialization with TLS enabled."""
         config_manager_mock.get_rabbitmq_config.return_value = {
-            'username': 'user',
-            'password': 'pass',
-            'host': 'localhost',
-            'port': 5671,
-            'vhost': '/',
-            'tls': True,
-            'infrastructure': {'queues': [{'name': 'Q.bridge.input'}]}
+            "username": dummy_credentials["user"]["username"],
+            "password": dummy_credentials["user"]["password"],
+            "host": "localhost",
+            "port": 5671,
+            "vhost": "/",
+            "tls": True,
+            "infrastructure": {"queues": [{"name": "Q.bridge.input"}]},
         }
 
         mock_channel = mock.MagicMock()
         mock_conn = mock.MagicMock()
         mock_conn.channel.return_value = mock_channel
 
-        with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials") as creds_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "ConnectionParameters") as params_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "BlockingConnection", return_value=mock_conn), \
-                mock.patch.object(
-                    rabbitmq_adapter.ssl,
-                    "create_default_context") as ssl_context_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "SSLOptions") as ssl_options_mock:
+        with mock.patch.object(rabbitmq_adapter.pika,
+                               "PlainCredentials") as creds_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "ConnectionParameters") as params_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "BlockingConnection", return_value=mock_conn), \
+            mock.patch.object(rabbitmq_adapter.ssl,
+                              "create_default_context") as ssl_context_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "SSLOptions") as ssl_options_mock:
 
             adapter = rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
-            creds_mock.assert_called_once_with("user", "pass")
+            creds_mock.assert_called_once_with(
+                dummy_credentials["user"]["username"], dummy_credentials["user"]["password"]
+            )
             ssl_context_mock.assert_called_once()
             ssl_options_mock.assert_called_once()
             params_mock.assert_called_once()
@@ -309,54 +311,52 @@ class TestTLSConfiguration:
     """Tests for TLS configuration scenarios."""
 
     @pytest.fixture
-    def tls_config_manager_mock(self):
+    def tls_config_manager_mock(self, dummy_credentials):
         """Mock config manager with TLS enabled."""
         mock_cfg = mock.MagicMock()
         mock_cfg.get_rabbitmq_config.return_value = {
-            'username': 'user',
-            'password': 'pass',
-            'host': 'secure.rabbitmq.com',
-            'port': 5671,
-            'vhost': '/',
-            'tls': True,
-            'infrastructure': {'queues': [{'name': 'Q.bridge.input'}]}
+            "username": dummy_credentials["user"]["username"],
+            "password": dummy_credentials["user"]["password"],
+            "host": "secure.rabbitmq.com",
+            "port": 5671,
+            "vhost": "/",
+            "tls": True,
+            "infrastructure": {"queues": [{"name": "Q.bridge.input"}]},
         }
         return mock_cfg
 
-    def test_tls_connection_parameters(self, tls_config_manager_mock):
+    def test_tls_connection_parameters(
+            self, tls_config_manager_mock, dummy_credentials):
         """Test that TLS connection parameters are set correctly."""
         mock_channel = mock.MagicMock()
         mock_conn = mock.MagicMock()
         mock_conn.channel.return_value = mock_channel
 
-        with mock.patch.object(
-            rabbitmq_adapter.pika,
-            "PlainCredentials") as creds_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "ConnectionParameters") as params_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "BlockingConnection", return_value=mock_conn), \
-                mock.patch.object(
-                    rabbitmq_adapter.ssl,
-                    "create_default_context") as ssl_context_mock, \
-                mock.patch.object(
-                    rabbitmq_adapter.pika,
-                    "SSLOptions") as ssl_options_mock:
+        with mock.patch.object(rabbitmq_adapter.pika,
+                               "PlainCredentials") as creds_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "ConnectionParameters") as params_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "BlockingConnection", return_value=mock_conn), \
+            mock.patch.object(rabbitmq_adapter.ssl,
+                              "create_default_context") as ssl_context_mock, \
+            mock.patch.object(rabbitmq_adapter.pika,
+                              "SSLOptions") as ssl_options_mock:
 
             rabbitmq_adapter.RabbitMQAdapter(tls_config_manager_mock)
 
             # Verify SSL context and options were created
             ssl_context_mock.assert_called_once()
             ssl_options_mock.assert_called_once_with(
-                ssl_context_mock.return_value, 'secure.rabbitmq.com')
-            creds_mock.assert_called_once_with("user", "pass")
+                ssl_context_mock.return_value, "secure.rabbitmq.com")
+            creds_mock.assert_called_once_with(
+                dummy_credentials["user"]["username"], dummy_credentials["user"]["password"]
+            )
 
             # Verify connection parameters included SSL options
             params_mock.assert_called_once()
             call_kwargs = params_mock.call_args[1]
-            assert 'ssl_options' in call_kwargs
+            assert "ssl_options" in call_kwargs
 
 
 class TestMessageProcessingAdvanced:
@@ -367,50 +367,25 @@ class TestMessageProcessingAdvanced:
         """Instantiate RabbitMQAdapter for tests."""
         return rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
 
+    # pylint: disable=too-many-statements
     def test_process_message_bridge_result_with_different_protocols(
             self, adapter):
         """Test processing bridge result messages with different protocol types."""
         ch = mock.MagicMock()
         method = mock.MagicMock()
 
-        # Test REST protocol
-        msg = {
-            "request_id": "test-123",
-            "bridge_meta": {"protocol": "rest"},
-            "destinations": ["client1"],
-            "source": "simulator"
-        }
-        body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-        ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
-
-        # Test MQTT protocol
-        ch.reset_mock()
-        msg["bridge_meta"]["protocol"] = "mqtt"
-        body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-        ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
-
-        # Test RabbitMQ protocol
-        ch.reset_mock()
-        msg["bridge_meta"]["protocol"] = "rabbitmq"
-        body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-        ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
-
-        # Test inmemory protocol
-        ch.reset_mock()
-        msg["bridge_meta"]["protocol"] = "inmemory"
-        body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-        ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
-
-        # Test unknown protocol
-        ch.reset_mock()
-        msg["bridge_meta"]["protocol"] = "unknown"
-        body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
-        ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
+        protocols = ["rest", "mqtt", "rabbitmq", "inmemory", "unknown"]
+        for proto in protocols:
+            msg = {
+                "request_id": "test-123",
+                "bridge_meta": {"protocol": proto},
+                "destinations": ["client1"],
+                "source": "simulator",
+            }
+            body = json.dumps(msg).encode()
+            adapter._process_message(ch, method, None, body, "Q.bridge.result")
+            ch.basic_ack.assert_called_with(delivery_tag=method.delivery_tag)
+            ch.reset_mock()
 
     def test_process_message_bridge_meta_non_json_string(self, adapter):
         """Test processing message with bridge_meta as non-JSON string."""
@@ -420,12 +395,12 @@ class TestMessageProcessingAdvanced:
             "request_id": "test-123",
             "bridge_meta": "simple string value",
             "destinations": ["client1"],
-            "source": "simulator"
+            "source": "simulator",
         }
         body = json.dumps(msg).encode()
 
         with mock.patch.object(rabbitmq_adapter.logger, "debug") as log_debug:
-            adapter._process_message(ch, method, None, body, 'Q.bridge.result')
+            adapter._process_message(ch, method, None, body, "Q.bridge.result")
             ch.basic_ack.assert_called_once_with(
                 delivery_tag=method.delivery_tag)
             log_debug.assert_any_call(
@@ -440,10 +415,10 @@ class TestMessageProcessingAdvanced:
             "request_id": "test-123",
             "bridge_meta": '{"protocol": "rest", "timestamp": 123456}',
             "destinations": ["client1"],
-            "source": "simulator"
+            "source": "simulator",
         }
         body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
+        adapter._process_message(ch, method, None, body, "Q.bridge.result")
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
     def test_process_message_unknown_queue_raises_error(self, adapter):
@@ -454,7 +429,7 @@ class TestMessageProcessingAdvanced:
         body = json.dumps(msg).encode()
 
         with mock.patch.object(rabbitmq_adapter.logger, "error") as log_error:
-            adapter._process_message(ch, method, None, body, 'Q.unknown.queue')
+            adapter._process_message(ch, method, None, body, "Q.unknown.queue")
             ch.basic_nack.assert_called_once_with(
                 delivery_tag=method.delivery_tag, requeue=False)
             log_error.assert_called_once()
@@ -467,10 +442,10 @@ class TestMessageProcessingAdvanced:
             "request_id": "test-123",
             "bridge_meta": {"protocol": "rest"},
             "destinations": [],
-            "source": "simulator"
+            "source": "simulator",
         }
         body = json.dumps(msg).encode()
-        adapter._process_message(ch, method, None, body, 'Q.bridge.result')
+        adapter._process_message(ch, method, None, body, "Q.bridge.result")
         ch.basic_ack.assert_called_once_with(delivery_tag=method.delivery_tag)
 
 
@@ -478,18 +453,21 @@ class TestGetConfig:
     """Tests for _get_config method."""
 
     def test_get_config_returns_rabbitmq_config(
-            self, config_manager_mock, pika_connection_mock):
+        self, config_manager_mock, pika_connection_mock, dummy_credentials
+    ):
         """Test that _get_config returns the RabbitMQ configuration."""
         adapter = rabbitmq_adapter.RabbitMQAdapter(config_manager_mock)
         config = adapter._get_config()
 
         expected_config = {
-            'username': 'user',
-            'password': 'pass',
-            'host': 'localhost',
-            'port': 5672,
-            'vhost': '/',
-            'infrastructure': {'queues': [{'name': 'Q.bridge.input'}, {'name': 'Q.bridge.result'}]}
+            "username": dummy_credentials["user"]["username"],
+            "password": dummy_credentials["user"]["password"],
+            "host": "localhost",
+            "port": 5672,
+            "vhost": "/",
+            "infrastructure": {
+                "queues": [{"name": "Q.bridge.input"}, {"name": "Q.bridge.result"}]
+            },
         }
         assert config == expected_config
         config_manager_mock.get_rabbitmq_config.assert_called()
@@ -498,54 +476,54 @@ class TestGetConfig:
 class TestQueueSubscription:
     """Tests for queue subscription logic."""
 
-    def test_init_with_empty_queues_list(self, config_manager_mock):
+    def test_init_with_empty_queues_list(
+            self, config_manager_mock, dummy_credentials):
         """Test initialization with empty queues list."""
         config_manager_mock.get_rabbitmq_config.return_value = {
-            'username': 'user',
-            'password': 'pass',
-            'host': 'localhost',
-            'port': 5672,
-            'vhost': '/',
-            'infrastructure': {'queues': []}
+            "username": dummy_credentials["user"]["username"],
+            "password": dummy_credentials["user"]["password"],
+            "host": "localhost",
+            "port": 5672,
+            "vhost": "/",
+            "infrastructure": {"queues": []},
         }
 
         mock_channel = mock.MagicMock()
         mock_conn = mock.MagicMock()
         mock_conn.channel.return_value = mock_channel
 
-        with mock.patch.object(rabbitmq_adapter.pika,
-                               "PlainCredentials"), \
-                mock.patch.object(rabbitmq_adapter.pika,
-                                  "ConnectionParameters"), \
-                mock.patch.object(rabbitmq_adapter.pika,
-                                  "BlockingConnection", return_value=mock_conn):
+        with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials"), \
+                mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
+                mock.patch.object(rabbitmq_adapter.pika, "BlockingConnection", return_value=mock_conn):  # pylint: disable=line-too-long
 
-            adapter = rabbitmq_adapter.RabbitMQAdapter(config_manager_mock) # pylint: disable=unused-variable
+            rabbitmq_adapter.RabbitMQAdapter(
+                config_manager_mock)  # pylint: disable=unused-variable
             mock_channel.basic_consume.assert_not_called()
 
-    def test_init_with_queue_without_name(self, config_manager_mock):
+    def test_init_with_queue_without_name(
+            self, config_manager_mock, dummy_credentials):
         """Test initialization with queue configuration missing name."""
         config_manager_mock.get_rabbitmq_config.return_value = {
-            'username': 'user',
-            'password': 'pass',
-            'host': 'localhost',
-            'port': 5672,
-            'vhost': '/',
-            'infrastructure': {'queues': [{'type': 'input'}, {'name': 'Q.bridge.result'}]}
+            "username": dummy_credentials["user"]["username"],
+            "password": dummy_credentials["user"]["password"],
+            "host": "localhost",
+            "port": 5672,
+            "vhost": "/",
+            "infrastructure": {
+                "queues": [{"type": "input"}, {"name": "Q.bridge.result"}]
+            },
         }
 
         mock_channel = mock.MagicMock()
         mock_conn = mock.MagicMock()
         mock_conn.channel.return_value = mock_channel
 
-        with mock.patch.object(rabbitmq_adapter.pika,
-                               "PlainCredentials"), \
-                mock.patch.object(rabbitmq_adapter.pika,
-                                  "ConnectionParameters"), \
-                mock.patch.object(rabbitmq_adapter.pika,
-                                  "BlockingConnection", return_value=mock_conn):
+        with mock.patch.object(rabbitmq_adapter.pika, "PlainCredentials"), \
+                mock.patch.object(rabbitmq_adapter.pika, "ConnectionParameters"), \
+                mock.patch.object(rabbitmq_adapter.pika, "BlockingConnection", return_value=mock_conn):  # pylint: disable=line-too-long
 
-            adapter = rabbitmq_adapter.RabbitMQAdapter(config_manager_mock) # pylint: disable=unused-variable
+            rabbitmq_adapter.RabbitMQAdapter(
+                config_manager_mock)  # pylint: disable=unused-variable
             # Should only subscribe to the queue with name
             mock_channel.basic_consume.assert_called_once()
 
@@ -569,7 +547,6 @@ class TestStopFromConsumerThread:
 
         adapter.stop()
 
-        # These methods should not be called when stopping from consumer thread
         adapter.connection.add_callback_threadsafe.assert_not_called()
         adapter.connection.close.assert_not_called()
 
@@ -589,7 +566,7 @@ class TestHandleMessageAndStartAdapter:
             msg = {"some": "data"}
             adapter._handle_message(msg)
             process_mock.assert_called_once_with(
-                None, None, None, msg, 'Q.bridge.input')
+                None, None, None, msg, "Q.bridge.input")
 
     def test_start_adapter_starts_consuming(self, adapter):
         """_start_adapter calls channel.start_consuming and handles exceptions."""
