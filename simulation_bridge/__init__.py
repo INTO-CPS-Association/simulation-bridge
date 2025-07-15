@@ -1,4 +1,4 @@
 """Convenience utilities for the Simulation Bridge package."""
-from .src.protocol_adapters.inmemory.inmemory_adapter import InMemorySimulation
+from .src.protocol_adapters.inmemory.inmemory_adapter import SimulationBridge
 
-__all__ = ["InMemorySimulation"]
+__all__ = ["SimulationBridge"]

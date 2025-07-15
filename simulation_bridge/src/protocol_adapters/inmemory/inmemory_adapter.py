@@ -111,7 +111,7 @@ class DummyAdapter(ProtocolAdapter):
         pass
 
 
-class InMemorySimulation:
+class SimulationBridge:
     """Run simulations using the in-memory protocol adapter."""
 
     def __init__(self, config_path: str | None = None) -> None:

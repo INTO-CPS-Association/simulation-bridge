@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 import yaml
 
-from simulation_bridge import InMemorySimulation
+from simulation_bridge import SimulationBridge
 
 
 DEFAULT_CONFIG_PATH: str = "inmemory_use.yaml"   # CLI / script config file
@@ -31,12 +31,12 @@ def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
 
 
 class InMemoryClient:
-    """Simple client using :class:`InMemorySimulation`."""
+    """Simple client using :class:`SimulationBridge`."""
 
     def __init__(self, config: Dict[str, Any]):
         self.yaml_file: str = config.get("yaml_file", DEFAULT_YAML_FILE)
         bridge_cfg = config.get("bridge_config")
-        self.simulation = InMemorySimulation(bridge_cfg)
+        self.simulation = SimulationBridge(bridge_cfg)
         self._completed = False
 
     def _callback(self, message: Dict[str, Any]) -> None:

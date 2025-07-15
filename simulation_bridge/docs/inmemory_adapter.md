@@ -8,10 +8,10 @@ The adapter bypasses network protocols (RabbitMQ, MQTT, REST) by implementing si
 
 ## API Reference
 
-### InMemorySimulation
+### SimulationBridge
 
 ```python
-class InMemorySimulation:
+class SimulationBridge:
     def __init__(self, config_path: str | None = None)
     def send(self, message: dict, callback: Callable[[dict], None]) -> None
     def stop() -> None
