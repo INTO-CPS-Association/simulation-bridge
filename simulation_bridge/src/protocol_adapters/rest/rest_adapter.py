@@ -6,6 +6,7 @@ import yaml
 import json
 from typing import Dict, Any, Optional, AsyncGenerator
 from ...utils.config_manager import ConfigManager
+from ...utils.performance_monitor import PerformanceMonitor
 from ...utils.logger import get_logger
 from ..base.protocol_adapter import ProtocolAdapter
 from blinker import signal
@@ -57,15 +58,27 @@ class RESTAdapter(ProtocolAdapter):
                     content_type='application/json'
                 )
 
+            # Initialize performance monitor
+            performance_monitor = PerformanceMonitor()
+
             simulation = message.get('simulation', {})
             producer = simulation.get('client_id', 'unknown')
             consumer = simulation.get('simulator', 'unknown')
+            operation_id = simulation.get('request_id', 'unknown')
 
             message['bridge_meta'] = {
                 'protocol': 'rest',
                 'producer': producer,
                 'consumer': consumer
             }
+
+            simulation_type = simulation.get('type', 'unknown')
+            performance_monitor.start_operation(
+                operation_id,
+                client_id=producer,
+                protocol='rest',
+                simulation_type=simulation_type
+            )
 
             signal('message_received_input_rest').send(
                 message=message,
@@ -208,9 +221,21 @@ class RESTAdapter(ProtocolAdapter):
     def publish_result_message_rest(self, sender, **kwargs):
         """Publish result message via REST adapter."""
         try:
+            # Initialize performance monitor
+            performance_monitor = PerformanceMonitor()
             message = kwargs.get('message', {})
+            operation_id = message.get('request_id', 'unknown')
+            simulation_type = message.get(
+                'simulation', {}).get(
+                'type', 'unknown')
             destination = message.get('destinations', [])[0]
             self.send_result_sync(destination, message)
+            status = message.get('status', 'unknown')
+            performance_monitor.record_result_sent(
+                operation_id, 'rest', destination, simulation_type)
+            if status == 'completed':
+                performance_monitor.finalize_operation(
+                    operation_id, 'rest', destination, simulation_type)
             logger.debug(
                 "Successfully scheduled result message for REST client: %s",
                 destination)

@@ -96,6 +96,12 @@ class LoggingConfig(BaseModel):
     file: str
 
 
+class PerformanceConfig(BaseModel):
+    """Configuration for performance monitoring."""
+    enabled: bool
+    file: str
+
+
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
@@ -110,6 +116,7 @@ class Config(BaseModel):
     mqtt: MQTTConfig
     rest: RESTConfig
     logging: LoggingConfig
+    performance: PerformanceConfig
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the model to a dictionary with nested structure."""
@@ -118,7 +125,8 @@ class Config(BaseModel):
             'rabbitmq': self.rabbitmq.model_dump(),
             'mqtt': self.mqtt.model_dump(),
             'rest': self.rest.model_dump(),
-            'logging': self.logging.model_dump()
+            'logging': self.logging.model_dump(),
+            'performance': self.performance.model_dump()
         }
 
     @classmethod
@@ -161,6 +169,8 @@ class Config(BaseModel):
         mqtt_config = MQTTConfig(**config_dict.get('mqtt', {}))
         rest_config = RESTConfig(**config_dict.get('rest', {}))
         logging_config = LoggingConfig(**config_dict.get('logging', {}))
+        performance_config = PerformanceConfig(
+            **config_dict.get('performance', {}))
 
         # Assemble and return the complete Config object
         return cls(
@@ -168,7 +178,8 @@ class Config(BaseModel):
             rabbitmq=rabbit_config,
             mqtt=mqtt_config,
             rest=rest_config,
-            logging=logging_config
+            logging=logging_config,
+            performance=performance_config
         )
 
 
@@ -255,6 +266,10 @@ class ConfigManager:
                 level=LogLevel.INFO,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                 file="logs/sim_bridge.log"
+            ),
+            performance=PerformanceConfig(
+                enabled=False,
+                file="performance_log/performance_metrics.csv"
             )
         ).to_dict()
 

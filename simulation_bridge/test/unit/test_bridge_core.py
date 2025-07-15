@@ -16,14 +16,14 @@ from simulation_bridge.src.core import bridge_core
 
 
 @pytest.fixture
-def config_manager_mock():
+def config_manager_mock(dummy_credentials):
     """Fixture providing a ConfigManager mock with RabbitMQ config."""
     cm = MagicMock()
     cm.get_rabbitmq_config.return_value = {
         'host': 'localhost',
         'port': 5672,
-        'username': 'user',
-        'password': 'pass',
+        'username': dummy_credentials['user']['username'],
+        'password': dummy_credentials['user']['password'],
         'vhost': '/',
         'tls': False,
     }

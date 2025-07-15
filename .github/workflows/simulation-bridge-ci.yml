@@ -43,20 +43,17 @@ jobs:
       - name: Install dev dependencies
         run: poetry install --with dev
 
-      # ───── 4. Format (non-blocking, Linux only) ─────
+      # ───── 4. Format (non-blocking) ─────
       - name: Check formatting (non-blocking)
-        if: matrix.os == 'ubuntu-latest'
         continue-on-error: true
         run: poetry run autopep8 --recursive --diff simulation_bridge
 
-      # ───── 5. Lint (Linux only) ─────
-      - name: Run pylint (min score 8.0)
-        if: matrix.os == 'ubuntu-latest'
-        run: poetry run pylint simulation_bridge --fail-under=8
+      # ───── 5. Lint ─────
+      - name: Run pylint (min score 9.0)
+        run: poetry run pylint simulation_bridge --fail-under=9
 
       # ───── 6. Tests ─────
-      - name: Run pytest with coverage (Linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Run pytest with coverage
         run: poetry run pytest
 
       - name: Upload coverage to Codecov
@@ -67,17 +64,11 @@ jobs:
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Run pytest (no coverage)
-        if: matrix.os != 'ubuntu-latest'
-        run: poetry run pytest -q
-
-      # ───── 7. Build + dist artefacts (Linux only) ─────
+      # ───── 7. Build + dist artefacts ─────
       - name: Install runtime dependencies
-        if: matrix.os == 'ubuntu-latest'
         run: poetry install --only main
 
       - name: Build wheel and sdist
-        if: matrix.os == 'ubuntu-latest'
         run: |
           poetry build --format wheel
           poetry build --format sdist

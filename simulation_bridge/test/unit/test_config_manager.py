@@ -11,7 +11,7 @@ from simulation_bridge.src.utils import config_manager
 
 
 @pytest.fixture
-def sample_valid_config_dict():
+def sample_valid_config_dict(dummy_credentials):
     """Fixture che fornisce un dizionario di configurazione valido di esempio."""
     return {
         "simulation_bridge": {"bridge_id": "test_bridge"},
@@ -19,8 +19,8 @@ def sample_valid_config_dict():
             "host": "localhost",
             "port": 5672,
             "vhost": "/",
-            "username": "guest",
-            "password": "guest",
+            "username": dummy_credentials['guest']['username'],
+            "password": dummy_credentials['guest']['password'],
             "tls": False,
             "infrastructure": {
                 "exchanges": [],
@@ -35,8 +35,8 @@ def sample_valid_config_dict():
             "input_topic": "input",
             "output_topic": "output",
             "qos": 1,
-            "username": "user",
-            "password": "pass",
+            "username": dummy_credentials['user']['username'],
+            "password": dummy_credentials['user']['password'],
             "tls": False
         },
         "rest": {
@@ -51,6 +51,10 @@ def sample_valid_config_dict():
             "level": "INFO",
             "format": "%(message)s",
             "file": "logfile.log"
+        },
+        "performance": {
+            "enabled": False,
+            "file": "performance_logs/performance_metrics.csv"
         }
     }
 

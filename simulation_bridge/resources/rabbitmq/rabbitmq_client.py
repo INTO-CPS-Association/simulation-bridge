@@ -96,8 +96,7 @@ class RabbitMQClient:
     def send_simulation_request(self, payload_data):
         """Send a simulation request to the bridge."""
         payload = {
-            **payload_data,
-            'request_id': str(uuid.uuid4()),
+            **payload_data
         }
 
         payload_yaml = yaml.dump(payload, default_flow_style=False)

@@ -193,6 +193,11 @@ logging:
   level: INFO # Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Format of log messages
   file: logs/sim_bridge.log # Path to the log output file
+
+# Performance monitoring configuration
+performance:
+  enabled: false # Enable/disable performance monitoring
+  file: performance_log/performance_metrics.csv # File where performance logs will be stored
 ```
 
 > **Note:** Certificate files (`certfile.pem` and `keyfile.pem`) will be automatically created by the _sim-bridge_ if missing.
