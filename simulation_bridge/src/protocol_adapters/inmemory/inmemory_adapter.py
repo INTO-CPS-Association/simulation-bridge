@@ -102,12 +102,21 @@ class DummyAdapter(ProtocolAdapter):
         self._running = False
 
     def _handle_message(self, message: Dict[str, Any]) -> None:  # noqa: D401
+        # This method is intentionally empty as DummyAdapter serves as a null object
+        # to prevent errors when MQTT/REST protocols are not used but signals expect
+        # these adapters to be registered
         pass
 
     def publish_result_message_mqtt(self, *_, **__) -> None:
+        # This method is intentionally empty as DummyAdapter serves as a null object
+        # to prevent errors when MQTT/REST protocols are not used but signals expect
+        # these adapters to be registered
         pass
 
     def publish_result_message_rest(self, *_, **__) -> None:
+        # This method is intentionally empty as DummyAdapter serves as a null object
+        # to prevent errors when MQTT/REST protocols are not used but signals expect
+        # these adapters to be registered
         pass
 
 
