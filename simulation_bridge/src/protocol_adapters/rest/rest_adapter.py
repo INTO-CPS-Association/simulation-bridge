@@ -13,6 +13,7 @@ from ...utils.performance_monitor import PerformanceMonitor
 from ...utils.logger import get_logger
 from ..base.protocol_adapter import ProtocolAdapter
 from blinker import signal
+import base64
 
 logger = get_logger()
 
@@ -278,30 +279,66 @@ class RESTAdapter(ProtocolAdapter):
 
     def _verify_jwt(self, token: str) -> Dict[str, Any]:
         """Decode & validate a JWT. Raise ValueError if invalid."""
+        # This method validates a JWT according to the steps outlined in RFC 7519:
+        # https://www.rfc-editor.org/rfc/rfc7519.html#page-4
         cfg = self._load_jwt_config()
 
         if "secret" not in cfg:
             raise ValueError("Missing 'secret' field in JWT configuration.")
-
         if "algorithm" not in cfg:
             raise ValueError("Missing 'algorithm' field in JWT configuration.")
 
+        # Check for at least one period in the token
+        if '.' not in token:
+            raise ValueError("Invalid JWT: missing '.' separator")
+
+        # Extract the Encoded JOSE Header (first part)
+        try:
+            encoded_header = token.split('.')[0]
+        except IndexError:
+            raise ValueError("Invalid JWT structure: unable to extract header")
+
+        # Decode base64url header
+        try:
+            header_bytes = self._base64url_decode(encoded_header)
+        except (ValueError, base64.binascii.Error):
+            raise ValueError("Invalid base64url encoding in JWT header")
+
+        # Ensure it's valid UTF-8 JSON
+        try:
+            header = json.loads(header_bytes.decode('utf-8'))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ValueError("JWT header is not valid UTF-8 JSON")
+
+        # Ensure only supported or ignorable parameters
+        supported_keys = {"alg", "typ", "cty", "kid"}  # extend if needed
+        unknown_keys = set(header.keys()) - supported_keys
+        if unknown_keys:
+            raise ValueError(f"Unsupported JWT header keys: {unknown_keys}")
+
+        # Validate using PyJWT
         try:
             payload = jwt.decode(
                 token,
-                cfg["secret"],  # oppure cfg["public_key"] per RS256
+                cfg["secret"],
                 algorithms=[cfg["algorithm"]],
                 options={"require": ["exp", "iat", "sub"]},
                 leeway=5,
             )
 
+            # Check token age if configured
             iat = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
-            if (
-                datetime.now(timezone.utc) - iat
-            ).total_seconds() > cfg.get("max_token_age_seconds", 3600):
+            age_seconds = (datetime.now(timezone.utc) - iat).total_seconds()
+            max_age = cfg.get("max_token_age_seconds", 3600)
+            if age_seconds > max_age:
                 raise ValueError("Token too old")
 
             return payload
 
         except PyJWTError as exc:
             raise ValueError(f"Invalid JWT: {exc}")
+
+    def _base64url_decode(self, data: str) -> bytes:
+        """Helper to decode base64url with correct padding."""
+        padding = '=' * (-len(data) % 4)
+        return base64.urlsafe_b64decode(data + padding)
