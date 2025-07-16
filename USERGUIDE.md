@@ -111,6 +111,7 @@ The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive 
 # Unique identifier for this simulation bridge instance
 simulation_bridge:
   bridge_id: simulation_bridge # ID used to identify this instance of the sim-bridge
+  in_memory_mode: false # Set to true for in-memory mode
 
 # RabbitMQ protocol adapter configuration
 rabbitmq:

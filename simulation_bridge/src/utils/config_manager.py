@@ -113,6 +113,7 @@ class PerformanceConfig(BaseModel):
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
+    in_memory_mode: bool = False
 
 
 class Config(BaseModel):
@@ -237,7 +238,8 @@ class ConfigManager:
         """Get default configuration as dictionary."""
         return Config(
             simulation_bridge=SimulationBridgeConfig(
-                bridge_id="simulation_bridge"),
+                bridge_id="simulation_bridge",
+                in_memory_mode=False),
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,

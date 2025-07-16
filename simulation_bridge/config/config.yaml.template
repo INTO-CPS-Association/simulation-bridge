@@ -1,5 +1,6 @@
 simulation_bridge:
   bridge_id: simulation_bridge
+  in_memory_mode: false
 
 rabbitmq:
   host: localhost

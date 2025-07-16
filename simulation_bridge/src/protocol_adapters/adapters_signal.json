@@ -24,14 +24,6 @@
         "message_received_result_rest": "RESTAdapter.publish_result_message_rest"
       },
       "class": ".rest.rest_adapter.RESTAdapter"
-    },
-    "inmemory": {
-      "enabled": true,
-      "signals": {
-        "message_received_input_inmemory": "BridgeCore.handle_input_message",
-        "message_received_result_inmemory": "InMemoryAdapter._handle_result"
-      },
-      "class": ".inmemory.inmemory_adapter.InMemoryAdapter"
     }
   }
 }

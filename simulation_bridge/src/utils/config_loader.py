@@ -88,11 +88,23 @@ def _substitute_env_vars(
     return config
 
 
-def load_protocol_config() -> Dict[str, list]:
-    """
-    Load the protocol configuration from a JSON file.
-    """
+def load_protocol_config(
+        config_path: Optional[Union[str, Path]] = None) -> Dict[str, list]:
+    """Load the protocol configuration based on in-memory mode configuration"""
+    cfg_path = Path(config_path) if config_path else Path(
+        __file__).parent.parent.parent.parent / "config.yaml"
+    in_memory = False
+    try:
+        cfg = load_config(str(cfg_path))
+        in_memory = cfg.get(
+            "simulation_bridge",
+            {}).get(
+            "in_memory_mode",
+            False)
+    except Exception:  # noqa: BLE001
+        logger.debug("Configuration not found or invalid, using defaults")
+    json_name = "inmemory_signal.json" if in_memory else "adapters_signal.json"
     config_file = Path(__file__).parent.parent / \
-        "protocol_adapters/adapters_signal.json"
-    with open(config_file, 'r', encoding='utf-8') as f:
+        f"protocol_adapters/{json_name}"
+    with open(config_file, "r", encoding="utf-8") as f:
         return json.load(f)["protocols"]
