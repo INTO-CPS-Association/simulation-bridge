@@ -12,7 +12,7 @@ from simulation_bridge.src.utils import config_manager
 
 @pytest.fixture
 def sample_valid_config_dict(dummy_credentials):
-    """Fixture che fornisce un dizionario di configurazione valido di esempio."""
+    """Fixture that provides a sample valid configuration dictionary."""
     return {
         "simulation_bridge": {"bridge_id": "test_bridge"},
         "rabbitmq": {
@@ -66,7 +66,7 @@ def sample_valid_config_dict(dummy_credentials):
 
 @pytest.fixture
 def logger_mock(monkeypatch):
-    """Fixture che sostituisce il logger con un mock."""
+    """Fixture that replaces the logger with a mock."""
     logger = mock.Mock()
     monkeypatch.setattr(config_manager, "logger", logger)
     return logger
@@ -74,7 +74,7 @@ def logger_mock(monkeypatch):
 
 @pytest.fixture
 def load_config_mock(monkeypatch):
-    """Fixture che sostituisce load_config con un mock."""
+    """Fixture that replaces load_config with a mock."""
     patcher = mock.patch(
         "simulation_bridge.src.utils.config_manager.load_config")
     yield patcher.start()
@@ -82,11 +82,11 @@ def load_config_mock(monkeypatch):
 
 
 class TestConfigManagerInit:
-    """Test per il costruttore di ConfigManager e casi di caricamento config."""
+    """Tests for ConfigManager constructor and config loading cases."""
 
     def test_init_loads_valid_config(
             self, sample_valid_config_dict, load_config_mock):
-        """Verifica che ConfigManager carichi correttamente una config valida."""
+        """Verifies that ConfigManager correctly loads a valid config."""
         load_config_mock.return_value = sample_valid_config_dict
 
         manager = config_manager.ConfigManager("fake_path.yaml")
@@ -97,7 +97,7 @@ class TestConfigManagerInit:
 
     def test_init_fallback_default_on_file_not_found(
             self, load_config_mock, logger_mock):
-        """Se il file non esiste, deve loggare warning e usare config di default."""
+        """If file doesn't exist, should log warning and use default config."""
         load_config_mock.side_effect = FileNotFoundError("file missing")
 
         manager = config_manager.ConfigManager("missing.yaml")
@@ -107,7 +107,7 @@ class TestConfigManagerInit:
 
     def test_init_fallback_default_on_validation_error(
             self, load_config_mock, logger_mock):
-        """Se la validazione fallisce, logga errore e usa config di default."""
+        """If validation fails, log error and use default config."""
         load_config_mock.return_value = {"invalid": "data"}
 
         with pytest.raises(ValidationError):
@@ -122,11 +122,11 @@ class TestConfigManagerInit:
 
 
 class TestConfigManagerValidate:
-    """Test specifici per il metodo di validazione config."""
+    """Specific tests for the config validation method."""
 
     def test_validate_config_returns_validated_dict(
             self, sample_valid_config_dict):
-        """Verifica che _validate_config converta e ritorni dict validato."""
+        """Verifies that _validate_config converts and returns validated dict."""
         validated = config_manager.ConfigManager._validate_config(
             config_manager.ConfigManager, sample_valid_config_dict
         )
@@ -135,7 +135,7 @@ class TestConfigManagerValidate:
         assert validated["simulation_bridge"]["bridge_id"] == "test_bridge"
 
     def test_validate_config_raises_on_invalid_data(self):
-        """Verifica che _validate_config lanci ValidationError se i dati sono invalidi."""
+        """Verifies that _validate_config raises ValidationError if data is invalid."""
         invalid_data = {"rabbitmq": {"port": "not_an_int"}}
         with pytest.raises(ValidationError):
             config_manager.ConfigManager._validate_config(
@@ -144,50 +144,50 @@ class TestConfigManagerValidate:
 
 
 class TestConfigManagerGetters:
-    """Test per i metodi getter di ConfigManager."""
+    """Tests for ConfigManager getter methods."""
 
     @pytest.fixture
     def manager_with_config(self, sample_valid_config_dict, load_config_mock):
-        """Istanzia ConfigManager con config valida mockata."""
+        """Instantiates ConfigManager with mocked valid config."""
         load_config_mock.return_value = sample_valid_config_dict
         manager = config_manager.ConfigManager("dummy.yaml")
         return manager
 
     def test_get_config_returns_full_config(self, manager_with_config):
-        """get_config deve restituire il dict di configurazione completo."""
+        """get_config should return the complete configuration dict."""
         config = manager_with_config.get_config()
         assert isinstance(config, dict)
         assert "rabbitmq" in config
 
     def test_get_rabbitmq_config_returns_rabbitmq_section(
             self, manager_with_config):
-        """get_rabbitmq_config ritorna la sezione RabbitMQ."""
+        """get_rabbitmq_config returns the RabbitMQ section."""
         rabbit = manager_with_config.get_rabbitmq_config()
         assert rabbit.get("host") == "localhost"
 
     def test_get_mqtt_config_returns_mqtt_section(self, manager_with_config):
-        """get_mqtt_config ritorna la sezione MQTT."""
+        """get_mqtt_config returns the MQTT section."""
         mqtt = manager_with_config.get_mqtt_config()
         assert mqtt.get("host") == "mqtt.local"
 
     def test_get_rest_config_returns_rest_section(self, manager_with_config):
-        """get_rest_config ritorna la sezione REST."""
+        """get_rest_config returns the REST section."""
         rest = manager_with_config.get_rest_config()
         assert rest.get("host") == "127.0.0.1"
 
     def test_get_logging_config_returns_logging_section(
             self, manager_with_config):
-        """get_logging_config ritorna la sezione Logging."""
+        """get_logging_config returns the Logging section."""
         log = manager_with_config.get_logging_config()
         assert log.get("level") == "INFO"
 
 
 class TestConfigManagerErrorHandling:
-    """Test su gestione errori inattesi durante l'inizializzazione."""
+    """Tests on handling unexpected errors during initialization."""
 
     def test_init_handles_ioerror_and_uses_default(
             self, load_config_mock, logger_mock):
-        """IOError causa logging error e uso di configurazione default."""
+        """IOError causes error logging and use of default configuration."""
         load_config_mock.side_effect = IOError("disk error")
 
         manager = config_manager.ConfigManager("any.yaml")
@@ -197,7 +197,7 @@ class TestConfigManagerErrorHandling:
 
     def test_init_handles_generic_exception_and_uses_default(
             self, load_config_mock, logger_mock):
-        """Eccezione generica viene gestita con logging e config default."""
+        """Generic exception is handled with logging and default config."""
         load_config_mock.side_effect = Exception("unexpected")
 
         manager = config_manager.ConfigManager("any.yaml")
