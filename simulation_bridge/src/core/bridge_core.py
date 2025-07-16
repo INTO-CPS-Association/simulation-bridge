@@ -249,7 +249,7 @@ class BridgeCore:
             self.channel.basic_publish(
                 exchange=exchange,
                 routing_key=routing_key,
-                body=json.dumps(message),
+                body=json.dumps(message, default=datetime_serializer),
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                 )
