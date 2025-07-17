@@ -1,4 +1,14 @@
-url: https://localhost:5000/message # URL of the REST endpoint
-yaml_file: ../simulation.yaml # Path to the YAML file with simulation data
-timeout: 600 # Timeout for the request in seconds
-jwt_token: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE" # JWT token for authentication
+# URL endpoint to send the request to
+url: "https://localhost:5000/message"
+
+# Path to the YAML file you want to send as payload
+yaml_file: "../simulation.yaml"
+
+# JWT configuration
+secret: "your-very-secure-and-long-secret-key-that-is-at-least-32-characters"
+issuer: "simulation-bridge" # Issuer of the JWT token
+subject: "client-123" # Subject of the JWT token
+
+# Optional values
+ttl: 900 # Token time-to-live in seconds (default is 900 = 15 minutes)
+timeout: 600 # Request timeout in seconds
