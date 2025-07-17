@@ -1,3 +1,4 @@
 url: https://localhost:5000/message # URL of the REST endpoint
 yaml_file: ../simulation.yaml # Path to the YAML file with simulation data
 timeout: 600 # Timeout for the request in seconds
+jwt_token: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE" # JWT token for authentication
