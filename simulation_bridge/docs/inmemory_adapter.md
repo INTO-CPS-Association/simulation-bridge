@@ -2,13 +2,11 @@
 
 The In-Memory Adapter enables the Simulation Bridge to operate entirely within a Python process without external message brokers. It provides direct communication between client code and simulation components through callback functions.
 
-## Architecture
-
 The adapter bypasses network protocols (RabbitMQ, MQTT, REST) by implementing signal-based communication using Python's Blinker library. All message routing occurs in-process, eliminating broker dependencies while maintaining the same interface as networked adapters.
 
 ## API Reference
 
-### SimulationBridge
+#### SimulationBridge
 
 ```python
 class SimulationBridge:
@@ -17,11 +15,11 @@ class SimulationBridge:
     def stop() -> None
 ```
 
-#### Constructor
+##### Constructor
 
 - `config_path`: YAML configuration file path. If provided, configures bridge protocols and parameters.
 
-#### Methods
+##### Methods
 
 - `send(message, callback)`: Submits simulation request. The callback receives result dictionaries as they are published.
 - `stop()`: Terminates adapters and disconnects signal handlers. Required to prevent resource leaks.
@@ -38,17 +36,28 @@ Requests must follow the standard simulation schema:
         "simulator": str,      # Target simulator ("matlab", etc.)
         "type": str,          # Execution type ("batch", "streaming")
         "file": str,          # Simulation file path
-        "timestamp": str | None, # Optional ISO 8601 timestamp
-        "timeout": int | None,   # Optional max processing time (seconds)
+        "timestamp": str | None, # ISO 8601 timestamp
+        "timeout": int | None,   # Max processing time (seconds)
         "inputs": dict,       # Input parameters
         "outputs": dict       # Expected output structure
     }
 }
 ```
 
-> Refer to the [Simulation Bridge User Guide](USERGUIDE.md) for detailed message structure and requirements.
+> Refer to the [Simulation Bridge User Guide](../../USERGUIDE.md) for detailed message structure and requirements.
 
 ## Usage Example
+
+To use the In-Memory Adapter, you must create a `config.yaml` file with in-memory mode enabled.
+
+```yaml
+simulation_bridge:
+  bridge_id: simulation_bridge # Unique identifier for the bridge
+  in_memory_mode: true # Enable in-memory operation
+  ... # Additional configuration options
+```
+
+Here's a simple example demonstrating how to use the In-Memory Adapter to send a simulation request and handle results:
 
 ```python
 from simulation_bridge import SimulationBridge  # Import the in-memory adapter
@@ -86,7 +95,3 @@ finally:  # Cleanup block that always executes
 > ```
 >
 > The inmemory folder demonstrates a complete client setup with proper configuration loading, result handling, and lifecycle management.
-
-## Thread Safety
-
-The adapter operates on the main thread. Callback functions execute synchronously when results are published. For concurrent operations, implement threading within callback handlers.
