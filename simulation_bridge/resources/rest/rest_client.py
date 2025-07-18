@@ -6,7 +6,6 @@ This version supports only HS256 JWT signing.
 from __future__ import annotations
 
 import asyncio
-import os
 import sys
 import time
 from pathlib import Path
@@ -68,6 +67,7 @@ class RESTClient:
         self.url = cfg["url"]
         self.yaml_file = cfg["yaml_file"]
         self.timeout = int(cfg.get("timeout", 600))
+        self.ssl_verify = cfg.get("ssl_verify", False)
         self.token = build_token(cfg)
 
     async def run(self) -> None:
@@ -83,7 +83,7 @@ class RESTClient:
             print(f"YAML file not found: {self.yaml_file}")
             sys.exit(1)
 
-        async with httpx.AsyncClient(timeout=self.timeout, verify=False) as client:
+        async with httpx.AsyncClient(timeout=self.timeout, verify=self.ssl_verify) as client:
             try:
                 async with client.stream("POST", self.url, headers=headers, content=payload) as resp:
                     print(f"← {resp.status_code} {resp.reason_phrase}")

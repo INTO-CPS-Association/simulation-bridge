@@ -1,14 +1,35 @@
+# REST client configuration
+#
+# 1. URL
+#    • Use "https://" for a TLS connection.
+#    • Use "http://" if you want to completely disable TLS
+#      (the server must obviously also expose HTTP).
+#
+# 2. ssl_verify
+#    This field controls **certificate verification** on the client side.
+#
+#      false  ──► TLS without any verification (DO NOT use in production)
+#      true   ──► Verification with the operating system's trust store
+#                (works only with certificates signed by public CAs
+#                 or internal CAs already installed in the system).
+#      <path> ──► Verification enabled and, additionally, considers trusted
+#                the specified PEM certificate/CA (useful for self-signed).
+
+
 # URL endpoint to send the request to
-url: "https://localhost:5000/message"
+url: "https://127.0.0.1:5000/message"   # change to http://... to disable TLS
 
 # Path to the YAML file you want to send as payload
 yaml_file: "../simulation.yaml"
 
 # JWT configuration
 secret: "your-very-secure-and-long-secret-key-that-is-at-least-32-characters"
-issuer: "simulation-bridge" # Issuer of the JWT token
-subject: "client-123" # Subject of the JWT token
+issuer: "simulation-bridge"   # Issuer of the JWT token
+subject: "client-123"         # Subject of the JWT token
 
 # Optional values
-ttl: 900 # Token time-to-live in seconds (default is 900 = 15 minutes)
-timeout: 600 # Request timeout in seconds
+ttl: 900        # Token time-to-live in seconds (default 15 min)
+timeout: 600    # Request timeout in seconds
+
+# TLS verification strategy (see explanation above)
+ssl_verify: false

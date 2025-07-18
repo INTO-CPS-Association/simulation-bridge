@@ -4,6 +4,7 @@ import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
+import ipaddress
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -15,13 +16,23 @@ logger = get_logger()
 
 
 class CertificateGenerator:
-    """Class for generating SSL certificates and private keys."""
+    """
+    Self-signed X.509 certificate utility.
+
+    - Pulls the REST host from a configuration dict and uses it as the
+      Common Name (CN) and Subject Alternative Name (SAN).
+      - If the host is an IP address, it is encoded as an IPAddress SAN.
+      - Otherwise it is encoded as a DNSName SAN.
+    - Generates RSA keys (default 2048 bits, e=65537) and signs with SHA-256.
+    - Provides validation, expiry checks, and optional overwrite.
+    """
 
     def __init__(
         self,
         key_size: int = 2048,
         public_exponent: int = 65537,
-        validity_days: int = 365
+        validity_days: int = 365,
+        config: dict = None
     ) -> None:
         """
         Initialize certificate generator.
@@ -34,6 +45,7 @@ class CertificateGenerator:
         self.key_size = key_size
         self.public_exponent = public_exponent
         self.validity_days = validity_days
+        self.config = config or {}
 
     def _generate_private_key(self) -> rsa.RSAPrivateKey:
         """
@@ -49,11 +61,11 @@ class CertificateGenerator:
 
     def _build_certificate_name(  # pylint: disable=too-many-arguments
         self,
-        country: str = "US",
-        state: str = "California",
-        locality: str = "San Francisco",
-        organization: str = "My Company",
-        common_name: str = "localhost"
+        country: str = "DK",
+        state: str = "Midtjylland",
+        locality: str = "Aarhus",
+        organization: str = "INTO-CPS Association",
+        common_name: str | None = None
     ) -> x509.Name:
         """
         Build X.509 certificate name.
@@ -68,6 +80,8 @@ class CertificateGenerator:
         Returns:
             X.509 Name object
         """
+        if not common_name:
+            common_name = self.config.get("rest", {}).get("host", "localhost")
         return x509.Name([
             x509.NameAttribute(NameOID.COUNTRY_NAME, country),
             x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, state),
@@ -80,21 +94,19 @@ class CertificateGenerator:
         self,
         private_key: rsa.RSAPrivateKey,
         subject_name: x509.Name,
-        dns_names: Optional[list] = None
+        dns_names: Optional[list] = None,
     ) -> x509.Certificate:
         """
-        Create X.509 certificate.
+        Build and sign a self-signed certificate.
 
-        Args:
-            private_key: Private key for signing
-            subject_name: Subject name for certificate
-            dns_names: List of DNS names for SAN extension
-
-        Returns:
-            X.509 certificate
+        If dns_names is omitted, the method inserts the REST host from
+        `self.config['rest']['host']`. IP hosts are stored as IPAddress SANs,
+        domain hosts as DNSName SANs. This ensures modern TLS libraries can
+        match either form.
         """
         if dns_names is None:
-            dns_names = ["localhost"]
+            host = self.config.get("rest", {}).get("host", "localhost")
+            dns_names = [host]
 
         now = datetime.datetime.now(datetime.timezone.utc)
         cert_builder = (
@@ -108,7 +120,12 @@ class CertificateGenerator:
         )
 
         # Add Subject Alternative Name extension
-        san_list = [x509.DNSName(name) for name in dns_names]
+        san_list: list[x509.GeneralName] = []
+        for name in dns_names:
+            try:
+                san_list.append(x509.IPAddress(ipaddress.ip_address(name)))
+            except ValueError:
+                san_list.append(x509.DNSName(name))
         cert_builder = cert_builder.add_extension(
             x509.SubjectAlternativeName(san_list),
             critical=False,
@@ -290,6 +307,7 @@ def ensure_certificates(
     key_path: str = "certs/key.pem",
     validity_days: int = 365,
     force_overwrite: bool = False,
+    config: dict = None,
     **name_kwargs
 ) -> None:
     """
@@ -309,7 +327,7 @@ def ensure_certificates(
         RuntimeError: If certificate generation fails
     """
 
-    generator = CertificateGenerator(validity_days=validity_days)
+    generator = CertificateGenerator(validity_days=validity_days, config=config)
 
     # Check if certificates already exist
     if generator.files_exist(cert_path, key_path):
