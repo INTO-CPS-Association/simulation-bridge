@@ -41,7 +41,8 @@ def build_token(cfg: Dict[str, Any]) -> str:
 
     payload = {
         # "sub" (Subject): Identifies the principal (e.g., user or service)
-        # that is the subject of the JWT. Must be unique within the issuer's context.
+        # that is the subject of the JWT. Must be unique within the issuer's
+        # context.
         "sub": cfg.get("subject", "client-123"),
 
         # "iss" (Issuer): Identifies the principal that issued the JWT.
@@ -85,7 +86,8 @@ class RESTClient:
 
         async with httpx.AsyncClient(timeout=self.timeout, verify=self.ssl_verify) as client:
             try:
-                async with client.stream("POST", self.url, headers=headers, content=payload) as resp:
+                async with client.stream("POST", self.url, headers=headers,
+                                         content=payload) as resp:
                     print(f"← {resp.status_code} {resp.reason_phrase}")
                     if resp.status_code >= 400:
                         print(await resp.aread())
@@ -96,9 +98,11 @@ class RESTClient:
             except httpx.RequestError as exc:
                 print(f"Network error contacting {self.url}: {exc}")
 
+
 def main() -> NoReturn:  # pragma: no cover
     cfg = load_config()
     asyncio.run(RESTClient(cfg).run())
+
 
 if __name__ == "__main__":
     main()

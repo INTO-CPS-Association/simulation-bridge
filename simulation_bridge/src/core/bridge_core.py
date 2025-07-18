@@ -88,6 +88,7 @@ class BridgeCore:
 
                 if self.config.get('tls', False):
                     context = ssl.create_default_context()
+                    context.minimum_version = ssl.TLSVersion.TLSv1_2
                     ssl_options = pika.SSLOptions(context, self.config['host'])
                     connection_params = pika.ConnectionParameters(
                         host=self.config['host'],

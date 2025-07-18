@@ -302,7 +302,9 @@ class RESTAdapter(ProtocolAdapter):
         #     JWT (JWE) has five.  We’ll check that after parsing the header.
         parts = token.split('.')
         if len(parts) not in (3, 5):
-            raise ValueError(f"Invalid JWT: expected 3 (JWS) or 5 (JWE) parts, got {len(parts)}")
+            raise ValueError(
+                f"Invalid JWT: expected 3 (JWS) or 5 (JWE) parts, got {
+                    len(parts)}")
 
         # STEPS 2-4 — DECODE & VALIDATE THE JOSE HEADER
         #   2. Extract Encoded JOSE Header (first segment)
@@ -311,26 +313,31 @@ class RESTAdapter(ProtocolAdapter):
         header_b64 = parts[0]
         try:
             header_bytes = self._base64url_decode(header_b64)
-            header       = json.loads(header_bytes.decode("utf-8"))
+            header = json.loads(header_bytes.decode("utf-8"))
         except Exception as exc:
-            raise ValueError(f"Invalid JWT header encoding / JSON: {exc}") from exc
+            raise ValueError(
+                f"Invalid JWT header encoding / JSON: {exc}") from exc
 
         # STEP 5 — VERIFY HEADER CONTAINS ONLY SUPPORTED PARAMETERS
         # (RFC 7519 - 7.5)
         supported_hdr_keys = {"alg", "typ", "cty", "kid"}  # extend when needed
-        unknown_keys       = set(header) - supported_hdr_keys
+        unknown_keys = set(header) - supported_hdr_keys
         if unknown_keys:
-            raise ValueError(f"Unsupported JOSE header parameters: {unknown_keys}")
+            raise ValueError(
+                f"Unsupported JOSE header parameters: {unknown_keys}")
 
         # Optional sanity-check: typ SHOULD be "JWT" if present
         if header.get("typ") and header["typ"].upper() != "JWT":
-            raise ValueError(f"Invalid typ header: {header['typ']} (expected 'JWT')")
+            raise ValueError(
+                f"Invalid typ header: {
+                    header['typ']} (expected 'JWT')")
 
         # STEP 6 — DETERMINE JWS vs JWE
         #   • JWE contains an 'enc' parameter or has five segments.
         #   • This implementation supports JWS only.
         if "enc" in header or len(parts) == 5:
-            raise ValueError("Encrypted JWTs (JWE) are not supported by this service.")
+            raise ValueError(
+                "Encrypted JWTs (JWE) are not supported by this service.")
 
         # ALGORITHM VALIDATION  (RFC 7519, “Algorithm Validation” note)
         #   • Reject alg="none"
@@ -343,7 +350,8 @@ class RESTAdapter(ProtocolAdapter):
         if header_alg == "none":
             raise ValueError("Unsecured JWTs (alg='none') are not accepted.")
         if header_alg != allowed_alg:
-            raise ValueError(f"Disallowed alg '{header_alg}' (expected '{allowed_alg}').")
+            raise ValueError(
+                f"Disallowed alg '{header_alg}' (expected '{allowed_alg}').")
 
         # STEP 7 — FOR JWS: VERIFY SIGNATURE & DECODE CLAIMS
         #   • PyJWT calculates the HMAC-SHA-256 using `secret`
@@ -371,8 +379,8 @@ class RESTAdapter(ProtocolAdapter):
 
         # POST-VALIDATION POLICY CHECKS
         #   • Enforce maximum token age relative to 'iat'
-        iat_dt= datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
-        age_seconds  = (datetime.now(timezone.utc) - iat_dt).total_seconds()
+        iat_dt = datetime.fromtimestamp(payload["iat"], tz=timezone.utc)
+        age_seconds = (datetime.now(timezone.utc) - iat_dt).total_seconds()
         if age_seconds > max_age:
             raise ValueError("Token too old (exceeds max_token_age_seconds).")
 
