@@ -15,6 +15,10 @@ CONFIG_FILENAME = 'config.yaml'
 CONFIG_TEMPLATE_FILENAME = 'config.yaml.template'
 CONFIG_PATH = 'simulation_bridge.config'
 INMEMORY_RESOURCES_PATH = 'simulation_bridge.resources.inmemory'
+RABBITMQ_RESOURCES_PATH = 'simulation_bridge.resources.rabbitmq'
+MQTT_RESOURCES_PATH = 'simulation_bridge.resources.mqtt'
+REST_RESOURCES_PATH = 'simulation_bridge.resources.rest'
+REQUIREMENTS_FILENAME = 'requirements.txt'
 
 
 def copy_resource(package, resource, target_path):
@@ -29,7 +33,7 @@ def copy_resource(package, resource, target_path):
             with open(target_path, 'wb') as dst:
                 dst.write(template_content)
         return True
-    except (FileNotFoundError, OSError, IOError):
+    except OSError:
         return False
 
 
@@ -106,30 +110,30 @@ def get_files_to_generate():
         CONFIG_FILENAME: (CONFIG_PATH, CONFIG_TEMPLATE_FILENAME),
         'client/simulation.yaml': ('simulation_bridge.resources',
                                    'simulation.yaml.template'),
-        'client/mqtt/mqtt_client.py': ('simulation_bridge.resources.mqtt',
+        'client/mqtt/mqtt_client.py': (MQTT_RESOURCES_PATH,
                                        'mqtt_client.py'),
-        'client/mqtt/mqtt_use.yaml': ('simulation_bridge.resources.mqtt',
+        'client/mqtt/mqtt_use.yaml': (MQTT_RESOURCES_PATH,
                                       'mqtt_use.yaml.template'),
-        'client/mqtt/requirements.txt': ('simulation_bridge.resources.mqtt',
-                                         'requirements.txt'),
-        'client/rabbitmq/rabbitmq_client.py': ('simulation_bridge.resources.rabbitmq',
+        'client/mqtt/requirements.txt': (MQTT_RESOURCES_PATH,
+                                         REQUIREMENTS_FILENAME),
+        'client/rabbitmq/rabbitmq_client.py': (RABBITMQ_RESOURCES_PATH,
                                                'rabbitmq_client.py'),
-        'client/rabbitmq/rabbitmq_use.yaml': ('simulation_bridge.resources.rabbitmq',
+        'client/rabbitmq/rabbitmq_use.yaml': (RABBITMQ_RESOURCES_PATH,
                                               'rabbitmq_use.yaml.template'),
-        'client/rabbitmq/requirements.txt': ('simulation_bridge.resources.rabbitmq',
-                                             'requirements.txt'),
-        'client/rest/rest_client.py': ('simulation_bridge.resources.rest',
+        'client/rabbitmq/requirements.txt': (RABBITMQ_RESOURCES_PATH,
+                                             REQUIREMENTS_FILENAME),
+        'client/rest/rest_client.py': (REST_RESOURCES_PATH,
                                        'rest_client.py'),
-        'client/rest/rest_use.yaml': ('simulation_bridge.resources.rest',
+        'client/rest/rest_use.yaml': (REST_RESOURCES_PATH,
                                       'rest_use.yaml.template'),
-        'client/rest/requirements.txt': ('simulation_bridge.resources.rest',
-                                         'requirements.txt'),
+        'client/rest/requirements.txt': (REST_RESOURCES_PATH,
+                                         REQUIREMENTS_FILENAME),
         'client/inmemory/inmemory_client.py': (INMEMORY_RESOURCES_PATH,
                                                'inmemory_client.py'),
         'client/inmemory/inmemory_use.yaml': (INMEMORY_RESOURCES_PATH,
                                               'inmemory_use.yaml.template'),
         'client/inmemory/requirements.txt': (INMEMORY_RESOURCES_PATH,
-                                             'requirements.txt'),
+                                             REQUIREMENTS_FILENAME),
         'client/README.md': ('simulation_bridge.resources',
                              'README.md'),
     }
