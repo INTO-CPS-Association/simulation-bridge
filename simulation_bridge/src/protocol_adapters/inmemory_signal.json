@@ -1,0 +1,21 @@
+{
+  "protocols": {
+    "rabbitmq": {
+      "enabled": true,
+      "signals": {
+        "message_received_input_rabbitmq": "BridgeCore.handle_input_message",
+        "message_received_result_rabbitmq": "BridgeCore.handle_result_rabbitmq_message",
+        "message_received_result_unknown": "BridgeCore.handle_result_unknown_message"
+      },
+      "class": ".rabbitmq.rabbitmq_adapter.RabbitMQAdapter"
+    },
+    "inmemory": {
+      "enabled": true,
+      "signals": {
+        "message_received_input_inmemory": "BridgeCore.handle_input_message",
+        "message_received_result_inmemory": "InMemoryAdapter._handle_result"
+      },
+      "class": ".inmemory.inmemory_adapter.InMemoryAdapter"
+    }
+  }
+}

@@ -323,7 +323,7 @@ def test_bridge_orchestrator_init_calls_ensure_certificates(monkeypatch):
         MagicMock())
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -344,7 +344,7 @@ def test_bridge_orchestrator_init_ensure_certificates_exception(monkeypatch):
         MagicMock())
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -367,7 +367,7 @@ def test_bridge_orchestrator_init_certificates_custom_days(monkeypatch):
         MagicMock())
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -385,7 +385,7 @@ def test_bridge_orchestrator_start_and_stop(monkeypatch, mock_config_manager):
         lambda *a, **k: mock_config_manager)
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -412,7 +412,7 @@ def test_bridge_orchestrator_logs_bridge_id(monkeypatch, caplog):
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -434,7 +434,7 @@ def test_bridge_orchestrator_logs_enabled_protocols(monkeypatch, caplog):
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {
+        lambda *a, **k: {
             "mqtt": {
                 "class": "mqtt_adapter.MQTTAdapter",
                 "enabled": True}})
@@ -472,7 +472,7 @@ def test_bridge_orchestrator_logs_no_enabled_protocols(monkeypatch, caplog):
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {
+        lambda *a, **k: {
             "mqtt": {
                 "class": "mqtt_adapter.MQTTAdapter",
                 "enabled": False}})
@@ -507,7 +507,7 @@ def test_bridge_orchestrator_logs_error_on_exception(monkeypatch, caplog):
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -550,7 +550,7 @@ def test_bridge_orchestrator_certificates_validation_valid(
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -622,7 +622,7 @@ def test_bridge_orchestrator_certificates_validation_expired(
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -657,7 +657,7 @@ def test_bridge_orchestrator_certificates_missing_files(
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -698,7 +698,7 @@ def test_bridge_orchestrator_certificates_corrupted_files(
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})
@@ -729,7 +729,7 @@ def test_bridge_orchestrator_certificates_permission_error(
                 'rabbitmq': {}}))
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.load_protocol_config",
-        lambda: {})
+        lambda *a, **k: {})
     monkeypatch.setattr(
         "simulation_bridge.src.core.bridge_orchestrator.BridgeOrchestrator._import_adapter_classes",
         lambda self: {})

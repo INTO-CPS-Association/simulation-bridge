@@ -5,8 +5,9 @@ This module handles message routing between RabbitMQ, MQTT, and REST protocols,
 providing a unified interface for cross-protocol communication.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import json
+from datetime import datetime
 import ssl
 import pika
 from pydantic import BaseModel
@@ -23,6 +24,12 @@ RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
 
 logger = get_logger()
 
+
+def datetime_serializer(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()  # It converts datetime to ISO 8601 string format
+    raise TypeError(f"Type {obj.__class__.__name__} not serializable")
+
 # Pydantic models for message validation
 
 
@@ -32,6 +39,8 @@ class SimulationModel(BaseModel):
     client_id: str
     simulator: str
     type: str
+    timestamp: Optional[datetime] = None
+    timeout: Optional[int] = None
     file: str
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
@@ -79,6 +88,7 @@ class BridgeCore:
 
                 if self.config.get('tls', False):
                     context = ssl.create_default_context()
+                    context.minimum_version = ssl.TLSVersion.TLSv1_2
                     ssl_options = pika.SSLOptions(context, self.config['host'])
                     connection_params = pika.ConnectionParameters(
                         host=self.config['host'],
@@ -240,7 +250,7 @@ class BridgeCore:
             self.channel.basic_publish(
                 exchange=exchange,
                 routing_key=routing_key,
-                body=json.dumps(message),
+                body=json.dumps(message, default=datetime_serializer),
                 properties=pika.BasicProperties(
                     delivery_mode=2,
                 )

@@ -79,6 +79,13 @@ class MQTTConfig(BaseModel):
     tls: bool
 
 
+class JWTConfig(BaseModel):
+    """JWT authentication configuration."""
+    secret: str
+    algorithm: str
+    max_token_age_seconds: int = 3600
+
+
 class RESTConfig(BaseModel):
     """Configuration for REST API."""
     host: str
@@ -87,6 +94,7 @@ class RESTConfig(BaseModel):
     debug: bool
     certfile: Optional[str]
     keyfile: Optional[str]
+    jwt: Optional[JWTConfig]
 
 
 class LoggingConfig(BaseModel):
@@ -105,6 +113,7 @@ class PerformanceConfig(BaseModel):
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
+    in_memory_mode: bool = False
 
 
 class Config(BaseModel):
@@ -229,7 +238,8 @@ class ConfigManager:
         """Get default configuration as dictionary."""
         return Config(
             simulation_bridge=SimulationBridgeConfig(
-                bridge_id="simulation_bridge"),
+                bridge_id="simulation_bridge",
+                in_memory_mode=False),
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,
@@ -260,7 +270,12 @@ class ConfigManager:
                 endpoint="/message",
                 debug=False,
                 certfile=None,
-                keyfile=None
+                keyfile=None,
+                jwt=JWTConfig(
+                    secret="your_jwt_secret",
+                    algorithm="HS256",
+                    max_token_age_seconds=3600
+                )
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,

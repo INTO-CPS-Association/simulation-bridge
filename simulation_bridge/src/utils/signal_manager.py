@@ -3,7 +3,7 @@ Signal Manager for the Simulation Bridge.
 This module provides a signal management system that handles the registration and
 automatic subscription of signals for different protocols in the simulation bridge.
 """
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, Optional
 from blinker import signal
 from .logger import get_logger
 from .config_loader import load_protocol_config
@@ -85,8 +85,41 @@ class SignalManager:
                         "Failed to connect signal '%s': %s", sig_name, e)
 
     @classmethod
-    def _resolve_callback(cls, func_path: str, protocol: str) -> Callable:
+    def connect_inmemory_signals(cls):
+        """Connect only signals related to the 'inmemory' protocol."""
+        protocol = "inmemory"
+        protocol_data = cls.PROTOCOL_CONFIG.get(protocol)
+
+        if not protocol_data or not protocol_data.get("enabled", True):
+            logger.debug(
+                "Skipping signals for disabled or missing 'inmemory' protocol.")
+            return
+
+        for sig_name, func_path in protocol_data.get("signals", {}).items():
+            callback = cls._resolve_callback(
+                func_path, protocol, strict_protocol="inmemory")
+            if not callback:
+                logger.warning(
+                    "Skipping signal '%s': callback not found", sig_name)
+                continue
+            try:
+                signal(sig_name).connect(callback)
+                logger.debug("Connected signal '%s' to '%s' for protocol 'inmemory'",
+                             sig_name, func_path)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.error("Failed to connect signal '%s': %s", sig_name, e)
+
+    @classmethod
+    def _resolve_callback(cls, func_path: str, protocol: str,
+                          strict_protocol: Optional[str] = None) -> Callable:
         """Resolve a callback function given its string path."""
+        if strict_protocol and protocol != strict_protocol:
+            logger.debug(
+                "Skipping callback resolution: protocol '%s' != strict '%s'",
+                protocol,
+                strict_protocol)
+            return None
+
         if "." not in func_path:
             return None
 

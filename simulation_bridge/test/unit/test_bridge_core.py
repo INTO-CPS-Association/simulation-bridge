@@ -129,6 +129,8 @@ class TestHandleInputMessage:
                 'simulator': 'simX',
                 'type': 'typeA',
                 'file': 'file1',
+                'timestamp': '2024-01-01T00:00:00Z',
+                'timeout': 60,
                 'inputs': {},
                 'outputs': {}
             }
@@ -176,7 +178,7 @@ class TestHandleInputMessage:
 
 
 class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
-    "Tests for handling result messages from RabbitMQ and other protocols."""
+    "Tests for handling result messages from RabbitMQ and other protocols"
 
     def test_handle_result_rabbitmq_message_publishes(self, bridge_core_instance,
                                                       patch_basic_publish):
@@ -194,7 +196,7 @@ class TestHandleResultMessages:  # pylint: disable=too-few-public-methods
 
 
 class TestPublishMessage:
-    "Tests for _publish_message method publishing messages to RabbitMQ."""
+    "Tests for _publish_message method publishing messages to RabbitMQ"
 
     def test_publish_message_success(self, bridge_core_instance, patch_basic_publish,
                                      mock_logger):

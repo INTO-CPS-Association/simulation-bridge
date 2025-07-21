@@ -111,6 +111,7 @@ The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive 
 # Unique identifier for this simulation bridge instance
 simulation_bridge:
   bridge_id: simulation_bridge # ID used to identify this instance of the sim-bridge
+  in_memory_mode: false # Set to true for in-memory mode
 
 # RabbitMQ protocol adapter configuration
 rabbitmq:
@@ -187,6 +188,10 @@ rest:
   debug: false # Disable Flask debug mode (set to true for development)
   certfile: certs/cert.pem # Path to the TLS certificate file for HTTPS
   keyfile: certs/key.pem # Path to the private key file for HTTPS
+  jwt: # JWT configuration for secure token-based authentication
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE" # Secret key for signing JWT tokens
+    algorithm: HS256 # Algorithm used for signing JWT tokens
+    max_token_age_seconds: 3600 # Maximum age of JWT tokens in seconds (1 hour)
 
 # Logging configuration
 logging:

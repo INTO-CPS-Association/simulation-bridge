@@ -4,6 +4,8 @@ simulation:
   simulator: matlab
   type: streaming
   file: SimulationStreaming.m
+  timestamp: "2024-01-01T00:00:00Z" # Timestamp for the simulation request in ISO 8601 format
+  timeout: 60 # Timeout for the simulation in seconds
   inputs:
     time_step: 0.05 # Time step for the simulation
     num_agents: 8 # Number of agents

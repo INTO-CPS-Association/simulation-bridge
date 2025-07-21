@@ -39,6 +39,7 @@ class RabbitMQClient:
 
         if use_tls:
             context = ssl.create_default_context()
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
             ssl_options = pika.SSLOptions(context, rabbitmq_cfg['host'])
             parameters = pika.ConnectionParameters(
                 host=rabbitmq_cfg['host'],
@@ -82,9 +83,10 @@ class RabbitMQClient:
         )
 
         # Declare and bind result queue
-        self.result_queue_name = f"{
-            queue_cfg['result_queue_prefix']}.{
-            self.dt_id}.result"  # pylint: disable=line-too-long
+        self.result_queue_name = (
+            f"{queue_cfg['result_queue_prefix']}."
+            f"{self.dt_id}.result"
+        )
         self.channel.queue_declare(
             queue=self.result_queue_name, durable=queue_cfg['durable'])
         self.channel.queue_bind(
