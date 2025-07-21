@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "simulation-bridge"
-version = "0.1.0"
+version = "0.1.1"
 description = "Simulation Bridge"
 authors = ["Marco Melloni <291358@studenti.unimore.it>"]
 license = "ICAPL"
@@ -29,6 +29,8 @@ requests = "^2.32.3"
 python = "^3.12"
 uvicorn = "^0.34.2"
 cryptography = "^45.0.4"
+psutil = "^7.0.0"
+pyjwt = {extras = ["crypto"], version = "^2.10.1"}
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.3.2"

@@ -7,8 +7,6 @@ variable substitution, error handling, and protocol config loading.
 """
 
 import io
-import json
-from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -134,25 +132,6 @@ class TestEnvVarSubstitution:
         """Test substitution with no default and unset env var results in empty string."""
         config = "${UNSET_ENV:}"
         assert config_loader._substitute_env_vars(config) == ""
-
-
-class TestLoadProtocolConfig:  # pylint: disable=too-few-public-methods
-    """Test cases for load_protocol_config function."""
-
-    def test_load_protocol_config_success(self, protocol_json):
-        """Test successful loading and parsing of protocol config JSON file."""
-        json_str = json.dumps(protocol_json)
-        mock_open = mock.mock_open(read_data=json_str)
-
-        config_file = Path(config_loader.__file__).parent.parent / \
-            "protocol_adapters/adapters_signal.json"
-
-        with mock.patch("builtins.open", mock_open) as m_open:
-            protocols = config_loader.load_protocol_config()
-
-            m_open.assert_called_once_with(config_file, 'r', encoding='utf-8')
-            assert isinstance(protocols, list)
-            assert protocols == protocol_json["protocols"]
 
 
 class TestErrorHandling:

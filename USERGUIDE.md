@@ -111,6 +111,7 @@ The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive 
 # Unique identifier for this simulation bridge instance
 simulation_bridge:
   bridge_id: simulation_bridge # ID used to identify this instance of the sim-bridge
+  in_memory_mode: false # Set to true for in-memory mode
 
 # RabbitMQ protocol adapter configuration
 rabbitmq:
@@ -187,12 +188,21 @@ rest:
   debug: false # Disable Flask debug mode (set to true for development)
   certfile: certs/cert.pem # Path to the TLS certificate file for HTTPS
   keyfile: certs/key.pem # Path to the private key file for HTTPS
+  jwt: # JWT configuration for secure token-based authentication
+    secret: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE" # Secret key for signing JWT tokens
+    algorithm: HS256 # Algorithm used for signing JWT tokens
+    max_token_age_seconds: 3600 # Maximum age of JWT tokens in seconds (1 hour)
 
 # Logging configuration
 logging:
   level: INFO # Logging level (e.g., DEBUG, INFO, WARNING, ERROR)
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" # Format of log messages
   file: logs/sim_bridge.log # Path to the log output file
+
+# Performance monitoring configuration
+performance:
+  enabled: false # Enable/disable performance monitoring
+  file: performance_log/performance_metrics.csv # File where performance logs will be stored
 ```
 
 > **Note:** Certificate files (`certfile.pem` and `keyfile.pem`) will be automatically created by the _sim-bridge_ if missing.

@@ -10,7 +10,7 @@ from simulation_bridge.resources.rabbitmq import rabbitmq_client
 
 
 @pytest.fixture
-def mock_config():
+def mock_config(dummy_credentials):
     """Mock configuration dictionary for RabbitMQClient."""
     return {
         'rabbitmq':
@@ -18,8 +18,8 @@ def mock_config():
                 'host': 'localhost',
                 'port': 5672,
                 'vhost': '/',
-                'username': 'guest',
-                'password': 'guest'
+                'username': dummy_credentials['guest']['username'],
+                'password': dummy_credentials['guest']['password']
             },
         'digital_twin': {
             'dt_id': 'dt123',

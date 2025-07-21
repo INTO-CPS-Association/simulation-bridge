@@ -9,11 +9,14 @@ from ..utils.config_loader import load_protocol_config
 from ..utils.logger import get_logger
 from ..utils.signal_manager import SignalManager
 from ..utils.certs import ensure_certificates
+from ..utils.performance_monitor import PerformanceMonitor
 
 # Constants for RabbitMQ connection parameters
 POLL_INTERVAL_SECONDS = 60  # Continuously check adapter status every 60 seconds
 
 logger = get_logger()
+
+# pylint: disable=too-many-instance-attributes
 
 
 class BridgeOrchestrator:
@@ -28,17 +31,18 @@ class BridgeOrchestrator:
         """
         self.config_manager = ConfigManager(config_path)
         self.config = self.config_manager.get_config()
-
+        self.performance_monitor = PerformanceMonitor(config=self.config)
         self.simulation_bridge_id = self.config['simulation_bridge']['bridge_id']
         logger.info("Simulation bridge ID: %s", self.simulation_bridge_id)
         # Validate and ensure SSL certificates are present
-        ensure_certificates(validity_days=365)
+        ensure_certificates(validity_days=365, config=self.config)
 
         self.bridge = None
         self.adapters = {}
         self._running = False
-
-        self.protocol_config = load_protocol_config()
+        self.protocol_config = load_protocol_config(
+            self.config_manager.config_path)
+        SignalManager.PROTOCOL_CONFIG = self.protocol_config
         self.adapter_classes = self._import_adapter_classes()
 
     def setup_interfaces(self):

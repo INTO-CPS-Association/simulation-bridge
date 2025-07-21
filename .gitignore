@@ -209,8 +209,9 @@ dist/
 *.pem
 *_use.yaml
 client/
+client_ripetitive/
 dist/
 .venv*
 certs
 performance_log/
-performance/
+performance_old/

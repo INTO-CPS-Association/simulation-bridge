@@ -79,6 +79,13 @@ class MQTTConfig(BaseModel):
     tls: bool
 
 
+class JWTConfig(BaseModel):
+    """JWT authentication configuration."""
+    secret: str
+    algorithm: str
+    max_token_age_seconds: int = 3600
+
+
 class RESTConfig(BaseModel):
     """Configuration for REST API."""
     host: str
@@ -87,6 +94,7 @@ class RESTConfig(BaseModel):
     debug: bool
     certfile: Optional[str]
     keyfile: Optional[str]
+    jwt: Optional[JWTConfig]
 
 
 class LoggingConfig(BaseModel):
@@ -96,9 +104,16 @@ class LoggingConfig(BaseModel):
     file: str
 
 
+class PerformanceConfig(BaseModel):
+    """Configuration for performance monitoring."""
+    enabled: bool
+    file: str
+
+
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
+    in_memory_mode: bool = False
 
 
 class Config(BaseModel):
@@ -110,6 +125,7 @@ class Config(BaseModel):
     mqtt: MQTTConfig
     rest: RESTConfig
     logging: LoggingConfig
+    performance: PerformanceConfig
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the model to a dictionary with nested structure."""
@@ -118,7 +134,8 @@ class Config(BaseModel):
             'rabbitmq': self.rabbitmq.model_dump(),
             'mqtt': self.mqtt.model_dump(),
             'rest': self.rest.model_dump(),
-            'logging': self.logging.model_dump()
+            'logging': self.logging.model_dump(),
+            'performance': self.performance.model_dump()
         }
 
     @classmethod
@@ -161,6 +178,8 @@ class Config(BaseModel):
         mqtt_config = MQTTConfig(**config_dict.get('mqtt', {}))
         rest_config = RESTConfig(**config_dict.get('rest', {}))
         logging_config = LoggingConfig(**config_dict.get('logging', {}))
+        performance_config = PerformanceConfig(
+            **config_dict.get('performance', {}))
 
         # Assemble and return the complete Config object
         return cls(
@@ -168,7 +187,8 @@ class Config(BaseModel):
             rabbitmq=rabbit_config,
             mqtt=mqtt_config,
             rest=rest_config,
-            logging=logging_config
+            logging=logging_config,
+            performance=performance_config
         )
 
 
@@ -218,7 +238,8 @@ class ConfigManager:
         """Get default configuration as dictionary."""
         return Config(
             simulation_bridge=SimulationBridgeConfig(
-                bridge_id="simulation_bridge"),
+                bridge_id="simulation_bridge",
+                in_memory_mode=False),
             rabbitmq=RabbitMQConfig(
                 host="localhost",
                 port=5672,
@@ -249,12 +270,21 @@ class ConfigManager:
                 endpoint="/message",
                 debug=False,
                 certfile=None,
-                keyfile=None
+                keyfile=None,
+                jwt=JWTConfig(
+                    secret="your_jwt_secret",
+                    algorithm="HS256",
+                    max_token_age_seconds=3600
+                )
             ),
             logging=LoggingConfig(
                 level=LogLevel.INFO,
                 format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                 file="logs/sim_bridge.log"
+            ),
+            performance=PerformanceConfig(
+                enabled=False,
+                file="performance_log/performance_metrics.csv"
             )
         ).to_dict()
 

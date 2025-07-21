@@ -8,7 +8,7 @@ and listen asynchronously for the simulation results.
 import argparse
 import threading
 import uuid
-from typing import Any, Dict, NoReturn
+from typing import Any, Dict
 import pika
 import yaml
 
