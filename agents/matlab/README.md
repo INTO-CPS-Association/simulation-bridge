@@ -184,9 +184,8 @@ logging:
   file: logs/matlab_agent.log # The file path where logs will be stored.
 
 tcp:
-  input_host: localhost # Host for receiving input stream
+  host: localhost # Host for receiving input stream
   input_port: 5679 # Port for receiving input stream
-  output_host: localhost # Host for output stream
   output_port: 5678 # Port for output stream
 
 response_templates:

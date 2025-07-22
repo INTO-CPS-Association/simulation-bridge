@@ -131,11 +131,11 @@ class MatlabInteractiveController:
         self.agent_id = agent_id
 
         self.out_srv = _TcpServer(
-            tcp_cfg.get("output_host", "localhost"),
+            tcp_cfg.get("host", "localhost"),
             tcp_cfg.get("output_port", 5678),
         )
         self.in_srv = _TcpServer(
-            tcp_cfg.get("input_host", "localhost"),
+            tcp_cfg.get("host", "localhost"),
             tcp_cfg.get("input_port", 5679),
         )
 

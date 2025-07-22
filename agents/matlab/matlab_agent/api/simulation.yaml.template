@@ -21,9 +21,9 @@ simulation:
 
   inputs:
     # Input variables to be passed to the simulation.
-    # If the simulation type is 'streaming' or 'interactive', it is mandatory to specify 'stream_source' to indicate the source of the input stream.
+    # If the simulation type is 'interactive', it is mandatory to specify 'stream_source' to indicate the source of the input stream.
     # stream_source: The source of the input stream, e.g., RabbitMQ, which streams real-time input data to the simulation.
-    # This is required for interactive or streaming simulations.
+    # This is required for interactive simulations.
     stream_source: # Source of the input stream, typically RabbitMQ for streaming mode.
 
     i1: ..
