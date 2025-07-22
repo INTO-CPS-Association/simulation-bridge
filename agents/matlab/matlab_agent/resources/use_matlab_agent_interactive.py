@@ -1,5 +1,5 @@
 """
-use_matlab_agent_interactive_async.py
+use_matlab_agent_interactive.py
 
 Asynchronous RabbitMQ client for sending interactive simulation requests
 to MATLAB
@@ -23,7 +23,7 @@ from aio_pika import (
 )
 
 
-class AsyncInteractiveMatlabClient:
+class InteractiveUsageMatlabAgent:
     """Asynchronous client for sending interactive simulation requests to MATLAB."""
 
     def __init__(self, agent_id: str, destination_id: str,
@@ -132,7 +132,7 @@ async def main():
         payload = yaml.safe_load(await f.read())
 
     config = payload.get("config", {})
-    client = AsyncInteractiveMatlabClient("dt", "matlab", config)
+    client = InteractiveUsageMatlabAgent("dt", "matlab", config)
 
     request_id = str(uuid.uuid4())
     stream_source = payload["simulation"]["inputs"]["stream_source"]

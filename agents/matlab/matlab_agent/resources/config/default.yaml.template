@@ -1,9 +1,9 @@
 tcp:
   host: "localhost"
-  # ——— Incoming stream (Python → MATLAB) ———
+  # ——— Incoming stream (Agent → MATLAB) ———
   input_port: 5679
 
-  # ——— Outgoing stream (MATLAB → Python) ———
+  # ——— Outgoing stream (MATLAB → Agent) ———
   output_port: 5678
 
   # Connection / retry policy

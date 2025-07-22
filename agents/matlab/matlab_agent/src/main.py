@@ -19,7 +19,7 @@ MATLAB_AGENT_RESOURCES = 'matlab_agent.resources'
 
 
 @click.command()
-@click.option('--config-file', '-c', type=click.Path(exists=True),
+@click.option('--config-file', '-c', type=click.Path(exists=False),
               default=None, help='Path to custom configuration file')
 @click.option('--generate-config', is_flag=True,
               help='Generate a default configuration file in the current directory')
@@ -104,15 +104,17 @@ def generate_default_project():
                                'simulation_streaming.m.template'),
         'client/use_matlab_agent_interactive.py': (MATLAB_AGENT_RESOURCES,
                                                    'use_matlab_agent_interactive.py'),
-        'client/use_matlab_agent.py': (MATLAB_AGENT_RESOURCES,
-                                       'use_matlab_agent.py'),
+        'client/use_matlab_agent_streaming.py': (MATLAB_AGENT_RESOURCES,
+                                                 'use_matlab_agent_streaming.py'),
+        'client/use_matlab_agent_batch.py': (MATLAB_AGENT_RESOURCES,
+                                             'use_matlab_agent_batch.py'),
         'client/use.yaml': (MATLAB_AGENT_RESOURCES,
                             'use.yaml.template'),
         'client/simulation.yaml': ('matlab_agent.api',
                                    'simulation.yaml.template'),
         'client/README.md': (MATLAB_AGENT_RESOURCES, 'README.md'),
-        'client/config/default.yaml': (MATLAB_AGENT_RESOURCES,
-                                       'config/default.yaml.template'),
+        'client/config/default.yaml': ('matlab_agent.resources.config',
+                                       'default.yaml.template'),
     }
 
     # Descriptions for each file
@@ -124,7 +126,8 @@ def generate_default_project():
         SIMULATION_STREAMING: "Template for streaming-mode simulations",
         'client/use_matlab_agent_interactive.py':
             "Python script to use the MATLAB agent in interactive mode",
-        'client/use_matlab_agent.py': "Python script to use the MATLAB agent",
+        'client/use_matlab_agent_streaming.py': "Python script to use the MATLAB agent in streaming mode",
+        'client/use_matlab_agent_batch.py': "Python script to use the MATLAB agent in batch mode",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
         'client/simulation.yaml':
             "Example API payload to communicate with the MATLAB agent",
@@ -146,6 +149,7 @@ def generate_default_project():
                     existing_files.append(output_name)
                     continue
                 resource_path = files(package).joinpath(resource_name)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(resource_path, 'rb') as src, open(output_path, 'wb') as dst:
                     dst.write(src.read())
                 created_files.append(output_name)

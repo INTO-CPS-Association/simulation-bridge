@@ -247,7 +247,7 @@ class IntegrationTest(TestCase):
     def tearDown(self):  # noqa: D401
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    @patch("resources.use_matlab_agent.pika.BlockingConnection")
+    @patch("resources.use_matlab_agent_batch.pika.BlockingConnection")
     def test_init(self, _):  # noqa: ANN001
         handler = MockMessageHandler(
             "id", self.manager, {
@@ -255,7 +255,7 @@ class IntegrationTest(TestCase):
                     "path": "/a"}})
         self.assertEqual(handler.path_simulation, "/a")
 
-    @patch("resources.use_matlab_agent.pika.BlockingConnection")
+    @patch("resources.use_matlab_agent_batch.pika.BlockingConnection")
     def test_invalid_yaml(self, _):  # noqa: ANN001
         handler = MockMessageHandler("id", self.manager, {})
         method = Mock(routing_key="dt.m", delivery_tag="t")
@@ -264,7 +264,7 @@ class IntegrationTest(TestCase):
             self.manager.sent_results[0]["response"]["error"]["type"],
             "execution_error")
 
-    @patch("resources.use_matlab_agent.pika.BlockingConnection")
+    @patch("resources.use_matlab_agent_batch.pika.BlockingConnection")
     def test_missing_fields(self, _):  # noqa: ANN001
         handler = MockMessageHandler("id", self.manager, {})
         body = yaml.dump({"simulation": {"request_id": "x"}}).encode()
