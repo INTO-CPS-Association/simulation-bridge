@@ -1,6 +1,13 @@
+"""Test suite for the ConfigManager class.
+
+This refactored version removes duplicated configuration stubs by introducing a
+single reusable ``base_config`` fixture.  Where individual tests need to tweak
+values, they operate on a ``deepcopy`` so that the canonical fixture remains
+pristine for all subsequent tests.
 """
-Test suite for the ConfigManager class.
-"""
+from __future__ import annotations
+
+from copy import deepcopy
 from pathlib import Path
 from unittest import mock
 
@@ -10,10 +17,11 @@ from pydantic import ValidationError
 from src.utils.config_manager import ConfigManager
 
 
-@pytest.fixture
-def mock_config_data(dummy_credentials):
-    """Fixture providing standard test configuration data."""
-    rabbit_creds = dummy_credentials.get("rabbitmq", {})
+@pytest.fixture(scope="module")
+def base_config(dummy_credentials: dict) -> dict:
+    """Return a fully‑populated configuration template shared by all tests."""
+
+    rabbit_creds: dict = dummy_credentials.get("rabbitmq", {})
     return {
         "agent": {"agent_id": "matlab"},
         "rabbitmq": {
@@ -21,23 +29,23 @@ def mock_config_data(dummy_credentials):
             "port": 5672,
             "username": rabbit_creds.get("username", "guest"),
             "password": rabbit_creds.get("password", "guest"),
-            "heartbeat": 600
+            "heartbeat": 600,
         },
         "exchanges": {
             "input": "ex.bridge.output",
-            "output": "ex.sim.result"
+            "output": "ex.sim.result",
         },
         "queue": {
             "durable": True,
-            "prefetch_count": 1
+            "prefetch_count": 1,
         },
         "logging": {
             "level": "INFO",
-            "file": "logs/matlab_agent.log"
+            "file": "logs/matlab_agent.log",
         },
         "tcp": {
             "host": "localhost",
-            "port": 5678
+            "port": 5678,
         },
         "response_templates": {
             "success": {
@@ -45,7 +53,11 @@ def mock_config_data(dummy_credentials):
                 "simulation": {"type": "batch"},
                 "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
                 "include_metadata": True,
-                "metadata_fields": ["execution_time", "memory_usage", "matlab_version"]
+                "metadata_fields": [
+                    "execution_time",
+                    "memory_usage",
+                    "matlab_version",
+                ],
             },
             "error": {
                 "status": "error",
@@ -55,195 +67,97 @@ def mock_config_data(dummy_credentials):
                     "matlab_start_failure": 500,
                     "execution_error": 500,
                     "timeout": 504,
-                    "missing_file": 404
+                    "missing_file": 404,
                 },
-                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
+                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
             },
             "progress": {
                 "status": "in_progress",
                 "include_percentage": True,
                 "update_interval": 5,
-                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
-            }
-        }
+                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
+            },
+        },
     }
 
 
 @pytest.fixture
-def mock_config_path():
-    """Fixture providing a standard mock config path."""
-    return "/fake/path/config.yaml"
+def config_path() -> Path:
+    """Fake configuration path used throughout the tests."""
+
+    return Path("/fake/path/config.yaml")
 
 
 @pytest.fixture
-def mock_load_config(mock_config_data):
-    """
-    Fixture that patches the load_config function to return test configuration data.
+def patched_load(base_config: dict):
+    """Patch the ``load_config`` helper used by :class:`ConfigManager`."""
 
-    Args:
-        mock_config_data: The test configuration data fixture
-
-    Returns:
-        The mocked load_config function
-    """
-    with mock.patch("src.utils.config_manager.load_config") as mocked_load:
-        mocked_load.return_value = mock_config_data
-        yield mocked_load
+    with mock.patch(
+        "src.utils.config_manager.load_config", return_value=deepcopy(base_config)
+    ) as mocked:
+        yield mocked
 
 
 @pytest.fixture
-def mock_path_exists():
-    """Fixture that patches Path.exists to always return True."""
+def patched_exists():
+    """Pretend that any ``Path.exists`` call returns *True*."""
+
     with mock.patch.object(Path, "exists", return_value=True):
         yield
 
 
 @pytest.fixture
-def config_manager(mock_config_path, mock_load_config, mock_path_exists):
-    """
-    Fixture that creates a pre-configured ConfigManager instance.
+def manager(config_path: Path, patched_load, patched_exists):
+    """A :class:`ConfigManager` instance pre‑loaded with *base_config*."""
 
-    Args:
-        mock_config_path: The mock config path fixture
-        mock_load_config: The mocked load_config function fixture
-        mock_path_exists: The mocked Path.exists fixture
+    return ConfigManager(config_path)
 
-    Returns:
-        A ConfigManager instance initialized with the test configuration
-    """
-    return ConfigManager(mock_config_path)
+def test_manager_initialization(manager: ConfigManager, patched_load, config_path):
+    """The manager should forward *config_path* to ``load_config`` exactly once."""
 
-
-def test_config_manager_initialization(dummy_credentials):
-    """Test that ConfigManager initializes correctly with the provided configuration."""
-    rabbit_creds = dummy_credentials.get("rabbitmq", {})
-    config_path = "/fake/path/config.yaml"
-    test_config_data = {
-        "agent": {"agent_id": "matlab"},
-        "rabbitmq": {
-            "host": "localhost",
-            "port": 5672,
-            "username": rabbit_creds.get("username", "guest"),
-            "password": rabbit_creds.get("password", "guest"),
-            "heartbeat": 600
-        },
-        "exchanges": {
-            "input": "ex.bridge.output",
-            "output": "ex.sim.result"
-        },
-        "queue": {
-            "durable": True,
-            "prefetch_count": 1
-        },
-        "logging": {
-            "level": "INFO",
-            "file": "logs/matlab_agent.log"
-        },
-        "tcp": {
-            "host": "localhost",
-            "port": 5678
-        },
-        "response_templates": {
-            "success": {
-                "status": "success",
-                "simulation": {"type": "batch"},
-                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
-                "include_metadata": True,
-                "metadata_fields": ["execution_time", "memory_usage", "matlab_version"]
-            },
-            "error": {
-                "status": "error",
-                "include_stacktrace": False,
-                "error_codes": {
-                    "invalid_config": 400,
-                    "matlab_start_failure": 500,
-                    "execution_error": 500,
-                    "timeout": 504,
-                    "missing_file": 404
-                },
-                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
-            },
-            "progress": {
-                "status": "in_progress",
-                "include_percentage": True,
-                "update_interval": 5,
-                "timestamp_format": "%Y-%m-%dT%H:%M:%SZ"
-            }
-        }
-    }
-    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
-            mock.patch.object(Path, "exists", return_value=True):
-        load_config_mock.return_value = test_config_data
-        manager = ConfigManager(config_path)
-        load_config_mock.assert_called_once_with(Path(config_path))
-        assert manager.config["agent"]["agent_id"] == "matlab"
-        assert manager.config["rabbitmq"]["host"] == "localhost"
+    patched_load.assert_called_once_with(Path(config_path))
+    assert manager.config["agent"]["agent_id"] == "matlab"
 
 
 def test_get_default_config():
-    """Test that default configuration values are correct."""
-    manager = ConfigManager()
-    default_config = manager.get_default_config()
+    """The factory default configuration is stable and complete."""
 
-    assert isinstance(default_config, dict)
-    assert default_config["agent"]["agent_id"] == "matlab"
-    assert default_config["rabbitmq"]["port"] == 5672
+    cm = ConfigManager()
+    default_cfg = cm.get_default_config()
 
-
-def test_get_config():
-    """Test that get_config returns the correct configuration values."""
-    config_path = "/fake/path/config.yaml"
-    test_config_data = {
-        "agent": {"agent_id": "matlab"},
-        "rabbitmq": {"host": "localhost", "port": 5672}
-    }
-    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
-            mock.patch.object(Path, "exists", return_value=True):
-        load_config_mock.return_value = test_config_data
-        manager = ConfigManager(config_path)
-        config = manager.get_config()
-
-        assert config["agent"]["agent_id"] == "matlab"
-        assert config["rabbitmq"]["host"] == "localhost"
+    assert default_cfg["agent"]["agent_id"] == "matlab"
+    assert default_cfg["rabbitmq"]["port"] == 5672
 
 
-def test_validate_config_success(dummy_credentials):
-    """Test that config validation succeeds with correct data."""
-    rabbit_creds = dummy_credentials.get("rabbitmq", {})
-    test_config_data = {
-        "agent": {"agent_id": "matlab"},
-        "rabbitmq": {
-            "host": "localhost",
-            "port": 5672,
-            "username": rabbit_creds.get("username", "guest"),
-            "password": rabbit_creds.get("password", "guest"),
-            "heartbeat": 600
-        }
-    }
-    with mock.patch("src.utils.config_manager.load_config") as load_config_mock, \
-            mock.patch.object(Path, "exists", return_value=True):
-        load_config_mock.return_value = test_config_data
-        manager = ConfigManager("/fake/path/config.yaml")
+def test_get_config(manager: ConfigManager):
+    """``get_config`` should return the same data originally loaded."""
 
-        # Test the protected method directly
-        validated_config = manager._validate_config(
-            test_config_data)  # pylint: disable=protected-access
-        assert validated_config["agent"]["agent_id"] == "matlab"
+    assert manager.get_config()["rabbitmq"]["host"] == "localhost"
+
+
+@pytest.mark.parametrize("agent_id", ["matlab", "python_sim"])
+def test_validate_config_success(agent_id: str, base_config: dict):
+    """Any valid configuration variant should pass model validation."""
+
+    cfg = deepcopy(base_config)
+    cfg["agent"]["agent_id"] = agent_id
+
+    validated = ConfigManager()._validate_config(cfg)  # pylint: disable=protected-access
+    assert validated["agent"]["agent_id"] == agent_id
 
 
 def test_validate_config_failure():
-    """Test that validation error is raised with invalid data."""
-    manager = ConfigManager()
-    invalid_config = {"rabbitmq": {"port": "not_a_number"}}
+    """An invalid configuration must raise a :class:`ValidationError`."""
 
     with pytest.raises(ValidationError):
-        manager._validate_config(
-            invalid_config)  # pylint: disable=protected-access
+        ConfigManager()._validate_config({"rabbitmq": {"port": "not_a_number"}})
 
 
-def test_initialization_with_invalid_path():
-    """Test initialization when the configuration file does not exist."""
-    with mock.patch.object(Path, "exists", return_value=False):
-        manager = ConfigManager("/invalid/path/config.yaml")
+def test_initialization_with_invalid_path(monkeypatch):
+    """If the file is missing, the manager should fall back to defaults."""
 
-        assert manager.config == manager.get_default_config()
+    monkeypatch.setattr(Path, "exists", lambda *_: False)
+
+    cm = ConfigManager("/invalid/path/config.yaml")
+
+    assert cm.config == cm.get_default_config()

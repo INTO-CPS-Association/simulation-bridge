@@ -214,7 +214,7 @@ def run_agent(config_file):
         config_path=config_file)
 
     try:
-        logger.debug("Starting MATLAB agent with config: %s", config)
+        logger.debug("Starting MATLAB agent with config: %s", config_file)
         agent.start()
     except KeyboardInterrupt:
         logger.info("Shutting down agent due to keyboard interrupt")
