@@ -12,13 +12,10 @@ import pytest
 import yaml
 
 
-# --------------------------------------------------------------------------- #
-#                              pytest fixtures                                #
-# --------------------------------------------------------------------------- #
 @pytest.fixture
 def mock_config_manager(dummy_credentials):
     """Mock configuration-manager fixture."""
-    # Recupera le credenziali in modo sicuro, con fallback a "guest/guest".
+    # Retrieve credentials safely, with fallback to "guest/guest".
     rabbit_creds: Dict[str, str] = dummy_credentials.get("rabbitmq", {})
     username = rabbit_creds.get("username", "guest")
     password = rabbit_creds.get("password", "guest")
@@ -52,9 +49,6 @@ def _attach_fixtures(request, dummy_credentials, mock_config_manager):
     # Nothing to return; autouse fixture
 
 
-# --------------------------------------------------------------------------- #
-#                               Helper classes                                #
-# --------------------------------------------------------------------------- #
 class MockRabbitMQManager:
     """Collect calls to *send_result* and *send_message*."""
 
@@ -194,9 +188,6 @@ class MockMessageHandler:
             ch.basic_nack(method.delivery_tag, requeue=False)
 
 
-# --------------------------------------------------------------------------- #
-#                               Integration tests                             #
-# --------------------------------------------------------------------------- #
 @pytest.mark.usefixtures("dummy_credentials")
 class IntegrationTest(TestCase):
     """End-to-end tests for the mock handler."""
@@ -206,7 +197,7 @@ class IntegrationTest(TestCase):
         self.config_file = self.temp_dir / "conf.yaml"
         self.sim_file = self.temp_dir / "sim.yaml"
 
-        # Credenziali ottenute via fixture autouse
+        # Credentials obtained via autouse fixture
         creds: Dict[str, Any] = cast(Dict[str, Any], getattr(self, "dummy_credentials", {})).get("rabbitmq", {})
 
         cfg = {
@@ -240,9 +231,6 @@ class IntegrationTest(TestCase):
     def tearDown(self):  # noqa: D401
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    # --------------------------------------------------------------------- #
-    #                                Tests                                  #
-    # --------------------------------------------------------------------- #
     @patch("resources.use_matlab_agent.pika.BlockingConnection")
     def test_init(self, _):  # noqa: ANN001
         handler = MockMessageHandler("id", self.manager, {"simulation": {"path": "/a"}})
@@ -281,9 +269,6 @@ class IntegrationTest(TestCase):
             yaml.safe_load(bad.read_text())
 
 
-# --------------------------------------------------------------------------- #
-#                             Stand-alone runner                              #
-# --------------------------------------------------------------------------- #
 if __name__ == "__main__":  # pragma: no cover
     import unittest
 

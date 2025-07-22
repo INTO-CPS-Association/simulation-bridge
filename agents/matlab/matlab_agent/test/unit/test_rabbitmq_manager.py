@@ -11,13 +11,14 @@ from src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
 
 @pytest.fixture(scope="function")
-def mock_config() -> dict:
+def mock_config(dummy_credentials) -> dict:
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "xxxx",
-            "password": "xxxx",
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
             "heartbeat": 600,
         },
         "exchanges": {

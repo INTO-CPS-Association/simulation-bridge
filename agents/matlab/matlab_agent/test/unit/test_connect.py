@@ -22,8 +22,9 @@ class TestConnect:
     """Test class for the Connect communication wrapper."""
 
     @pytest.fixture
-    def mock_config(self) -> Dict[str, Any]:
+    def mock_config(self, dummy_credentials) -> Dict[str, Any]:
         """Provide a mock configuration for testing."""
+        rabbit_creds = dummy_credentials.get("rabbitmq", {})
         return {
             "exchanges": {
                 "output": "ex.sim.result",
@@ -32,8 +33,8 @@ class TestConnect:
             "rabbitmq": {
                 "host": "localhost",
                 "port": 5672,
-                "username": "guest",
-                "password": "guest"
+                "username": rabbit_creds.get("username", "guest"),
+                "password": rabbit_creds.get("password", "guest")
             }
         }
 

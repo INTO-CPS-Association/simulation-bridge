@@ -11,15 +11,16 @@ from src.utils.config_manager import ConfigManager
 
 
 @pytest.fixture
-def mock_config_data():
+def mock_config_data(dummy_credentials):
     """Fixture providing standard test configuration data."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "agent": {"agent_id": "matlab"},
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "xxxx",
-            "password": "xxxx",
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
             "heartbeat": 600
         },
         "exchanges": {
@@ -113,16 +114,17 @@ def config_manager(mock_config_path, mock_load_config, mock_path_exists):
     return ConfigManager(mock_config_path)
 
 
-def test_config_manager_initialization():
+def test_config_manager_initialization(dummy_credentials):
     """Test that ConfigManager initializes correctly with the provided configuration."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     config_path = "/fake/path/config.yaml"
     test_config_data = {
         "agent": {"agent_id": "matlab"},
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "xxxx",
-            "password": "xxxx",
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
             "heartbeat": 600
         },
         "exchanges": {
@@ -205,15 +207,16 @@ def test_get_config():
         assert config["rabbitmq"]["host"] == "localhost"
 
 
-def test_validate_config_success():
+def test_validate_config_success(dummy_credentials):
     """Test that config validation succeeds with correct data."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     test_config_data = {
         "agent": {"agent_id": "matlab"},
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "xxxx",
-            "password": "xxxx",
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
             "heartbeat": 600
         }
     }

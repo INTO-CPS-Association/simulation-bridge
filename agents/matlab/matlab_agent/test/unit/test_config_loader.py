@@ -17,8 +17,9 @@ from src.utils.config_loader import (
 
 
 @pytest.fixture
-def sample_config_dict():
+def sample_config_dict(dummy_credentials):
     """Return a sample configuration dictionary for testing."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "agent": {
             "agent_id": "matlab"
@@ -26,8 +27,8 @@ def sample_config_dict():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "xxxx",
-            "password": "xxxx"
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
         },
         "nested": {
             "deep": {
