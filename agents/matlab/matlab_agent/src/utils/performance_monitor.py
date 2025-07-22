@@ -256,7 +256,8 @@ class PerformanceMonitor:
 
         startup_times = [
             m.matlab_startup_duration for m in self.metrics_history]
-        simulation_times = [m.simulation_duration for m in self.metrics_history]
+        simulation_times = [
+            m.simulation_duration for m in self.metrics_history]
         total_times = [m.total_duration for m in self.metrics_history]
 
         return {

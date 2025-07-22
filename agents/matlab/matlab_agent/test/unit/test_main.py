@@ -112,7 +112,8 @@ class TestMainFunction:
             'logging': {'level': 'INFO', 'file': 'agent.log'}
         }
 
-        config_path = Path('matlab_agent/config/config.yaml.template').resolve()
+        config_path = Path(
+            'matlab_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
         mock_load_config.assert_called_once_with(str(config_path))
@@ -512,7 +513,8 @@ class TestMainFunction:
             'logging': {'level': 'INFO', 'file': 'test.log'}
         }
 
-        config_path = Path('matlab_agent/config/config.yaml.template').resolve()
+        config_path = Path(
+            'matlab_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
         mock_load_config.assert_called_once_with(str(config_path))

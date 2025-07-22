@@ -50,7 +50,8 @@ def mock_connection(
 
 
 @pytest.fixture(scope="function")
-def rabbitmq_manager(mock_connection, mock_config, agent_id) -> RabbitMQManager:
+def rabbitmq_manager(mock_connection, mock_config,
+                     agent_id) -> RabbitMQManager:
     manager = RabbitMQManager(agent_id, mock_config)
     manager.connect()
     manager.setup_infrastructure()

@@ -219,7 +219,8 @@ class Config(BaseModel):
         if tcp := config_dict.get("tcp", {}):
             flat_config["tcp_input_host"] = tcp.get("input_host", "localhost")
             flat_config["tcp_input_port"] = tcp.get("input_port", 5679)
-            flat_config["tcp_output_host"] = tcp.get("output_host", "localhost")
+            flat_config["tcp_output_host"] = tcp.get(
+                "output_host", "localhost")
             flat_config["tcp_output_port"] = tcp.get("output_port", 5678)
 
         # Extract response_templates section if present

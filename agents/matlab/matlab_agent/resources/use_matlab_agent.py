@@ -223,7 +223,8 @@ if __name__ == "__main__":
         # Send the simulation request to the Matlab agent via RabbitMQ.
         client.send_request(simulation_data)
 
-        # Keep the main thread alive to continue receiving asynchronous results.
+        # Keep the main thread alive to continue receiving asynchronous
+        # results.
         print("\nPress Ctrl+C to terminate the program...")
         while True:
             pass

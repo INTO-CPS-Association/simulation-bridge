@@ -61,7 +61,8 @@ class _TcpServer:
             self._conn, _ = self._srv.accept()
             self._conn.setblocking(False)
         else:
-            logger.error("[INTERACTIVE] Timeout waiting for client connection.")
+            logger.error(
+                "[INTERACTIVE] Timeout waiting for client connection.")
             raise TimeoutError("No client connection received in time.")
 
     def send(self, data: Dict[str, Any]) -> None:
@@ -203,7 +204,9 @@ class MatlabInteractiveController:
         if isinstance(frame, dict):
             sim = frame.get("simulation")
             if isinstance(sim, dict) and "inputs" in sim:
-                logger.debug("[INTERACTIVE] Received inputs: %s", sim["inputs"])
+                logger.debug(
+                    "[INTERACTIVE] Received inputs: %s",
+                    sim["inputs"])
                 return sim["inputs"]
         return frame
 

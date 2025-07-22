@@ -39,16 +39,23 @@ def sample_config_dict(dummy_credentials):
 
 
 @pytest.fixture
-def sample_yaml_content():
+def sample_yaml_content(dummy_credentials):
     """Return sample YAML content for testing."""
-    return """
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
+
+    host = rabbit_creds.get("host", "localhost")
+    port = rabbit_creds.get("port", 5672)
+    username = rabbit_creds.get("username", "guest")
+    password = rabbit_creds.get("password", "guest")
+
+    return f"""
     agent:
       agent_id: matlab
     rabbitmq:
-      host: "${HOSTNAME:localhost}"
-      port: 5672
-      username: "${USERNAME:xxxx}"
-      password: "${PASSWORD:xxxx}"
+      host: "{host}"
+      port: {port}
+      username: "{username}"
+      password: "{password}"
     nested:
       deep:
         value: 42
