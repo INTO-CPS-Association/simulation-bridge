@@ -17,6 +17,7 @@ SIMULATION_BATCH = 'SimulationBatch.m'
 SIMULATION_STREAMING = 'SimulationStreaming.m'
 MATLAB_AGENT_RESOURCES = 'matlab_agent.resources'
 
+
 @click.command()
 @click.option('--config-file', '-c', type=click.Path(exists=True),
               default=None, help='Path to custom configuration file')
@@ -94,13 +95,13 @@ def generate_default_project():
     files_to_generate = {
         'config.yaml': ('matlab_agent.config', 'config.yaml.template'),
         SIMULATION_WRAPPER_STREAMING: (MATLAB_AGENT_RESOURCES,
-                                         SIMULATION_WRAPPER_STREAMING),
+                                       SIMULATION_WRAPPER_STREAMING),
         SIMULATION_WRAPPER_INTERACTIVE: (MATLAB_AGENT_RESOURCES,
-                                           SIMULATION_WRAPPER_INTERACTIVE),
+                                         SIMULATION_WRAPPER_INTERACTIVE),
         SIMULATION_BATCH: ('matlab_agent.docs.examples',
-                              'simulation_batch.m.template'),
+                           'simulation_batch.m.template'),
         SIMULATION_STREAMING: ('matlab_agent.docs.examples',
-                                  'simulation_streaming.m.template'),
+                               'simulation_streaming.m.template'),
         'client/use_matlab_agent_interactive.py': (MATLAB_AGENT_RESOURCES,
                                                    'use_matlab_agent_interactive.py'),
         'client/use_matlab_agent.py': (MATLAB_AGENT_RESOURCES,

@@ -1,10 +1,9 @@
 """Unit tests for the MATLAB simulator module."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock, PropertyMock
+from pytest import approx
+from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
-
-import matlab.engine
 
 from src.core.matlab_simulator import MatlabSimulator, MatlabSimulationError
 
@@ -98,7 +97,11 @@ class TestMatlabSimulatorOperations:
             {'x_i': 10, 'y_i': 10, 'z_i': 10, 'v_x': 1, 'v_y': 1, 'v_z': 1, 't': 10},
             ['x_f', 'y_f', 'z_f']
         )
-        assert result == {'x_f': 20.0, 'y_f': 30.0, 'z_f': 40.0}
+        assert result == {
+            'x_f': approx(20.0, rel=1e-9, abs=1e-9),
+            'y_f': approx(30.0, rel=1e-9, abs=1e-9),
+            'z_f': approx(40.0, rel=1e-9, abs=1e-9)
+        }
         running_simulator.eng.feval.assert_called_with(
             'simulation_batch', 10.0, 10.0, 10.0, 1.0, 1.0, 1.0, 10.0, nargout=3)
 
@@ -109,7 +112,10 @@ class TestMatlabSimulatorOperations:
             {'initial_pos': 10, 'velocity': 5},
             ['final_pos', 'final_vel']
         )
-        assert result == {'final_pos': 20.0, 'final_vel': 30.0}
+        assert result == {
+            'final_pos': approx(20.0, rel=1e-9, abs=1e-9),
+            'final_vel': approx(30.0, rel=1e-9, abs=1e-9)
+        }
         running_simulator.eng.feval.assert_called_with(
             'simulation_batch', 10.0, 5.0, nargout=2)
 
@@ -195,7 +201,7 @@ class TestMatlabSimulatorMetadata:
             metadata = running_simulator.get_metadata()
 
         assert 'execution_time' in metadata
-        assert metadata['execution_time'] == 5.0
+        assert metadata['execution_time'] == approx(5.0, rel=1e-9, abs=1e-9)
 
     def test_get_metadata_without_start_time(self, simulator):
         """Test getting metadata without start time."""
@@ -227,7 +233,7 @@ class TestMatlabSimulatorMetadata:
             metadata = running_simulator.get_metadata()
 
         assert 'execution_time' in metadata
-        assert metadata['execution_time'] == 10.0
+        assert metadata['execution_time'] == approx(10.0, rel=1e-9, abs=1e-9)
         assert 'memory_usage' in metadata
         assert 'matlab_version' in metadata
         assert metadata['matlab_version'] == "R2021b"

@@ -26,7 +26,8 @@ from aio_pika import (
 class AsyncInteractiveMatlabClient:
     """Asynchronous client for sending interactive simulation requests to MATLAB."""
 
-    def __init__(self, agent_id: str, destination_id: str, config: Dict[str, Any]):
+    def __init__(self, agent_id: str, destination_id: str,
+                 config: Dict[str, Any]):
         self.agent_id = agent_id
         self.destination_id = destination_id
         self.config = config
@@ -56,7 +57,9 @@ class AsyncInteractiveMatlabClient:
 
         self.queue = await self.channel.declare_queue(self.result_queue, durable=True)
         await self.queue.bind(
-            self.ex_result, routing_key=f"{self.destination_id}.result.{self.agent_id}"
+            self.ex_result, routing_key=f"{
+                self.destination_id}.result.{
+                self.agent_id}"
         )
 
     async def send_initial_interactive_request(
@@ -64,7 +67,8 @@ class AsyncInteractiveMatlabClient:
     ):
         """Send the initial interactive simulation request to MATLAB."""
         payload["simulation"]["request_id"] = request_id
-        payload["simulation"].setdefault("bridge_meta", {})["protocol"] = "rabbitmq"
+        payload["simulation"].setdefault("bridge_meta", {})[
+            "protocol"] = "rabbitmq"
 
         yaml_body = yaml.dump(payload, default_flow_style=False)
         routing_key = f"{self.agent_id}.{self.destination_id}"
@@ -123,7 +127,6 @@ async def main():
         default="../api/simulation.yaml",
     )
     args = parser.parse_args()
-
 
     async with await anyio.open_file(args.api_payload, "r", encoding="utf-8") as f:
         payload = yaml.safe_load(await f.read())

@@ -60,7 +60,8 @@ class MockRabbitMQManager:
         self.sent_results.append({"source": source, "response": response})
 
     def send_message(self, routing_key: str, message: Dict[str, Any]) -> None:  # noqa: D401
-        self.sent_messages.append({"routing_key": routing_key, "message": message})
+        self.sent_messages.append(
+            {"routing_key": routing_key, "message": message})
 
 
 class MockSimulationInputs:
@@ -114,7 +115,8 @@ class MockMessagePayload:
 class MockMessageHandler:
     """Lightweight replacement for the real *MessageHandler*."""
 
-    def __init__(self, agent_id: str, rabbitmq_manager: Any, config: Dict[str, Any]):
+    def __init__(self, agent_id: str, rabbitmq_manager: Any,
+                 config: Dict[str, Any]):
         self.agent_id = agent_id
         self.rabbitmq_manager = rabbitmq_manager
         self.path_simulation = config.get("simulation", {}).get("path")
@@ -130,7 +132,13 @@ class MockMessageHandler:
             self.processed_messages.append(msg_dict)
 
             sim = msg_dict.get("simulation", {})
-            required = {"request_id", "client_id", "simulator", "type", "file", "inputs"}
+            required = {
+                "request_id",
+                "client_id",
+                "simulator",
+                "type",
+                "file",
+                "inputs"}
             missing = required - sim.keys()
             if missing:
                 response = {
@@ -172,7 +180,8 @@ class MockMessageHandler:
                             "error": f"Unknown simulation type: {payload.simulation.type}",
                         }
 
-            self.rabbitmq_manager.send_result(method.routing_key.split(".")[0], response)
+            self.rabbitmq_manager.send_result(
+                method.routing_key.split(".")[0], response)
             ch.basic_ack(method.delivery_tag)
 
         except yaml.YAMLError as exc:
@@ -181,9 +190,15 @@ class MockMessageHandler:
             self._send_error(ch, method, "execution_error", str(exc))
 
     def _send_error(self, ch, method, err_type: str, details: str) -> None:  # noqa: ANN001
-        err = {"status": "error", "error": {"message": "Error processing message", "details": details, "type": err_type}}
+        err = {
+            "status": "error",
+            "error": {
+                "message": "Error processing message",
+                "details": details,
+                "type": err_type}}
         try:
-            self.rabbitmq_manager.send_result(method.routing_key.split(".")[0], err)
+            self.rabbitmq_manager.send_result(
+                method.routing_key.split(".")[0], err)
         finally:
             ch.basic_nack(method.delivery_tag, requeue=False)
 
@@ -198,7 +213,8 @@ class IntegrationTest(TestCase):
         self.sim_file = self.temp_dir / "sim.yaml"
 
         # Credentials obtained via autouse fixture
-        creds: Dict[str, Any] = cast(Dict[str, Any], getattr(self, "dummy_credentials", {})).get("rabbitmq", {})
+        creds: Dict[str, Any] = cast(Dict[str, Any], getattr(
+            self, "dummy_credentials", {})).get("rabbitmq", {})
 
         cfg = {
             "rabbitmq": {
@@ -233,7 +249,10 @@ class IntegrationTest(TestCase):
 
     @patch("resources.use_matlab_agent.pika.BlockingConnection")
     def test_init(self, _):  # noqa: ANN001
-        handler = MockMessageHandler("id", self.manager, {"simulation": {"path": "/a"}})
+        handler = MockMessageHandler(
+            "id", self.manager, {
+                "simulation": {
+                    "path": "/a"}})
         self.assertEqual(handler.path_simulation, "/a")
 
     @patch("resources.use_matlab_agent.pika.BlockingConnection")
@@ -241,7 +260,9 @@ class IntegrationTest(TestCase):
         handler = MockMessageHandler("id", self.manager, {})
         method = Mock(routing_key="dt.m", delivery_tag="t")
         handler.handle_message(self.channel, method, Mock(), b":::bad:::yaml")
-        self.assertEqual(self.manager.sent_results[0]["response"]["error"]["type"], "execution_error")
+        self.assertEqual(
+            self.manager.sent_results[0]["response"]["error"]["type"],
+            "execution_error")
 
     @patch("resources.use_matlab_agent.pika.BlockingConnection")
     def test_missing_fields(self, _):  # noqa: ANN001
@@ -249,7 +270,9 @@ class IntegrationTest(TestCase):
         body = yaml.dump({"simulation": {"request_id": "x"}}).encode()
         method = Mock(routing_key="dt.m", delivery_tag="t")
         handler.handle_message(self.channel, method, Mock(), body)
-        self.assertEqual(self.manager.sent_results[0]["response"]["error"]["type"], "validation_error")
+        self.assertEqual(
+            self.manager.sent_results[0]["response"]["error"]["type"],
+            "validation_error")
 
     def test_dummy_result_callback(self):  # noqa: D401
         result = {"status": "completed"}

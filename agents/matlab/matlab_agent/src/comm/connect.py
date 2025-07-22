@@ -14,6 +14,7 @@ logger = get_logger()
 
 BROKER_NOT_INITIALIZED_ERROR = "Broker not initialized"
 
+
 class Connect:
     """
     A communication wrapper that provides a unified interface for messaging,

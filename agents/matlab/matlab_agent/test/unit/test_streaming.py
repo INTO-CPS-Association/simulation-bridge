@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, Mock, patch
 import subprocess
 
 import pytest
+from pytest import approx
 
 from src.core.streaming import (
     MatlabStreamingController,
@@ -329,8 +330,8 @@ def test_get_metadata(matlab_controller, monkeypatch):
 
     # Verify values make sense
     assert metadata['execution_time'] >= 2.0  # At least 2 seconds
-    assert metadata['matlab_memory'] == 1.0  # 1 MB
-    assert metadata['matlab_cpu'] == 5.0  # 5%
+    assert metadata['matlab_memory'] == approx(1.0, rel=1e-9, abs=1e-9)  # 1 MB
+    assert metadata['matlab_cpu'] == approx(5.0, rel=1e-9, abs=1e-9)  # 5%
 
 
 def test_handle_streaming_error_bad_request(

@@ -268,7 +268,9 @@ def handle_interactive_simulation(
     pm = PerformanceMonitor()
     sim = msg_dict["simulation"]
     pm.start_operation(sim["request_id"])
-    logger.debug("[INTERACTIVE] Starting interactive simulation: %s", sim["file"])
+    logger.debug(
+        "[INTERACTIVE] Starting interactive simulation: %s",
+        sim["file"])
     controller = MatlabInteractiveController(
         path_simulation or sim.get("path"),
         sim["file"],
