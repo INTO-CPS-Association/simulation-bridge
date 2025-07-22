@@ -1,0 +1,12 @@
+tcp:
+  host: "localhost"
+  # ——— Incoming stream (Python → MATLAB) ———
+  input_port: 5679
+
+  # ——— Outgoing stream (MATLAB → Python) ———
+  output_port: 5678
+
+  # Connection / retry policy
+  max_retries: 5 # attempts before giving up
+  retry_delay: 1 # seconds between retries
+  timeout_limit: 2 # seconds without data before warning

@@ -111,6 +111,8 @@ def generate_default_project():
         'client/simulation.yaml': ('matlab_agent.api',
                                    'simulation.yaml.template'),
         'client/README.md': (MATLAB_AGENT_RESOURCES, 'README.md'),
+        'client/config/default.yaml': (MATLAB_AGENT_RESOURCES,
+                                       'config/default.yaml.template'),
     }
 
     # Descriptions for each file
@@ -127,6 +129,8 @@ def generate_default_project():
         'client/simulation.yaml':
             "Example API payload to communicate with the MATLAB agent",
         'client/README.md': "README file for the client directory",
+        'client/config/default.yaml':
+            "Default configuration file for the MATLAB agent client (Streaming & Interactive)",
     }
 
     try:

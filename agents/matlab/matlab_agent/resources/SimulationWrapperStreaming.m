@@ -1,61 +1,87 @@
 classdef SimulationWrapperStreaming < handle
+    %SIMULATIONWRAPPERSTREAMING  Wrapper for one-way output (streaming) simulations.
+    %Reads default parameters from a YAML file, but any key can be overridden:
+    %
+    %   w = SimulationWrapperStreaming();                    % defaults
+    %   w = SimulationWrapperStreaming("config/dev.yaml");   % custom file
+    %   w = SimulationWrapperStreaming([], "tcp.output_port", 6000);
+
     properties (Access = private)
-        tcp_client  % TCP client object for communication with Python
-        inputs      % Store the inputs received from Python
+        tcp_client   % tcpclient for bidirectional stream
+        inputs       % first JSON payload from Python
+        cfg          % configuration struct
     end
-    
+
+    %% ─────────────────────────────────────────────────────────────────────
     methods
-        % Constructor for the SimulationWrapperStreaming class
-        function obj = SimulationWrapperStreaming()
-            % Default port (modifiable)
-            port = 5678;
+        function obj = SimulationWrapperStreaming(cfgFile, varargin)
+            % Constructor: load config, open socket, read first payload
+            if nargin == 0 || isempty(cfgFile)
+                cfgFile = fullfile(fileparts(mfilename("fullpath")), ...
+                                   "..", "config", "default.yaml");
+            end
+            obj.cfg = obj.loadConfig(cfgFile, varargin{:});
 
-            % Max retries for connecting to the server
-            max_retries = 5;
-            retry_delay = 1;  % Delay between retries in seconds
+            host        = obj.cfg.tcp.host;
+            port        = obj.cfg.tcp.output_port;
+            maxRetries  = obj.cfg.tcp.max_retries;
+            retryDelay  = obj.cfg.tcp.retry_delay;
 
-            % Try to connect to the server up to 'max_retries' times
-            for retry = 1:max_retries
+            for r = 1:maxRetries
                 try
-                    % Create a TCP client object to connect to Python server
-                    obj.tcp_client = tcpclient('localhost', port);
-                    % Configure the TCP client to use LF as a terminator
+                    obj.tcp_client = tcpclient(host, port);
                     configureTerminator(obj.tcp_client, "LF");
-                    break;  % Exit the loop if the connection is successful
+                    break;                                 % success
                 catch ME
-                    % If connection fails, retry up to 'max_retries' times
-                    if retry == max_retries
-                        % If max retries reached, rethrow the exception
-                        rethrow(ME);
+                    if r == maxRetries
+                        rethrow(ME);                       % give up
                     end
-                    % Wait before retrying
-                    pause(retry_delay);
+                    pause(retryDelay);
                 end
             end
 
-            % Receive the initial parameters in JSON format from Python
-            data = readline(obj.tcp_client);
-            % Decode the received JSON data and store it as 'inputs'
-            obj.inputs = jsondecode(data);
+            firstLine  = readline(obj.tcp_client);
+            obj.inputs = jsondecode(firstLine);
         end
-        
-        % Method to retrieve the input parameters from the Python server
+
         function inputs = get_inputs(obj)
-            inputs = obj.inputs;  % Return the stored inputs
+            inputs = obj.inputs;
         end
-        
-        % Method to send output data to the Python server
+
         function send_output(obj, output_data)
-            % Convert the output data to JSON format
-            json_data = jsonencode(output_data);
-            % Send the JSON-encoded data to Python server
-            writeline(obj.tcp_client, json_data);
+            writeline(obj.tcp_client, jsonencode(output_data));
         end
-        
-        % Destructor to clean up the TCP client object when the wrapper is deleted
+
         function delete(obj)
-            % Close the TCP connection by deleting the client object
-            delete(obj.tcp_client);
+            if ~isempty(obj.tcp_client) && isvalid(obj.tcp_client)
+                delete(obj.tcp_client);
+            end
+        end
+    end
+
+    %% ─────────────────────────────────────────────────────────────────────
+    methods (Access = private)
+        function cfg = loadConfig(~, cfgFile, varargin)
+            cfg = yamlread(cfgFile);               % struct
+            for k = 1:2:numel(varargin)            % dotted-key overrides
+                path  = split(varargin{k}, '.');
+                val   = varargin{k+1};
+                cfg   = SimulationWrapperStreaming.setDeep(cfg, path, val);
+            end
+        end
+    end
+
+    methods (Static, Access = private)
+        function s = setDeep(s, path, val)         % recursive helper
+            if numel(path) == 1
+                s.(path{1}) = val;
+            else
+                f = path{1};
+                if ~isfield(s, f) || ~isstruct(s.(f))
+                    s.(f) = struct();
+                end
+                s.(f) = SimulationWrapperStreaming.setDeep(s.(f), path(2:end), val);
+            end
         end
     end
 end
