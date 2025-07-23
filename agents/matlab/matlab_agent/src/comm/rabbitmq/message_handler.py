@@ -57,14 +57,14 @@ class SimulationData(BaseModel):
     @model_validator(mode='after')
     def check_stream_source_for_interactive(self):
         """
-        Validate that 'inputs.stream_source' is provided for interactive simulations.
+        Validate that 'inputs.stream_source' is provided
+        for interactive simulations.
         """
-        if self.type == 'interactive':
-            if not self.inputs.stream_source:
-                raise ValueError(
-                    "For 'interactive' simulations you must provide "
-                    "'inputs.stream_source'"
-                )
+        if self.type == 'interactive' and not self.inputs.stream_source:
+            raise ValueError(
+                "For 'interactive' simulations you must provide "
+                "'inputs.stream_source'"
+            )
         return self
 
 

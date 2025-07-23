@@ -1,7 +1,7 @@
 """Test suite for streaming functionality."""
 
-# pylint: disable=missing-module-docstring, missing-class-docstring,
-# missing-function-docstring, too-many-positional-arguments
+
+# pylint: disable=too-many-positional-arguments
 
 
 import socket
@@ -373,7 +373,7 @@ def test_handle_streaming_simulation_missing_fields(
         {'simulation': {'foo': 'bar'}},  # Missing data
         'test_queue',
         mock_rabbit_client,
-        None,  # path_simulation not specified
+        Path("test_path"),
         response_templates,
         tcp_settings
     )

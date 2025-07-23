@@ -34,7 +34,7 @@ def _parse_frame(body: bytes) -> Dict[str, Any]:
     """Decode a YAML frame received from RabbitMQ."""
     try:
         return yaml.safe_load(body)
-    except Exception as exc:  # pragma: no cover - logging only
+    except yaml.YAMLError as exc:  # pragma: no cover - logging only
         logger.error("[INTERACTIVE] Bad frame: %s", exc)
         return {}
 
@@ -243,14 +243,14 @@ class MatlabInteractiveController:
                 if self.out_srv.matlab_proc and self.out_srv.matlab_proc.poll() is not None:
                     logger.debug("[INTERACTIVE] MATLAB process ended, stopping loop")
                     break
-                method, properties, body = ch.basic_get(
+                method, _ , body = ch.basic_get(
                     queue=qname, auto_ack=True)
                 while method:
                     frame = _parse_frame(body)
                     if frame:
                         # Send the inputs to MATLAB
                         self.in_srv.send(self._only_inputs(frame))
-                    method, properties, body = ch.basic_get(
+                    method, _ , body = ch.basic_get(
                         queue=qname, auto_ack=True)
 
                 # Receive Responses from MATLAB
@@ -308,8 +308,8 @@ def handle_interactive_simulation(
     try:
         controller.start(pm)
         controller.run(pm, msg_dict)
-    except (KeyError, ValueError, RuntimeError) as exc:  # pragma: no cover - handled errors
-        logger.error("[INTERACTIVE] Fatal: %s", exc)
+    except (KeyError, ValueError) as exc:  # Handle specific known errors
+        logger.error("[INTERACTIVE] Known error: %s", exc)
         rabbitmq_manager.send_result(
             source,
             create_response(
