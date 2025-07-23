@@ -17,6 +17,15 @@ from ..comm.interfaces import IMessageBroker
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
+from ..utils.constants import (
+    ACCEPT_TIMEOUT,
+    BUFFER_SIZE,
+    BYTES_IN_MB,
+    DEFAULT_INPUT_PORT,
+    DEFAULT_OUTPUT_PORT,
+    MAX_FILENAME_LENGTH,
+    EXCHANGE_INPUT_STREAM
+)
 
 logger = get_logger()
 
@@ -48,7 +57,7 @@ class _TcpServer:
     def accept(self) -> None:
         if not self._srv:
             raise RuntimeError("Server not started")
-        ready = select([self._srv], [], [], 60)
+        ready = select([self._srv], [], [], ACCEPT_TIMEOUT)
         if ready[0]:
             self._conn, _ = self._srv.accept()
             self._conn.setblocking(False)
@@ -65,19 +74,32 @@ class _TcpServer:
     def recv_all(self) -> list[Dict[str, Any]]:
         if not self._conn or not select([self._conn], [], [], 0)[0]:
             return []
-
-        self._buffer += self._conn.recv(4096)
+        # Read up to BUFFER_SIZE bytes from socket and append to internal buffer (self._buffer)
+        self._buffer += self._conn.recv(BUFFER_SIZE)
+        # Messages are sent with a "\n" character as delimiter.
+        # Split everything received into "lines".
         lines = self._buffer.split(b"\n")
         self._buffer = lines[-1]
         messages: list[Dict[str, Any]] = []
+        # For each complete line:
+        # Remove leading/trailing whitespace and CR.
+        # If the line is empty, skip it.
+        # Try to decode it from JSON.
+        # Success → add the dict to the messages list.
+        # Failure → log the error and still add an object
+        # {"error": "Invalid JSON: …"} so downstream code can handle
+        # the exception without crashing the server.
         for line in lines[:-1]:
             line = line.strip()
             if not line:
                 continue
             try:
                 messages.append(json.loads(line.decode()))
-            except json.JSONDecodeError as exc:  # pragma: no cover - logging only
+            except json.JSONDecodeError as exc:  # pragma: no cover - logs error and skips invalid message
                 logger.error("[INTERACTIVE] Invalid JSON: %s", exc)
+                messages.append({"error": f"Invalid JSON: {str(exc)}"})
+        # Return the messages list, i.e., all complete decoded JSON objects (plus any error placeholders) available at that moment.
+        # The next call to recv_all() will resume from where it left off, because only the last incomplete fragment remains in the buffer.
         return messages
 
     def close(self) -> None:
@@ -107,6 +129,8 @@ class MatlabInteractiveController:
         agent_id: str = "agent",
     ) -> None:
         self.sim_path = Path(path).resolve()
+        if len(file) > MAX_FILENAME_LENGTH:
+            raise ValueError("Simulation file name too long")
         self.sim_file = file
         if not (self.sim_path / self.sim_file).exists():
             raise FileNotFoundError(self.sim_file)
@@ -120,11 +144,11 @@ class MatlabInteractiveController:
 
         self.out_srv = _TcpServer(
             tcp_cfg.get("host", "localhost"),
-            tcp_cfg.get("output_port", 5678),
+            tcp_cfg.get("output_port", DEFAULT_OUTPUT_PORT),
         )
         self.in_srv = _TcpServer(
             tcp_cfg.get("host", "localhost"),
-            tcp_cfg.get("input_port", 5679),
+            tcp_cfg.get("input_port", DEFAULT_INPUT_PORT),
         )
 
         self.start_time: Optional[float] = None
@@ -187,7 +211,7 @@ class MatlabInteractiveController:
 
     @staticmethod
     def _only_inputs(frame: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract only the inputs from the frame."""
+        """Extract only the inputs section from a simulation frame"""
         if isinstance(frame, dict):
             sim = frame.get("simulation")
             if isinstance(sim, dict) and "inputs" in sim:
@@ -205,17 +229,20 @@ class MatlabInteractiveController:
         ch = self.broker.channel
         qname = f"Q.{self.agent_id}.interactive.{self.request_id}"
         ch.exchange_declare(
-            "ex.input.stream",
+            exchange=EXCHANGE_INPUT_STREAM,
             exchange_type="topic",
             durable=True)
         ch.queue_declare(queue=qname, durable=True)
         ch.queue_bind(
-            exchange="ex.input.stream",
+            exchange=EXCHANGE_INPUT_STREAM,
             queue=qname,
             routing_key=stream_key)
 
         try:
             while True:
+                if self.out_srv.matlab_proc and self.out_srv.matlab_proc.poll() is not None:
+                    logger.debug("[INTERACTIVE] MATLAB process ended, stopping loop")
+                    break
                 method, properties, body = ch.basic_get(
                     queue=qname, auto_ack=True)
                 while method:
@@ -228,8 +255,14 @@ class MatlabInteractiveController:
 
                 # Receive Responses from MATLAB
                 for resp in self.out_srv.recv_all():
+                    if resp.get("status") == "completed":
+                        self._relay(resp)
+                        logger.debug("[INTERACTIVE] Received completion signal")
+                        return
                     # Send the response to the broker
                     self._relay(resp)
+        except KeyboardInterrupt:  # pragma: no cover - manual interruption
+            logger.info("[INTERACTIVE] Interrupted by user")
         finally:
             pm.record_simulation_complete()
 
@@ -243,7 +276,7 @@ class MatlabInteractiveController:
         if self.start_time:
             meta["execution_time"] = time.time() - self.start_time
         meta["memory_usage"] = psutil.Process(
-        ).memory_info().rss // (1024 * 1024)
+        ).memory_info().rss //  BYTES_IN_MB
         return meta
 
 
@@ -275,8 +308,22 @@ def handle_interactive_simulation(
     try:
         controller.start(pm)
         controller.run(pm, msg_dict)
-    except Exception as exc:  # pragma: no cover - runtime errors
+    except (KeyError, ValueError, RuntimeError) as exc:  # pragma: no cover - handled errors
         logger.error("[INTERACTIVE] Fatal: %s", exc)
+        rabbitmq_manager.send_result(
+            source,
+            create_response(
+                "error",
+                sim.get("file", ""),
+                "interactive",
+                response_templates,
+                bridge_meta=sim.get("bridge_meta", "unknown"),
+                request_id=sim.get("request_id", "unknown"),
+                error={"message": str(exc), "type": "execution_error"},
+            ),
+        )
+    except Exception as exc:  # pragma: no cover - unexpected errors
+        logger.exception("[INTERACTIVE] Unexpected error: %s", exc)
         rabbitmq_manager.send_result(
             source,
             create_response(

@@ -83,7 +83,8 @@ class InteractiveUsageMatlabAgent:
     ) -> None:
         """Publish the first message that kicks off the interactive sim."""
         payload["simulation"]["request_id"] = request_id
-        payload["simulation"].setdefault("bridge_meta", {})["protocol"] = "rabbitmq"
+        payload["simulation"].setdefault("bridge_meta", {})[
+            "protocol"] = "rabbitmq"
 
         routing_key = f"{self.agent_id}.{self.destination_id}"
         await self.ex_bridge.publish(
@@ -107,7 +108,7 @@ class InteractiveUsageMatlabAgent:
             frame = {
                 "simulation": {
                     "request_id": request_id,
-                    "inputs": {"t": t, "x": vx*t, "y": vy*t, "vx": vx, "vy": vy},
+                    "inputs": {"t": t, "x": vx * t, "y": vy * t, "vx": vx, "vy": vy},
                 }
             }
             await self.ex_stream.publish(
@@ -126,7 +127,7 @@ class InteractiveUsageMatlabAgent:
             async for msg in q:
                 async with msg.process():
                     result = yaml.safe_load(msg.body)
-                    print(f"\n[RESULT] {result}\n" + "-"*40)
+                    print(f"\n[RESULT] {result}\n" + "-" * 40)
 
 
 async def main() -> None:

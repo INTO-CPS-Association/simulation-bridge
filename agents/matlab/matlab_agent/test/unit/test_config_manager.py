@@ -112,7 +112,9 @@ def manager(config_path: Path, patched_load, patched_exists):
 
     return ConfigManager(config_path)
 
-def test_manager_initialization(manager: ConfigManager, patched_load, config_path):
+
+def test_manager_initialization(
+        manager: ConfigManager, patched_load, config_path):
     """The manager should forward *config_path* to ``load_config`` exactly once."""
 
     patched_load.assert_called_once_with(Path(config_path))
@@ -142,7 +144,8 @@ def test_validate_config_success(agent_id: str, base_config: dict):
     cfg = deepcopy(base_config)
     cfg["agent"]["agent_id"] = agent_id
 
-    validated = ConfigManager()._validate_config(cfg)  # pylint: disable=protected-access
+    validated = ConfigManager()._validate_config(
+        cfg)  # pylint: disable=protected-access
     assert validated["agent"]["agent_id"] == agent_id
 
 

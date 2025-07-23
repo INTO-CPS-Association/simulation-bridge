@@ -49,7 +49,9 @@ class StreamingUsageMatlabAgent:
         if tls_enabled:
             context = ssl.create_default_context()
             context.minimum_version = ssl.TLSVersion.TLSv1_2
-            ssl_options = pika.SSLOptions(context, rabbitmq_cfg.get("host", "localhost"))
+            ssl_options = pika.SSLOptions(
+                context, rabbitmq_cfg.get(
+                    "host", "localhost"))
 
         connection_params = pika.ConnectionParameters(
             host=rabbitmq_cfg.get("host", "localhost"),
@@ -89,7 +91,9 @@ class StreamingUsageMatlabAgent:
     def send_request(self, payload_data: Dict[str, Any]) -> None:
         """Send a simulation request."""
         payload = {**payload_data, "request_id": str(uuid.uuid4())}
-        payload.setdefault("simulation", {})["bridge_meta"] = {"protocol": "rabbitmq"}
+        payload.setdefault(
+            "simulation", {})["bridge_meta"] = {
+            "protocol": "rabbitmq"}
 
         self.channel.basic_publish(
             exchange="ex.bridge.output",
@@ -132,10 +136,13 @@ class StreamingUsageMatlabAgent:
 
 
 def _listener_thread(agent_identifier: str, config_path: str) -> None:
-    StreamingUsageMatlabAgent(agent_identifier, config_path=config_path).start_listening()
+    StreamingUsageMatlabAgent(agent_identifier,
+                              config_path=config_path).start_listening()
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="MATLAB Simulation RabbitMQ Client")
+    parser = argparse.ArgumentParser(
+        description="MATLAB Simulation RabbitMQ Client")
     parser.add_argument(
         "--config",
         default="use.yaml",

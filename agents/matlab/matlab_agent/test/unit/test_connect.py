@@ -15,6 +15,7 @@ import pytest
 
 from src.comm.connect import Connect
 
+
 class TestConnect:
     """Unit-level tests for the :class:`Connect` communication wrapper."""
 
@@ -85,12 +86,14 @@ class TestConnect:
         assert connect.broker is mock_rabbitmq_manager
         assert connect.message_handler is mock_message_handler
 
-        mock_rabbitmq_manager_class.assert_called_once_with(agent_id, mock_config)
+        mock_rabbitmq_manager_class.assert_called_once_with(
+            agent_id, mock_config)
         mock_message_handler_class.assert_called_once_with(
             agent_id, mock_rabbitmq_manager, mock_config
         )
 
-    def test_init_with_unsupported_broker(self, agent_id: str, mock_config: Dict[str, Any]) -> None:
+    def test_init_with_unsupported_broker(
+            self, agent_id: str, mock_config: Dict[str, Any]) -> None:
         with pytest.raises(ValueError, match="Unsupported broker type: kafka"):
             Connect(agent_id, mock_config, "kafka")
 
@@ -144,7 +147,6 @@ class TestConnect:
         with pytest.raises(RuntimeError, match="Broker not initialized"):
             connect.setup()
 
-
     @patch("src.comm.connect.RabbitMQManager")
     @patch("src.comm.connect.MessageHandler")
     def test_register_message_handler_default(
@@ -184,7 +186,8 @@ class TestConnect:
         connect = Connect(agent_id, mock_config)
         connect.register_message_handler(custom_handler)
 
-        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(custom_handler)
+        mock_rabbitmq_manager.register_message_handler.assert_called_once_with(
+            custom_handler)
 
     def test_register_message_handler_without_broker(self) -> None:
         connect = Connect.__new__(Connect)
@@ -377,7 +380,8 @@ class TestConnect:
         connect = Connect.__new__(Connect)
         connect.broker = None
         connect.close()
-        mock_logger.warning.assert_called_once_with("Attempted to close a non-initialized broker")
+        mock_logger.warning.assert_called_once_with(
+            "Attempted to close a non-initialized broker")
 
     @patch("src.comm.connect.RabbitMQManager")
     @patch("src.comm.connect.MessageHandler")
@@ -419,7 +423,8 @@ class TestConnect:
         sim_handler = Mock()
         connect.set_simulation_handler(sim_handler)
 
-        mock_message_handler.set_simulation_handler.assert_called_once_with(sim_handler)
+        mock_message_handler.set_simulation_handler.assert_called_once_with(
+            sim_handler)
 
     @patch("src.comm.connect.RabbitMQManager")
     @patch("src.comm.connect.MessageHandler")
@@ -437,6 +442,7 @@ class TestConnect:
         connect = Connect.__new__(Connect)
         connect.message_handler = None
         connect.set_simulation_handler(Mock())  # should not raise
+
 
 class TestConnectIntegration:
     """Light-weight integration test covering a typical end-to-end workflow."""

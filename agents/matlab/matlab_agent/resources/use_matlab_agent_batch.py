@@ -162,7 +162,7 @@ class BatchUsageMatlabAgent:
 
 def _listener_thread(agent_identifier: str, config_path: str) -> None:
     BatchUsageMatlabAgent(agent_identifier,
-                           config_path=config_path).start_listening()
+                          config_path=config_path).start_listening()
 
 
 if __name__ == "__main__":
