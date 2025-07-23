@@ -373,7 +373,7 @@ def test_handle_streaming_simulation_missing_fields(
         {'simulation': {'foo': 'bar'}},  # Missing data
         'test_queue',
         mock_rabbit_client,
-        Path("test_path"),
+        str(Path("test_path")),
         response_templates,
         tcp_settings
     )
