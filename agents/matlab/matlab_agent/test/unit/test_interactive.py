@@ -1,4 +1,3 @@
-import yaml
 from src.core.interactive import _parse_frame, MatlabInteractiveController
 
 

@@ -3,8 +3,7 @@
 import os
 import pytest
 from pathlib import Path
-from importlib import resources
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 
 import yaml
 from src.utils.config_loader import (

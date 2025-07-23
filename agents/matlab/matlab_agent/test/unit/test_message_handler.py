@@ -7,7 +7,7 @@ Unit tests for MessageHandler class.
 
 
 import uuid
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import pytest
 import yaml
 from pika.spec import Basic, BasicProperties
