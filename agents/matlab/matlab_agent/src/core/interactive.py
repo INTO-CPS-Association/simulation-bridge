@@ -21,10 +21,6 @@ from ..utils.performance_monitor import PerformanceMonitor
 logger = get_logger()
 
 
-# ---------------------------------------------------------------------------
-# RabbitMQ frame parser
-# ---------------------------------------------------------------------------
-
 def _parse_frame(body: bytes) -> Dict[str, Any]:
     """Decode a YAML frame received from RabbitMQ."""
     try:
@@ -33,10 +29,6 @@ def _parse_frame(body: bytes) -> Dict[str, Any]:
         logger.error("[INTERACTIVE] Bad frame: %s", exc)
         return {}
 
-
-# ---------------------------------------------------------------------------
-# TCP server utilities
-# ---------------------------------------------------------------------------
 
 class _TcpServer:
     def __init__(self, host: str, port: int) -> None:
@@ -100,10 +92,6 @@ class _TcpServer:
             except subprocess.TimeoutExpired:  # pragma: no cover - best effort
                 self.matlab_proc.kill()
 
-
-# ---------------------------------------------------------------------------
-# Controller
-# ---------------------------------------------------------------------------
 
 class MatlabInteractiveController:
     def __init__(
@@ -183,7 +171,6 @@ class MatlabInteractiveController:
         """Relay a response from the MATLAB process to the broker
         including the full simulation output."""
 
-        # Costruiamo il messaggio base con l’utility già esistente
         msg = create_response(
             "interactive",
             self.sim_file,
