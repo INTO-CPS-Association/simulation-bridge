@@ -20,6 +20,7 @@ from ..comm.interfaces import IMessageBroker
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
+from ..utils.commands import CommandRegistry
 
 # Configure logger
 logger = get_logger()
@@ -300,6 +301,9 @@ class MatlabStreamingController:
             buffer = b""
             sequence = 0
             while True:
+                if CommandRegistry.should_stop():
+                     logger.info("Stopping streaming simulation on command")
+                     break
                 chunk = self.connection.connection.recv(4096)
                 if not chunk:
                     logger.debug("Connection closed")
@@ -316,6 +320,7 @@ class MatlabStreamingController:
                         except json.JSONDecodeError as e:
                             logger.warning("Invalid JSON: %s", str(e))
             performance_monitor.record_simulation_complete()
+            CommandRegistry.reset()
         except socket.timeout as e:
             logger.error("Connection timeout: %s", str(e))
             raise MatlabStreamingError("Connection timeout") from e

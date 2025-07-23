@@ -104,6 +104,8 @@ def generate_default_project():
                                'simulation_streaming.m.template'),
         'client/use_matlab_agent_interactive.py': (MATLAB_AGENT_RESOURCES,
                                                    'use_matlab_agent_interactive.py'),
+        'client/use_matlab_agent_command.py': (MATLAB_AGENT_RESOURCES,
+                                                   'use_matlab_agent_command.py'),
         'client/use_matlab_agent_streaming.py': (MATLAB_AGENT_RESOURCES,
                                                  'use_matlab_agent_streaming.py'),
         'client/use_matlab_agent_batch.py': (MATLAB_AGENT_RESOURCES,
@@ -126,6 +128,8 @@ def generate_default_project():
         SIMULATION_STREAMING: "Template for streaming-mode simulations",
         'client/use_matlab_agent_interactive.py':
             "Python script to use the MATLAB agent in interactive mode",
+        'client/use_matlab_agent_command.py':
+            "Python script to send commands to the MATLAB agent",
         'client/use_matlab_agent_streaming.py': "Python script to use the MATLAB agent in streaming mode",
         'client/use_matlab_agent_batch.py': "Python script to use the MATLAB agent in batch mode",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",

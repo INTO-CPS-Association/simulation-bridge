@@ -17,6 +17,7 @@ from ..comm.interfaces import IMessageBroker
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
+from ..utils.commands import CommandRegistry
 from ..utils.constants import (
     ACCEPT_TIMEOUT,
     BUFFER_SIZE,
@@ -246,6 +247,9 @@ class MatlabInteractiveController:
                 method, _ , body = ch.basic_get(
                     queue=qname, auto_ack=True)
                 while method:
+                    if CommandRegistry.should_stop():
+                        logger.info("[INTERACTIVE] Stop command received")
+                        return
                     frame = _parse_frame(body)
                     if frame:
                         # Send the inputs to MATLAB
@@ -265,6 +269,7 @@ class MatlabInteractiveController:
             logger.info("[INTERACTIVE] Interrupted by user")
         finally:
             pm.record_simulation_complete()
+            CommandRegistry.reset()
 
     def close(self) -> None:
         """Close the TCP servers"""
