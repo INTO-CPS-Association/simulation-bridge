@@ -66,6 +66,7 @@ class RabbitMQManager(IRabbitMQManager):
 
                 if use_tls:
                     context = ssl.create_default_context()
+                    context.minimum_version = ssl.TLSVersion.TLSv1_2
                     ssl_options = pika.SSLOptions(
                         context, rabbitmq_config.get(
                             'host', 'localhost'))

@@ -1,145 +1,114 @@
 classdef SimulationWrapperInteractive < handle
-    %SIMULATIONWRAPPERINTERACTIVE  TCP wrapper for interactive
-    %MATLAB simulations.  Default parameters are taken from a YAML
-    %configuration file, but each key can be overridden at construction
-    %time with name–value pairs:
-    %
-    %   w = SimulationWrapperInteractive();                     % defaults
-    %   w = SimulationWrapperInteractive("config/dev.yaml");    % custom file
-    %   w = SimulationWrapperInteractive([], ...
-    %           "tcp.output_port", 6000, "tcp.retry_delay", 2); % overrides
+    % SIMULATIONWRAPPERINTERACTIVE
+    % Wrapper for interactive communication with a Python-based simulation client
+    % via TCP. Handles input reception, output transmission, and finalization.
 
     properties (Access = private)
-        out_client      % tcpclient for outgoing data
-        in_client       % tcpclient for incoming data
-        last_inputs     % last inputs received (struct / array)
-        cfg             % configuration struct loaded from YAML
+        out_client   % TCP client for sending data to Python
+        in_client    % TCP client for receiving data from Python
+        last_inputs  % Cache of the most recent valid input frame
     end
 
     methods
-        %% ----------------------------------------------------------------
-        function obj = SimulationWrapperInteractive(cfgFile, varargin)
-            % Constructor
-            if nargin == 0 || isempty(cfgFile)
-                cfgFile = fullfile(fileparts(mfilename("fullpath")), ...
-                                   "..", "config", "default.yaml");
-            end
-            obj.cfg = obj.loadConfig(cfgFile, varargin{:});
+        % Constructor: Establishes TCP connections to the Python client
+        function obj = SimulationWrapperInteractive()
+            % Default connection settings
+            out_host = 'localhost';
+            out_port = 5678;
+            in_host = 'localhost';
+            in_port = 5679;
 
-            % Shorthand vars
-            Host      = obj.cfg.tcp.host;
-            outPort      = obj.cfg.tcp.output_port;
-            inPort       = obj.cfg.tcp.input_port;
-            maxRetries   = obj.cfg.tcp.max_retries;
-            retryDelay   = obj.cfg.tcp.retry_delay;
+            % Retry logic configuration
+            max_retries = 5;
+            retry_delay = 1;  % in seconds
 
-            % Attempt connection with retry policy
-            for retry = 1:maxRetries
+            % Attempt to connect to input and output ports with retry
+            for retry = 1:max_retries
                 try
-                    obj.out_client = tcpclient(Host, outPort);
-                    obj.in_client  = tcpclient(Host,  inPort);
+                    obj.out_client = tcpclient(out_host, out_port);
+                    obj.in_client  = tcpclient(in_host, in_port);
+
                     configureTerminator(obj.out_client, "LF");
-                    configureTerminator(obj.in_client,  "LF");
-                    break;                     % connected
+                    configureTerminator(obj.in_client, "LF");
+
+                    break;  % Exit loop upon successful connection
                 catch ME
-                    if retry == maxRetries
-                        rethrow(ME);            % give up
+                    if retry == max_retries
+                        rethrow(ME);  % Rethrow error if max retries reached
                     end
-                    pause(retryDelay);
+                    pause(retry_delay);  % Wait before next retry
                 end
             end
 
-            % Read first JSON line (blocking)
-            firstLine      = readline(obj.out_client);
-            obj.last_inputs = jsondecode(firstLine);
+            % Read initial configuration/handshake data from Python (JSON format)
+            data = readline(obj.out_client);
+            obj.last_inputs = jsondecode(data);  % Store parsed input
         end
 
-        %% ----------------------------------------------------------------
+        % Retrieve the latest input data frame (non-blocking with timeout)
         function inputs = get_input(obj)
-            % Return most-recent inputs, refreshing from socket if available
-            t0 = tic;
-            timeoutLim = obj.cfg.tcp.timeout_limit;
+            timeout_limit = 2;  % Timeout threshold in seconds
+            time_start = tic;
 
-            newData = obj.try_receive();
-            while isempty(newData)
-                if toc(t0) > timeoutLim
-                    disp("⏳ Timeout: No new input data received.");
+            new_data = obj.try_receive();
+
+            % Retry receiving until timeout is reached
+            while isempty(new_data)
+                if toc(time_start) > timeout_limit
+                    disp('⏳ Timeout: No new input data received for a while.');
                     break;
                 end
-                pause(0.05); % yield CPU a bit
-                newData = obj.try_receive();
+                new_data = obj.try_receive();
             end
 
-            if ~isempty(newData)
-                obj.last_inputs = newData;
+            % Update internal cache if new data was received
+            if ~isempty(new_data)
+                obj.last_inputs = new_data;
             end
+
+            % Return the most recent available inputs
             inputs = obj.last_inputs;
         end
 
-        %% ----------------------------------------------------------------
-        function send_output(obj, output_data)
-            json_data = jsonencode(output_data);
-            writeline(obj.out_client, json_data);
-        end
-
-        %% ----------------------------------------------------------------
-        function delete(obj)
-            % Destructor – close clients safely
-            if ~isempty(obj.out_client) && isvalid(obj.out_client)
-                delete(obj.out_client);
-            end
-            if ~isempty(obj.in_client) && isvalid(obj.in_client)
-                delete(obj.in_client);
-            end
-        end
-    end  % methods
-
-    methods (Access = private)
-        %% ----------------------------------------------------------------
+        % Try to receive a new input frame (non-blocking)
         function data_struct = try_receive(obj)
-            % Non-blocking read of a complete JSON line, if any
             data_struct = [];
+
+            % Read available data lines from the input stream
             while obj.in_client.NumBytesAvailable > 0
                 line = readline(obj.in_client);
                 disp("📩 Received:");
                 disp(line)
                 try
-                    data_struct = jsondecode(line);
+                    data_struct = jsondecode(line);  % Attempt to parse JSON
                 catch
-                    warning("JSON decode failed, skipping line.");
+                    warning("JSON decode failed");  % Log failure but continue
                 end
             end
         end
 
-        %% ----------------------------------------------------------------
-        function cfg = loadConfig(~, cfgFile, varargin)
-            % Load YAML, then apply dotted-key overrides
-            raw    = yamlread(cfgFile);   % returns struct
-            cfg    = raw;                 % immutable copy
+        % Send a "simulation completed" packet to Python
+        function send_completed(obj)
+            completed_packet = struct( ...
+                "status", "completed", ...
+                "timestamp", posixtime(datetime("now")) ...
+            );
+            disp("✅ Simulation completed. Sending final packet:");
+            disp(completed_packet);
 
-            % Apply overrides
-            for k = 1:2:numel(varargin)
-                path  = split(varargin{k}, '.');
-                val   = varargin{k+1};
-                cfg   = SimulationWrapperInteractive.setDeep(cfg, path, val);
-            end
+            obj.send_output(completed_packet);
         end
-    end  % private methods
 
-    methods (Static, Access = private)
-        %% ----------------------------------------------------------------
-        function s = setDeep(s, path, val)
-            % Recursively set a dotted field in struct 's' to 'val'
-            if numel(path) == 1
-                s.(path{1}) = val;
-            else
-                field = path{1};
-                if ~isfield(s, field) || ~isstruct(s.(field))
-                    s.(field) = struct();
-                end
-                s.(field) = SimulationWrapperInteractive.setDeep( ...
-                                s.(field), path(2:end), val);
-            end
+        % Send an output frame to the Python client (encoded as JSON)
+        function send_output(obj, output_data)
+            json_data = jsonencode(output_data);       % Convert to JSON string
+            writeline(obj.out_client, json_data);      % Send via TCP
+        end
+
+        % Destructor: Gracefully close the TCP connections
+        function delete(obj)
+            delete(obj.out_client);
+            delete(obj.in_client);
         end
     end
 end

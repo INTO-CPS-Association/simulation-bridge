@@ -105,7 +105,7 @@ class TestMainFunction:
     # Test main function with config file
     def test_main_with_config_file(self, cli_runner, mock_dependencies):
         """Test main function with explicitly provided config file."""
-        mock_matlab_agent, _ , mock_load_config, _  = mock_dependencies
+        mock_matlab_agent, _, mock_load_config, _ = mock_dependencies
 
         mock_load_config.return_value = {
             'agent': {'agent_id': 'custom_agent'},

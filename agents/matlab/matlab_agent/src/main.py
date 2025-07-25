@@ -104,8 +104,6 @@ def generate_default_project():
                                'simulation_streaming.m.template'),
         'client/use_matlab_agent_interactive.py': (MATLAB_AGENT_RESOURCES,
                                                    'use_matlab_agent_interactive.py'),
-        'client/use_matlab_agent_command.py': (MATLAB_AGENT_RESOURCES,
-                                                   'use_matlab_agent_command.py'),
         'client/use_matlab_agent_streaming.py': (MATLAB_AGENT_RESOURCES,
                                                  'use_matlab_agent_streaming.py'),
         'client/use_matlab_agent_batch.py': (MATLAB_AGENT_RESOURCES,

@@ -74,7 +74,8 @@ class _TcpServer:
     def recv_all(self) -> list[Dict[str, Any]]:
         if not self._conn or not select([self._conn], [], [], 0)[0]:
             return []
-        # Read up to BUFFER_SIZE bytes from socket and append to internal buffer (self._buffer)
+        # Read up to BUFFER_SIZE bytes from socket and append to internal buffer
+        # (self._buffer)
         self._buffer += self._conn.recv(BUFFER_SIZE)
         # Messages are sent with a "\n" character as delimiter.
         # Split everything received into "lines".
@@ -99,7 +100,8 @@ class _TcpServer:
                 logger.error("[INTERACTIVE] Invalid JSON: %s", exc)
                 messages.append({"error": f"Invalid JSON: {str(exc)}"})
         # Return the messages list, i.e., all complete decoded JSON objects (plus any error placeholders) available at that moment.
-        # The next call to recv_all() will resume from where it left off, because only the last incomplete fragment remains in the buffer.
+        # The next call to recv_all() will resume from where it left off,
+        # because only the last incomplete fragment remains in the buffer.
         return messages
 
     def close(self) -> None:
@@ -192,11 +194,15 @@ class MatlabInteractiveController:
 
     # ------------------------------------------------------------------
     def _relay(self, payload: Dict[str, Any]) -> None:
-        """Relay a response from the MATLAB process to the broker
+        """Relay a response from the MATLAB process to the broker,
         including the full simulation output."""
 
+        status = payload.get("status", "unknown")
+        is_completed = status == "completed"
+        message_type = "completed" if is_completed else "working"
+
         msg = create_response(
-            "interactive",
+            message_type,
             self.sim_file,
             "interactive",
             self.templates,
@@ -205,7 +211,13 @@ class MatlabInteractiveController:
             bridge_meta=self.bridge_meta,
             request_id=self.request_id,
         )
-        msg["output"] = payload
+
+        # Attach raw output only if not completed
+        if not is_completed:
+            msg["output"] = payload
+        else:
+            logger.info("[INTERACTIVE] Simulation completed successfully.")
+
         self.broker.send_result(self.source, msg)
         self.sequence += 1
 
@@ -241,20 +253,22 @@ class MatlabInteractiveController:
         try:
             while True:
                 if self.out_srv.matlab_proc and self.out_srv.matlab_proc.poll() is not None:
-                    logger.debug("[INTERACTIVE] MATLAB process ended, stopping loop")
+                    logger.debug(
+                        "[INTERACTIVE] MATLAB process ended, stopping loop")
                     break
-                method, _ , body = ch.basic_get(
+                method, _, body = ch.basic_get(
                     queue=qname, auto_ack=True)
                 while method:
                     frame = _parse_frame(body)
                     if frame:
                         # Send the inputs to MATLAB
                         self.in_srv.send(self._only_inputs(frame))
-                    method, _ , body = ch.basic_get(
+                    method, _, body = ch.basic_get(
                         queue=qname, auto_ack=True)
 
                 # Receive Responses from MATLAB
                 for resp in self.out_srv.recv_all():
+                    # If the response contains a status, check if it's completed
                     if resp.get("status") == "completed":
                         self._relay(resp)
                         logger.debug("[INTERACTIVE] Received completion signal")
@@ -276,7 +290,7 @@ class MatlabInteractiveController:
         if self.start_time:
             meta["execution_time"] = time.time() - self.start_time
         meta["memory_usage"] = psutil.Process(
-        ).memory_info().rss //  BYTES_IN_MB
+        ).memory_info().rss // BYTES_IN_MB
         return meta
 
 

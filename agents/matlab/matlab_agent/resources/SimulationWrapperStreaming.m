@@ -1,6 +1,6 @@
 classdef SimulationWrapperStreaming < handle
-    %SIMULATIONWRAPPERSTREAMING  Wrapper for one-way output (streaming) simulations.
-    %Reads default parameters from a YAML file, but any key can be overridden:
+    % SIMULATIONWRAPPERSTREAMING  Wrapper for one-way output (streaming) simulations.
+    % Reads default parameters from a YAML file, but any key can be overridden:
     %
     %   w = SimulationWrapperStreaming();                    % defaults
     %   w = SimulationWrapperStreaming("config/dev.yaml");   % custom file

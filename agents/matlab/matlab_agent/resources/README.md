@@ -118,7 +118,7 @@ Each example folder contains an `api/` subfolder with example simulation payload
 To run the batch simulation example, specify the full absolute path to the payload file when invoking the Python client:
 
 ```bash
-python use_matlab_agent.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
+python use_matlab_agent_batch.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
 ```
 
 ## Control Commands

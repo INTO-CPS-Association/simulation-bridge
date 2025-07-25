@@ -1,101 +1,112 @@
-
 classdef SimulationWrapperInteractive < handle
+    % SIMULATIONWRAPPERINTERACTIVE
+    % Wrapper for interactive communication with a Python-based simulation client
+    % via TCP. Handles input reception, output transmission, and finalization.
+
     properties (Access = private)
-        out_client  % TCP client object for outgoing data
-        in_client   % TCP client object for incoming data
-        last_inputs % Store the last inputs received from Python
+        out_client   % TCP client for sending data to Python
+        in_client    % TCP client for receiving data from Python
+        last_inputs  % Cache of the most recent valid input frame
     end
-    
+
     methods
-        % Constructor for the SimulationWrapperInteractive class
+        % Constructor: Establishes TCP connections to the Python client
         function obj = SimulationWrapperInteractive()
-            % Default host and ports (modifiable)
+            % Default connection settings
             out_host = 'localhost';
             out_port = 5678;
             in_host = 'localhost';
             in_port = 5679;
-            % Max retries for connecting to the server
-            max_retries = 5;
-            retry_delay = 1;  % Delay between retries in seconds
 
-            % Try to connect to the server up to 'max_retries' times
+            % Retry logic configuration
+            max_retries = 5;
+            retry_delay = 1;  % in seconds
+
+            % Attempt to connect to input and output ports with retry
             for retry = 1:max_retries
                 try
-                    % Create a TCP client object to connect to Python server
                     obj.out_client = tcpclient(out_host, out_port);
-                    obj.in_client = tcpclient(in_host, in_port);
+                    obj.in_client  = tcpclient(in_host, in_port);
+
                     configureTerminator(obj.out_client, "LF");
                     configureTerminator(obj.in_client, "LF");
-                    break; % Exit the loop if the connection is successful
+
+                    break;  % Exit loop upon successful connection
                 catch ME
-                    % If connection fails, retry up to 'max_retries' times
                     if retry == max_retries
-                        % If max retries reached, rethrow the exception
-                        rethrow(ME);
+                        rethrow(ME);  % Rethrow error if max retries reached
                     end
-                    % Wait before retrying
-                    pause(retry_delay);
+                    pause(retry_delay);  % Wait before next retry
                 end
             end
 
-            % Receive the initial parameters in JSON format from Python
+            % Read initial configuration/handshake data from Python (JSON format)
             data = readline(obj.out_client);
-            % Decode the received JSON data and store it as 'last_inputs'
-            obj.last_inputs = jsondecode(data);
+            obj.last_inputs = jsondecode(data);  % Store parsed input
         end
 
-        % Method to retrieve input parameters from the Python server
+        % Retrieve the latest input data frame (non-blocking with timeout)
         function inputs = get_input(obj)
-            % Single method to get input data
-            % Reads new streaming data if available, otherwise returns last input
-
-            % Timeout or no data received for a while
-            timeout_limit = 2;  % Set a timeout limit (in seconds)
+            timeout_limit = 2;  % Timeout threshold in seconds
             time_start = tic;
 
             new_data = obj.try_receive();
+
+            % Retry receiving until timeout is reached
             while isempty(new_data)
-                % No new data, check if the timeout limit is reached
                 if toc(time_start) > timeout_limit
                     disp('⏳ Timeout: No new input data received for a while.');
-                    break;  % Exit the loop if timeout
+                    break;
                 end
-                % Retry reading if no new data
                 new_data = obj.try_receive();
             end
 
+            % Update internal cache if new data was received
             if ~isempty(new_data)
                 obj.last_inputs = new_data;
             end
-            inputs = obj.last_inputs;  % Return the stored inputs
+
+            % Return the most recent available inputs
+            inputs = obj.last_inputs;
         end
 
+        % Try to receive a new input frame (non-blocking)
         function data_struct = try_receive(obj)
-            % Non-blocking receive function to get data if available
             data_struct = [];
+
+            % Read available data lines from the input stream
             while obj.in_client.NumBytesAvailable > 0
                 line = readline(obj.in_client);
                 disp("📩 Received:");
                 disp(line)
                 try
-                    data_struct = jsondecode(line);
+                    data_struct = jsondecode(line);  % Attempt to parse JSON
                 catch
-                    warning("JSON decode failed");
+                    warning("JSON decode failed");  % Log failure but continue
                 end
             end
         end
 
-        % Method to send output data to the Python server
-        function send_output(obj, output_data)
-            % Convert the output data to JSON format
-            json_data = jsonencode(output_data);
-            % Send the JSON-encoded data to Python server
-            writeline(obj.out_client, json_data);
+        % Send a "simulation completed" packet to Python
+        function send_completed(obj)
+            completed_packet = struct( ...
+                "status", "completed", ...
+                "timestamp", posixtime(datetime("now")) ...
+            );
+            disp("✅ Simulation completed. Sending final packet:");
+            disp(completed_packet);
+
+            obj.send_output(completed_packet);
         end
 
-        % Destructor to clean up the TCP client object when the wrapper is deleted
+        % Send an output frame to the Python client (encoded as JSON)
+        function send_output(obj, output_data)
+            json_data = jsonencode(output_data);       % Convert to JSON string
+            writeline(obj.out_client, json_data);      % Send via TCP
+        end
+
+        % Destructor: Gracefully close the TCP connections
         function delete(obj)
-            % Close the TCP connection by deleting the client object
             delete(obj.out_client);
             delete(obj.in_client);
         end

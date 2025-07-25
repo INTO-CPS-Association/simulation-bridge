@@ -95,7 +95,8 @@ class TestRabbitMQManager:
     def test_register_message_handler(self, rabbitmq_manager):
         def handler(channel, method, properties, body):
             """ Dummy handler for testing. """
-            # This function is intentionally left empty to serve as a placeholder for testing.
+            # This function is intentionally left empty to serve as a
+            # placeholder for testing.
             pass
         rabbitmq_manager.register_message_handler(handler)
         assert rabbitmq_manager.message_handler is handler

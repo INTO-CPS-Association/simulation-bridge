@@ -2,12 +2,8 @@
 use_matlab_agent_interactive.py
 
 Asynchronous RabbitMQ client for sending interactive simulation requests
-to a MATLAB agent, with optional TLS and separate config/payload files.
+to the MATLAB agent
 """
-
-# pylint: disable=missing-module-docstring, missing-class-docstring,
-# missing-function-docstring, too-many-instance-attributes,
-# attribute-defined-outside-init
 
 import argparse
 import asyncio
@@ -26,25 +22,42 @@ from aio_pika import (
 
 
 class InteractiveUsageMatlabAgent:
-    """Asynchronous client for sending interactive simulation requests."""
+    """
+    Asynchronous client that interacts with a MATLAB agent for running interactive simulations.
+    This class connects to RabbitMQ, sends requests to the MATLAB agent, streams input frames,
+    and processes the results.
+    """
 
     def __init__(self, agent_id: str, destination_id: str,
                  rabbitmq_cfg: Dict[str, Any]) -> None:
+        """
+        Initializes the agent with necessary identifiers and configuration.
+        Sets up the result queue for receiving simulation results.
+        """
         self.agent_id = agent_id
         self.destination_id = destination_id
         self.cfg = rabbitmq_cfg
+        # Queue to receive results
         self.result_queue = f"Q.{agent_id}.matlab.result"
+        # Event to stop the stream when the simulation ends
+        self.stop_event = asyncio.Event()
 
     async def setup(self) -> None:
-        """Connect to RabbitMQ, declare exchanges/queues."""
+        """
+        Connects to RabbitMQ, declares necessary exchanges and queues for sending/receiving messages.
+        This includes setting up TLS if enabled in the configuration.
+        """
         tls_enabled: bool = bool(self.cfg.get("tls", False))
+        # Default port is 5671 for TLS, 5672 otherwise
         port = self.cfg.get("port", 5671 if tls_enabled else 5672)
 
         ssl_ctx = None
         if tls_enabled:
+            # Create SSL context if TLS is enabled
             ssl_ctx = ssl.create_default_context()
             ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
+        # Establish connection to RabbitMQ using the configuration settings
         self.connection = await connect_robust(
             host=self.cfg.get("host", "localhost"),
             port=port,
@@ -52,13 +65,14 @@ class InteractiveUsageMatlabAgent:
             login=self.cfg.get("username", "guest"),
             password=self.cfg.get("password", "guest"),
             heartbeat=self.cfg.get("heartbeat", 600),
-            ssl=tls_enabled,
+            ssl=tls_enabled,  # Enable SSL if needed
         )
 
-        self.channel = await self.connection.channel()
+        self.channel = await self.connection.channel()  # Create a new channel
+        # Set prefetch count to avoid overwhelming the consumer
         await self.channel.set_qos(prefetch_count=1)
 
-        # Exchanges
+        # Declare RabbitMQ exchanges for different types of communication
         self.ex_bridge = await self.channel.declare_exchange(
             "ex.bridge.output", ExchangeType.TOPIC, durable=True
         )
@@ -69,7 +83,8 @@ class InteractiveUsageMatlabAgent:
             "ex.input.stream", ExchangeType.TOPIC, durable=True
         )
 
-        # Result queue/binding
+        # Declare the result queue where the agent will receive simulation
+        # results
         self.queue = await self.channel.declare_queue(
             self.result_queue, durable=True
         )
@@ -81,56 +96,94 @@ class InteractiveUsageMatlabAgent:
     async def send_initial_interactive_request(
         self, payload: Dict[str, Any], request_id: str
     ) -> None:
-        """Publish the first message that kicks off the interactive sim."""
+        """
+        Sends the initial request to the MATLAB simulation. This includes necessary
+        metadata and sets up the simulation environment.
+
+        """
         payload["simulation"]["request_id"] = request_id
         payload["simulation"].setdefault("bridge_meta", {})[
             "protocol"] = "rabbitmq"
 
         routing_key = f"{self.agent_id}.{self.destination_id}"
+        # Publish the request message to the bridge exchange
         await self.ex_bridge.publish(
             Message(
                 body=yaml.dump(payload, default_flow_style=False).encode(),
-                delivery_mode=DeliveryMode.PERSISTENT,
-                content_type="application/x-yaml",
-                message_id=str(uuid.uuid4()),
+                delivery_mode=DeliveryMode.PERSISTENT,  # Ensure message is persistent
+                content_type="application/x-yaml",  # Content type is YAML
+                message_id=str(uuid.uuid4()),  # Unique ID for the message
             ),
             routing_key=routing_key,
         )
-        print(f"[INIT] Sent interactive request (rk='{routing_key}') "
-              f"request_id={request_id}")
+        print(
+            f"[INIT] Sent interactive request (rk='{routing_key}') request_id={request_id}")
 
     async def stream_inputs(self, request_id: str, stream_key: str) -> None:
-        """Continuously send input frames to MATLAB."""
+        """
+        Continuously sends input frames to MATLAB simulation until completion.
+        Each input frame consists of time (`t`), position (`x`, `y`), and velocity (`vx`, `vy`).
+        """
+        # YOU WILL NEED TO ADJUST THIS FUNCTION TO ALIGN WITH THE SPECIFIC
+        # STRUCTURE OF YOUR INPUT FRAMES.
         print(f"[INPUT STREAM] Publishing frames on '{stream_key}' …")
-        for k in range(10000):
-            t = k * 0.1
-            vx, vy = 1.0, 0.5
+        for k in range(
+                1000):  # Loop for sending a large number of frames (100 max)
+            if self.stop_event.is_set(
+                # Check if the stop event is set (e.g., when simulation is
+                # complete)
+            ):
+                print("[INPUT STREAM] Received stop signal, ending input stream.")
+                break
+
+            t = k * 0.1  # Time step for simulation
+            vx, vy = 1.0, 0.5  # Example velocities
             frame = {
                 "simulation": {
                     "request_id": request_id,
                     "inputs": {"t": t, "x": vx * t, "y": vy * t, "vx": vx, "vy": vy},
                 }
             }
+            # Publish each input frame to the stream exchange
             await self.ex_stream.publish(
                 Message(
                     body=yaml.dump(frame).encode(),
                     content_type="application/x-yaml",
-                    message_id=str(uuid.uuid4()),
+                    message_id=str(uuid.uuid4()),  # Unique message ID
                 ),
                 routing_key=stream_key,
             )
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.1)  # Small delay to avoid flooding the queue
+
+        print("[INPUT STREAM] Input loop finished.")
 
     async def handle_results(self) -> None:
-        """Consume results asynchronously and print them."""
+        """
+        Consumes results asynchronously from the MATLAB simulation. When a result with status 'completed'
+        is received, it stops the input stream.
+        """
         async with self.queue.iterator() as q:
-            async for msg in q:
+            async for msg in q:  # Continuously listen for incoming messages from the result queue
                 async with msg.process():
-                    result = yaml.safe_load(msg.body)
+                    result = yaml.safe_load(
+                        msg.body)  # Parse the result message
+
                     print(f"\n[RESULT] {result}\n" + "-" * 40)
+
+                    # Check if the simulation is completed
+                    if isinstance(result, dict) and result.get(
+                            "status") == "completed":
+                        print("Received completion signal from MATLAB.")
+                        self.stop_event.set()  # Set the stop event to end the input stream
+                        break
 
 
 async def main() -> None:
+    """
+    Main entry point for the script. Handles the command-line arguments,
+    loads configuration and payload, and starts the simulation.
+    """
+    # Command-line argument parsing
     parser = argparse.ArgumentParser(description="MATLAB interactive client")
     parser.add_argument(
         "--config",
@@ -146,28 +199,34 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
-    # --- Load config & payload
+    # Load RabbitMQ configuration from the provided file
     async with await anyio.open_file(args.config, "r", encoding="utf-8") as f_cfg:
         rabbit_cfg = yaml.safe_load(await f_cfg.read()).get("rabbitmq", {})
 
+    # Load the simulation payload from the provided file
     async with await anyio.open_file(args.api_payload, "r", encoding="utf-8") as f_pl:
         payload = yaml.safe_load(await f_pl.read())
 
-    # --- Client
+    # Initialize the simulation client (here, it is MATLAB-specific)
     client = InteractiveUsageMatlabAgent("dt", "matlab", rabbit_cfg)
 
-    request_id = str(uuid.uuid4())
+    request_id = str(uuid.uuid4())  # Unique request ID for this simulation
+    # Input stream source (RabbitMQ URL)
     stream_source = payload["simulation"]["inputs"]["stream_source"]
+    # Extract the routing key for the stream
     stream_key = stream_source.replace("rabbitmq://", "")
 
+    # Setup and send the initial interactive request to MATLAB
     await client.setup()
     await client.send_initial_interactive_request(payload, request_id)
 
-    # run listener & streamer concurrently
+    # Run both result handler and input stream publisher concurrently
     await asyncio.gather(
         client.handle_results(),
         client.stream_inputs(request_id, stream_key),
     )
+
+    print("Simulation client finished.")
 
 
 if __name__ == "__main__":
