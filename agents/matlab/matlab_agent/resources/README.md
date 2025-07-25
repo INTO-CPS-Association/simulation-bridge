@@ -14,7 +14,6 @@ This Python module provides a simple RabbitMQ client to send simulation requests
     - [Steps to run an example](#steps-to-run-an-example)
     - [Where to find the API payload files](#where-to-find-the-api-payload-files)
     - [Example usage](#example-usage)
-  - [Control Commands](#control-commands)
 
 ## Installation
 
@@ -26,13 +25,15 @@ pip install pika pyyaml
 
 ## Clients
 
-Two Python scripts are provided:
+Three Python scripts are provided, each matching a different simulation mode:
 
-- **use_matlab_agent.py** – Simple client that sends a simulation request and
-  waits for results. Use this for _batch_ and _streaming_ simulations.
-- **use_matlab_agent_interactive.py** – Async client for _interactive_
-  simulations. It streams input frames to MATLAB and prints outputs as they
-  arrive.
+- **use_matlab_agent_batch.py** – Executes a _batch_ simulation and waits until
+  the final results are returned before terminating.
+- **use_matlab_agent_streaming.py** – Starts a _streaming_ simulation where
+  outputs are continuously printed as they arrive.
+- **use_matlab_agent_interactive.py** – Asynchronous client for
+  _interactive_ simulations. It streams input frames to MATLAB and handles
+  real-time results.
 
 ## Configuration
 
@@ -52,6 +53,12 @@ rabbitmq:
 simulation_request: ../api/simulation.yaml # Default path to the simulation YAML payload
 ```
 
+The MATLAB wrapper classes also read their configuration from a
+`config/default.yaml` file. A template named `default.yaml.template` is
+distributed with the agent under `config/`. When you run
+`matlab-agent --generate-project`, this template is copied to
+`config/default.yaml`, which the wrappers use at runtime.
+
 ## Usage
 
 Run the module as a standalone script to send simulation requests to the MATLAB agent and listen asynchronously for the results.
@@ -68,8 +75,9 @@ If this option is omitted, the script will look for a file named `simulation.yam
 - **With CLI option:**
   You can override the default by specifying a custom path to the simulation payload YAML file using the `--api-payload` option.
 
-For interactive simulations, use `use_matlab_agent_interactive.py` with the same
-`--api-payload` flag. This client streams input frames based on the
+For streaming simulations use `use_matlab_agent_streaming.py`. For interactive
+simulations run `use_matlab_agent_interactive.py`; both scripts accept the same
+`--api-payload` flag. The interactive client streams input frames based on the
 `inputs.stream_source` field and prints outputs as they arrive.
 
 ## Example
@@ -91,9 +99,12 @@ you will find several folders containing practical examples. Each example folder
 2. **Run the MATLAB agent**  
    Start the MATLAB agent so it is ready to receive simulation requests.
 
-3. **Send a simulation request using the Python client**  
-    Execute the Python client with the appropriate API payload file:  
-   python use_matlab_agent.py --api-payload "path_to_api_payload"
+3. **Send a simulation request using the Python client**
+   Execute the client that matches your simulation type with the appropriate
+   API payload file:
+   `python use_matlab_agent_batch.py --api-payload "path_to_api_payload"`,
+   `python use_matlab_agent_streaming.py --api-payload "path_to_api_payload"`,
+   or `python use_matlab_agent_interactive.py --api-payload "path_to_api_payload"`.
 
 > **Note:** It is recommended to use absolute paths when specifying the `--api-payload` argument to avoid path resolution issues. It is a good practice to place the path in single quotes.
 
@@ -119,20 +130,4 @@ To run the batch simulation example, specify the full absolute path to the paylo
 
 ```bash
 python use_matlab_agent_batch.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
-```
-
-## Control Commands
-
-During a simulation you can remotely control the MATLAB agent by sending simple
-command messages via RabbitMQ. Supported commands are:
-
-- `RUN` – clear any previous stop request and allow the simulation to run.
-- `STOP` – request the currently running simulation to terminate gracefully.
-- `CHECK` – query the agent status (returns `running` or `stopped`).
-
-To issue a command, publish a YAML message containing a `command` field to the
-agent input exchange:
-
-```yaml
-command: STOP
 ```
