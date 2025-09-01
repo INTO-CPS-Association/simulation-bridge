@@ -13,7 +13,7 @@ The Simul8 Agent is primarily built to integrate with the Simulation Bridge but 
 
 ## Table of Contents
 
-- [Simul8 agent](#simul8-agent)
+- [Simul8 Agent](#simul8-agent)
   - [Table of Contents](#table-of-contents)
   - [Demo Video](#demo-video)
   - [Requirements](#requirements)
@@ -264,7 +264,7 @@ simul8-agent
 When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
 
 ```toml
-version = "0.3.0"
+version = "0.1.0"
 ```
 
 Then rebuild the package:

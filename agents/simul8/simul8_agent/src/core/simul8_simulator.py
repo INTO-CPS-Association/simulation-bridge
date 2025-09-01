@@ -196,7 +196,7 @@ class Simul8Simulator:
         if not inputs:
             raise Simul8SimulationError(
                 "No inputs provided - Simul8 simulation requires input data with structure: "
-                "{'columns': ['col1', 'col2'], 'r1': ['val1', 'val2'], ...}"
+                "{'columns': ['col1', 'col2'], 'r1': ['val1', 'val2'], ...}" #TODO  fix
             )
         
         logger.info(f"Processing {len(inputs)} input parameters")
@@ -284,7 +284,7 @@ class Simul8Simulator:
             ("OUTPUT.csv", os.getcwd()),
             ("OUTPUTDATA.csv", os.path.dirname(sim_directory)),  # parent dir
             ("OUTPUT.csv", os.path.dirname(sim_directory))       # parent dir
-        ]
+        ] #TODO fix to one file csv
         
         output_file_path = None
         

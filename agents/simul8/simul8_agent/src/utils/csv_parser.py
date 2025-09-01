@@ -69,8 +69,8 @@ def yaml_csv_to_file(
     
     Expected format:
     {
-        'columns': ['col1', 'col2', 'col3'],
-        'r1': ['val1', 'val2', 'val3'],
+        'columns': ['col1', 'col2', 'col3']
+        'r1': ['val1', 'val2', 'val3']
         'r2': ['val4', 'val5', 'val6'],
         ...
     }
