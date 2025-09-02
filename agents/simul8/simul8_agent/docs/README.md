@@ -13,7 +13,7 @@ The the simulation file used must be configured for this type of invocation.
 - ``inputSheet``and `outputSheet` must be created manually in the simulation.
 - A "On Simulation Open" visual logic block must be created, which contains: `File to Sheet    "input.csv" ,  inputSheet[1,1]`
 - The data which the simulation manipulates should be put into `outputSheet`
-- A "End Run Logic" Visual Logic Block must be created containing the wanted logic for creating the data which you want exported. Hence it needs to contain `Sheet to File    "output.csv" ,  outputSheet[1,1]
+- A "End Run Logic" Visual Logic Block must be created containing the wanted logic for creating the data which you want exported. Hence it needs to contain `Sheet to File    "output.csv" ,  outputSheet[1,1]`
 
 
 The order of parameters in the YAML file must align **precisely** with the order of the function arguments. The Simulation Bridge extracts these parameters from the YAML file and passes them directly to the function without any intermediate processing. Each YAML parameter corresponds to a specific function argument, ensuring a direct and automatic binding.
@@ -21,7 +21,7 @@ The order of parameters in the YAML file must align **precisely** with the order
 #### Example
 #### Input in simulation.yaml 
 In this example:
-
+```
 - Inputs: 
 columns: [co2, energy]
     r1: [25, 100]
@@ -29,7 +29,7 @@ columns: [co2, energy]
 - Outputs: 
 total_co2: Total CO2
 total_energy: Total Energy <br>
-
+```
 Below is an example of the "On Simulation Open" Visual Logic  :
 
 ```python
