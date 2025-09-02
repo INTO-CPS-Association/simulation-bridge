@@ -65,13 +65,13 @@ def yaml_csv_to_file(
     delimiter: str = ','
 ) -> str:
     """
-    Convert YAML CSV structure to a proper CSV file.
+    Convert YAML structure to a proper CSV file.
     
-    Expected format:
+    Expected format (example):
     {
-        'columns': ['col1', 'col2', 'col3']
-        'r1': ['val1', 'val2', 'val3']
-        'r2': ['val4', 'val5', 'val6'],
+        'columns': ['energy', 'co2', 'units']
+        'r1': ['23', '10.5', '20']
+        'r2': ['9', '2.3', '30'],
         ...
     }
     
@@ -92,9 +92,9 @@ def yaml_csv_to_file(
     if not file_path:
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"simul8_yaml_csv_{os.getpid()}.csv")
-    
-    logger.debug(f"Converting YAML CSV data to file: {file_path}")
-    
+
+    logger.debug(f"Converting YAML data to file: {file_path}")
+
     # Ensure directory exists
     os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
     
