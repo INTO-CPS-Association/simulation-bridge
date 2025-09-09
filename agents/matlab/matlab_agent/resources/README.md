@@ -10,6 +10,7 @@ This Python module provides a simple RabbitMQ client to send simulation requests
   - [Clients](#clients)
   - [Configuration](#configuration)
   - [Usage](#usage)
+    - [Command-line options](#command-line-options)
   - [Example](#example)
     - [Steps to run an example](#steps-to-run-an-example)
     - [Where to find the API payload files](#where-to-find-the-api-payload-files)
@@ -61,23 +62,22 @@ distributed with the agent under `config/`. When you run
 
 ## Usage
 
-Run the module as a standalone script to send simulation requests to the MATLAB agent and listen asynchronously for the results.
-Command-Line Options:
+Run any of the client scripts below to send a simulation request and listen for
+results. Each script exposes the same interface:
 
-- `--api-payload` (optional):  
-  Specify the path to the YAML file containing the simulation request payload.
+```bash
+python use_matlab_agent_batch.py --api-payload /path/to/payload.yaml
+python use_matlab_agent_streaming.py --api-payload /path/to/payload.yaml
+python use_matlab_agent_interactive.py --api-payload /path/to/payload.yaml
+```
 
-If this option is omitted, the script will look for a file named `simulation.yaml` in the default location as configured in `use.yaml` (by default in the same directory or as specified in the `simulation_request` field).
+### Command-line options
 
-- **Without CLI option:**
-  The script loads the simulation payload from the default path specified in `use.yaml`. This is by default a `simulation.yaml` file located in the working directory or as configured.
+- `--api-payload` (optional): path to the YAML simulation request. If omitted,
+  the script loads `simulation.yaml` from the default location configured in
+  `use.yaml`.
 
-- **With CLI option:**
-  You can override the default by specifying a custom path to the simulation payload YAML file using the `--api-payload` option.
-
-For streaming simulations use `use_matlab_agent_streaming.py`. For interactive
-simulations run `use_matlab_agent_interactive.py`; both scripts accept the same
-`--api-payload` flag. The interactive client streams input frames based on the
+The interactive client streams input frames based on the
 `inputs.stream_source` field and prints outputs as they arrive.
 
 ## Example
@@ -100,11 +100,14 @@ you will find several folders containing practical examples. Each example folder
    Start the MATLAB agent so it is ready to receive simulation requests.
 
 3. **Send a simulation request using the Python client**
-   Execute the client that matches your simulation type with the appropriate
-   API payload file:
-   `python use_matlab_agent_batch.py --api-payload "path_to_api_payload"`,
-   `python use_matlab_agent_streaming.py --api-payload "path_to_api_payload"`,
-   or `python use_matlab_agent_interactive.py --api-payload "path_to_api_payload"`.
+   Run the client that matches your simulation mode and provide the path to the
+   API payload:
+
+   ```bash
+   python use_matlab_agent_batch.py --api-payload '/abs/path/to/batch_payload.yaml'
+   python use_matlab_agent_streaming.py --api-payload '/abs/path/to/streaming_payload.yaml'
+   python use_matlab_agent_interactive.py --api-payload '/abs/path/to/interactive_payload.yaml'
+   ```
 
 > **Note:** It is recommended to use absolute paths when specifying the `--api-payload` argument to avoid path resolution issues. It is a good practice to place the path in single quotes.
 
@@ -126,8 +129,23 @@ Each example folder contains an `api/` subfolder with example simulation payload
 
 ### Example usage
 
-To run the batch simulation example, specify the full absolute path to the payload file when invoking the Python client:
+Run the client script that matches the example you want to execute. Use absolute
+paths to avoid resolution issues.
 
-```bash
-python use_matlab_agent_batch.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
-```
+- **Batch simulation**
+
+  ```bash
+  python use_matlab_agent_batch.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
+  ```
+
+- **Streaming simulation**
+
+  ```bash
+  python use_matlab_agent_streaming.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/streaming-simulation/api/simulation_streaming.yaml.example"
+  ```
+
+- **Interactive simulation**
+
+  ```bash
+  python use_matlab_agent_interactive.py --api-payload "/Users/foo/simulation-bridge/agents/matlab/matlab_agent/docs/examples/interactive-simulation/api/simulation_interactive.yaml.example"
+  ```
