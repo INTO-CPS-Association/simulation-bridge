@@ -12,6 +12,7 @@ Communication with the MATLAB agent is handled via TCP, using the `SimulationWra
 - [Interactive Simulation](#interactive-simulation)
   - [Table of Contents](#table-of-contents)
   - [Usage](#usage)
+    - [Stream Source convention](#stream-source-convention)
   - [Simulation Steps and Flow](#simulation-steps-and-flow)
 
 ## Usage
@@ -63,6 +64,12 @@ simulation:
       # The timestamp of the output data in epoch seconds. This helps to track when the output was generated.
       timestamp: float # epoch seconds
 ```
+
+### Stream Source convention
+
+The convention is to express the stream source as a RabbitMQ URI: the `rabbitmq://` prefix is followed by the actual routing key (or queue name).
+When the MATLAB Agent receives the YAML payload, it simply strips the prefix (stream_key = sim["inputs"]["stream_source"].replace("rabbitmq://", "")) and uses the remaining part as the routing key.
+In practice, a stream can be specified as `rabbitmq://streaming.inputs.sim123`, where `streaming.inputs.sim123` represents the RabbitMQ queue/topic to publish to or consume from.
 
 > **Note:** The stream_source field in the inputs section is mandatory for interactive simulations. This parameter specifies the RabbitMQ stream from which the simulation will receive real-time input data, and it must be included for the simulation to function correctly.
 
