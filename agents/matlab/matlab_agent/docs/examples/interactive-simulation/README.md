@@ -40,6 +40,9 @@ simulation:
     # Specifies the RabbitMQ stream URL from which the simulation will receive telemetry data.
     # This is the source for continuous stream data to be processed in the simulation.
     stream_source: "rabbitmq://streaming.inputs.sim123"
+    REQUIRED: ["t", "x", "y", "vx", "vy"] # required fields
+    PAUSE_IO: 0.01 # pause to avoid spin-lock (s)
+    MAX_STEPS: 90 # number of iterations before termination
 
   # The outputs section defines the structure of the results that will be returned after processing the inputs.
   outputs:
@@ -70,7 +73,7 @@ simulation:
    - Initialize `SimulationWrapperInteractive` for TCP communication.
    - Prepare to receive telemetry input.
 
-2. **Main Loop (100 Steps)**
+2. **Main Loop**
 
    - Process telemetry frames from the Python client.
    - Each frame must include: `t`, `x`, `y`, `vx`, `vy`.
@@ -90,4 +93,4 @@ simulation:
    - On error, send error packet.
 
 5. **Completion**
-   - After 100 steps, send a "completed" message.
+   - After all steps, send a "completed" message.

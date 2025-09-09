@@ -6,6 +6,9 @@ simulation:
   file: InteractiveSimulation.m
   inputs:
     stream_source: "rabbitmq://streaming.inputs.sim123"
+    REQUIRED: ["t", "x", "y", "vx", "vy"]
+    PAUSE_IO: 0.01 # pause to avoid spin-lock (s)
+    MAX_STEPS: 90 # number of iterations before termination
   outputs:
     predicted:
       x_next: float
