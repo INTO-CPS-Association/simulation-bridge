@@ -56,9 +56,8 @@ class Simul8Simulator:
         self.listen_for_messages = True
         self.start_time = None
         self.results = {}
-        self.expected_outputs = {}  # Change from [] to {}
+        self.expected_outputs = {}
         
-        # Only validate if both path and file are provided
         if self.sim_path and self.sim_file:
             self._validate()
 
@@ -83,10 +82,9 @@ class Simul8Simulator:
         try:
             self.start_time = time.time()
             
-            # Initialize COM LibrariesF
+            # Initialize COM Libraries
             pythoncom.CoInitialize()
             
-            # Create Simul8 instance
             self.s8 = EnsureDispatch("Simul8.S8Simulation")
             
             # Set up event handling
@@ -257,11 +255,6 @@ class Simul8Simulator:
             else:
                 raise Simul8SimulationError(f"Failed to create input.csv at: {input_file_path}")
             
-            # Store the path for cleanup later
-            if not hasattr(self, '_temp_files'):
-                self._temp_files = []
-            self._temp_files.append(input_file_path)
-            
         except Exception as e:
             logger.error(f"Failed to create input file: {str(e)}", exc_info=True)
             raise Simul8SimulationError(f"Error creating input file: {str(e)}")
@@ -276,31 +269,15 @@ class Simul8Simulator:
         logger.debug(f"Looking for output files. Sim directory: {sim_directory}")
         logger.debug(f"Current working directory: {os.getcwd()}")
         
-        # Try different file names and locations
-        possible_files = [
-            ("OUTPUTDATA.csv", sim_directory),
-            ("OUTPUT.csv", sim_directory),
-            ("OUTPUTDATA.csv", os.getcwd()),
-            ("OUTPUT.csv", os.getcwd()),
-            ("OUTPUTDATA.csv", os.path.dirname(sim_directory)),  # parent dir
-            ("OUTPUT.csv", os.path.dirname(sim_directory))       # parent dir
-        ] #TODO fix to one file csv
         
+        
+        potential_path = os.path.join(sim_directory, "OUTPUT.csv")
+
         output_file_path = None
         
-        for filename, directory in possible_files:
-            potential_path = os.path.join(directory, filename)
-            logger.debug(f"Checking for output file: {potential_path}")
-            
-            if os.path.exists(potential_path):
-                output_file_path = potential_path
-                logger.debug(f"Found output file: {output_file_path}")
-                break
-        
-        if not output_file_path:
-            logger.warning("Output file not found in any location")
-            for filename, directory in possible_files:
-                logger.debug(f"  - {os.path.join(directory, filename)}")
+        output_file_path = potential_path
+        if not os.path.exists(output_file_path):
+            logger.warning(f"Output file not found at: {output_file_path}")
             self.results = {"error": "No output file found"}
             return
         
@@ -347,10 +324,6 @@ class Simul8Simulator:
             else:
                 self.results = {"error": "No results parsed from output file"}
             
-            # Add this file to temp_files for cleanup
-            if not hasattr(self, '_temp_files'):
-                self._temp_files = []
-            self._temp_files.append(output_file_path)
                 
         except Exception as e:
             logger.error(f"Failed to read output file: {str(e)}")
@@ -371,23 +344,6 @@ class Simul8Simulator:
 
     def cleanup(self) -> None:
         """Clean up COM resources and temporary files."""
-        
-        # Clean up temporary files first
-        if hasattr(self, '_temp_files'):
-            for temp_file in self._temp_files:
-                try:
-                    if os.path.exists(temp_file):
-                        os.remove(temp_file)
-                        logger.debug(f"Deleted temporary file: {temp_file}")
-                    else:
-                        logger.debug(f"Temporary file not found (already deleted?): {temp_file}")
-                except Exception as e:
-                    logger.warning(f"Failed to delete temporary file {temp_file}: {str(e)}")
-            
-            # Clear the list
-            self._temp_files = []
-        
-        # Clean up COM resources
         if self.s8:
             try:
                 # Try to quit the application properly
