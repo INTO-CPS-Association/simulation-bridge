@@ -10,6 +10,9 @@ BUFFER_SIZE = 4096
 DEFAULT_OUTPUT_PORT = 5678
 DEFAULT_INPUT_PORT = 5679
 
+# Default Output Host
+DEFAULT_OUTPUT_HOST = "localhost"
+
 # Memory usage divisor for converting bytes to MB
 BYTES_IN_MB = 1024 * 1024
 
