@@ -99,27 +99,48 @@ No additional files are handled. All data is transmitted exclusively through the
 
 ## Interactive Simulation
 
-An interactive simulation continuously exchanges data with the MATLAB Agent. The MATLAB code reacts to new input frames and can send updated outputs at any time during execution.
+An interactive simulation continuously exchanges data with the MATLAB Agent. The MATLAB code reacts to new input frames and can send updated outputs at any time during execution. Unlike batch or streaming modes, the simulation remains active while new frames arrive asynchronously.
 
-### Interactive Requirements
+Use the `SimulationWrapperInteractive` class located alongside your `InteractiveSimulation.m` file. This wrapper manages two TCP connections:
 
-Use the `SimulationWrapperInteractive` class located alongside your `InteractiveSimulation.m` file. This wrapper manages two TCP connections, one for outputs and one for incoming frames.
+1. **Output stream** – sends simulation results to the MATLAB Agent.
+2. **Input stream** – receives new frames coming from the message broker.
 
-The main function structure is:
+### Interactive Flow
 
-```matlab
-function InteractiveSimulation()
-  wrapper = SimulationWrapperInteractive();
-  while true
+1. **Instantiate the wrapper**
+
+   ```matlab
+   wrapper = SimulationWrapperInteractive();
+   ```
+
+2. **Retrieve initial parameters**
+   Before entering the main loop the simulation can pull a first packet of inputs provided during the handshake.
+
+   ```matlab
+   init_data = wrapper.get_initial_inputs();
+   % ... initialise simulation state using init_data ...
+   ```
+
+3. **Main loop**
+   Continuously poll for new frames, update the state and emit outputs.
+
+   ```matlab
+   while true
       data_in = wrapper.get_input();
       if ~isempty(data_in)
           % ... update simulation state ...
           wrapper.send_output(struct('inputs', data_in));
       end
-      pause(0.01);
-  end
-end
-```
+      pause(0.01); % small delay to avoid busy waiting
+   end
+   ```
+
+4. **Finalisation**
+   When the simulation ends, optionally call wrapper.send_completed() and clean up any resources.
+   ```matlab
+    wrapper.send_completed();
+   ```
 
 The corresponding API payload must specify `inputs.stream_source` with a RabbitMQ URL pointing to the topic where input frames will be published.
 
