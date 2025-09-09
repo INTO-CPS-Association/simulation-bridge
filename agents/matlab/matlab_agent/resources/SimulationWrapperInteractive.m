@@ -45,6 +45,12 @@ classdef SimulationWrapperInteractive < handle
             obj.last_inputs = jsondecode(data);  % Store parsed input
         end
 
+         % Retrieve the initial handshake inputs
+        function inputs = get_initial_inputs(obj)
+            inputs = obj.last_inputs;
+        end
+
+
         % Retrieve the latest input data frame (non-blocking with timeout)
         function inputs = get_input(obj)
             timeout_limit = 2;  % Timeout threshold in seconds
