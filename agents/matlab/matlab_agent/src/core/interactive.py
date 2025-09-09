@@ -173,24 +173,43 @@ class MatlabInteractiveController:
             text=True,
         )
 
-    def start(self, pm: PerformanceMonitor) -> None:
-        """Start the TCP servers and MATLAB process.
+    def start(
+        self,
+        pm: PerformanceMonitor,
+        initial_inputs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Start the TCP servers, MATLAB process and send initial inputs.
+
         Args:
             pm (PerformanceMonitor): Performance monitor instance.
+            initial_inputs (Optional[Dict[str, Any]]):
+                Optional initial frame to send to the MATLAB simulation. The
+                ``stream_source`` field (if present) is removed before sending.
         """
         self.start_time = time.time()
         self.out_srv.start()
         self.in_srv.start()
         logger.debug("[INTERACTIVE] TCP servers started on %s:%s and %s:%s",
-                     self.out_srv.host, self.out_srv.port,
-                     self.in_srv.host, self.in_srv.port)
+                     self.out_srv.host,
+                     self.out_srv.port,
+                     self.in_srv.host,
+                     self.in_srv.port)
         self._start_matlab()
         logger.debug("[INTERACTIVE] Waiting for MATLAB to start...")
         pm.record_matlab_startup_complete()
         self.out_srv.accept()
         self.in_srv.accept()
-        # Perform a handshake with MATLAB
-        self.out_srv.send({})  # handshake
+
+        # Prepare optional initial inputs
+        handshake: Dict[str, Any] = {}
+        if initial_inputs:
+            handshake = {
+                k: v for k, v in initial_inputs.items() if k != "stream_source"
+            }
+            # Send initial frame through the input channel as well
+            self.in_srv.send(handshake)
+
+        self.out_srv.send(handshake)
 
     # ------------------------------------------------------------------
     def _relay(self, payload: Dict[str, Any]) -> None:
@@ -320,7 +339,7 @@ def handle_interactive_simulation(
         agent_id=sim.get("simulator", "agent"),
     )
     try:
-        controller.start(pm)
+        controller.start(pm, sim.get("inputs"))
         controller.run(pm, msg_dict)
     except (KeyError, ValueError) as exc:  # Handle specific known errors
         logger.error("[INTERACTIVE] Known error: %s", exc)

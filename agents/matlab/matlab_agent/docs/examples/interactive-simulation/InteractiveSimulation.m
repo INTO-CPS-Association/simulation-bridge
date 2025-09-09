@@ -1,17 +1,13 @@
 function InteractiveSimulation()
     % INTERACTIVESIMULATION  Interactive demo with frame validation.
     %   It processes valid telemetry (t, x, y, vx, vy) and sends an error packet
-    %   if the frame is missing required fields. Terminates after 100 steps.
-
-    %% ───── configuration
-    REQUIRED = ["t", "x", "y", "vx", "vy"];  % required fields
-    PAUSE_IO = 0.01;                         % pause to avoid spin-lock (s)
-    MAX_STEPS = 100;                         % number of iterations before termination
-
-    %% ───── initialization
 
     wrapper = SimulationWrapperInteractive();
-    disp("🟢 InteractiveSimulation started...");
+    init = wrapper.get_initial_inputs();  % handshake parameters
+
+    REQUIRED = init.REQUIRED; % required fields in the input frame
+    PAUSE_IO = init.PAUSE_IO; % pause to avoid spin-lock (s)
+    MAX_STEPS = init.MAX_STEPS; % number of iterations before termination
 
     last_input = struct();  % cache of the last valid frame
     last_time  = [];        % timestamp of the last valid frame
