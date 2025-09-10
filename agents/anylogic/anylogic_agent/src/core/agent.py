@@ -50,7 +50,7 @@ class AnylogicAgent:
         self.comm.setup()
         self.comm.register_message_handler()
         # Initialize UDP Listener
-        self.listener = Listener()
+        self.listener = Listener(self.config)
         logger.debug("ANYLOGIC Agent initialized successfully")
 
     def start(self) -> None:
