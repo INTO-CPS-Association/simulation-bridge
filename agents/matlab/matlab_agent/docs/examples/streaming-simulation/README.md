@@ -2,7 +2,7 @@
 
 This example showcases a basic "Hello world" streaming simulation that models the movement of multiple agents in a two-dimensional space. Each agent starts at a random position with zero initial velocity. At every simulation step, their velocities are slightly perturbed by random noise, and positions are updated accordingly, simulating simple dynamic behavior.
 
-The simulation relies on `SimulationWrapper.m` to manage TCP/IP communication with the MATLAB agent, allowing real-time data exchange between the simulation and the client.
+The simulation relies on `SimulationWrapperStreaming.m` to manage TCP/IP communication with the MATLAB agent, allowing real-time data exchange between the simulation and the client.
 
 ## Table of Contents
 

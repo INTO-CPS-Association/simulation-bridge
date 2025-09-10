@@ -6,15 +6,19 @@ from typing import Any, Dict, Tuple
 
 from src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 
 @pytest.fixture(scope="function")
-def mock_config() -> dict:
+def mock_config(dummy_credentials) -> dict:
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest",
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
             "heartbeat": 600,
         },
         "exchanges": {
@@ -46,7 +50,8 @@ def mock_connection(
 
 
 @pytest.fixture(scope="function")
-def rabbitmq_manager(mock_connection, mock_config, agent_id) -> RabbitMQManager:
+def rabbitmq_manager(mock_connection, mock_config,
+                     agent_id) -> RabbitMQManager:
     manager = RabbitMQManager(agent_id, mock_config)
     manager.connect()
     manager.setup_infrastructure()
@@ -89,6 +94,9 @@ class TestRabbitMQManager:
 
     def test_register_message_handler(self, rabbitmq_manager):
         def handler(channel, method, properties, body):
+            """ Dummy handler for testing. """
+            # This function is intentionally left empty to serve as a
+            # placeholder for testing.
             pass
         rabbitmq_manager.register_message_handler(handler)
         assert rabbitmq_manager.message_handler is handler

@@ -1,6 +1,6 @@
 function Simulation()
     % 🔌 Initialize the wrapper for TCP communication
-    wrapper = SimulationWrapper(); 
+    wrapper = SimulationWrapperStreaming(); 
     inputs = wrapper.get_inputs();
     
 

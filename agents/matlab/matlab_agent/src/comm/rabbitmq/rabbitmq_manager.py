@@ -66,7 +66,10 @@ class RabbitMQManager(IRabbitMQManager):
 
                 if use_tls:
                     context = ssl.create_default_context()
-                    ssl_options = pika.SSLOptions(context, rabbitmq_config.get('host', 'localhost'))
+                    context.minimum_version = ssl.TLSVersion.TLSv1_2
+                    ssl_options = pika.SSLOptions(
+                        context, rabbitmq_config.get(
+                            'host', 'localhost'))
                     parameters = pika.ConnectionParameters(
                         host=rabbitmq_config.get('host', 'localhost'),
                         port=rabbitmq_config.get('port', 5671),

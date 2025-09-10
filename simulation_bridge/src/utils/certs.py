@@ -14,7 +14,6 @@ from ..utils.logger import get_logger
 
 logger = get_logger()
 
-
 class CertificateGenerator:
     """
     Self-signed X.509 certificate utility.

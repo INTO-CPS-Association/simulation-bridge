@@ -1,6 +1,6 @@
 function Simulation()
   % 🔌 Initialize the wrapper
-  wrapper = SimulationWrapper();
+  wrapper = SimulationWrapperStreaming();
 
   % Receive input from the MATLAB agent (via JSON)
   inputs = wrapper.get_inputs();

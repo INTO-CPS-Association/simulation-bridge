@@ -1,8 +1,13 @@
 """
 Unit tests for MessageHandler class.
 """
+
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
+
 import uuid
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import pytest
 import yaml
 from pika.spec import Basic, BasicProperties

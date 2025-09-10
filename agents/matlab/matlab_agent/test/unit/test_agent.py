@@ -8,13 +8,14 @@ from src.core.agent import MatlabAgent
 
 
 @pytest.fixture
-def rabbit_config():
+def rabbit_config(dummy_credentials):
     """Return RabbitMQ configuration for testing."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "host": "localhost",
         "port": 5672,
-        "username": "guest",
-        "password": "guest"
+        "username": rabbit_creds.get("username", "guest"),
+        "password": rabbit_creds.get("password", "guest"),
     }
 
 

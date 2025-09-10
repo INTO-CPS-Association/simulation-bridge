@@ -45,11 +45,9 @@ class SimulationModel(BaseModel):
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
 
-
 class MessageModel(BaseModel):
     "Represents a message structure for simulation requests."
     simulation: SimulationModel
-
 
 class BridgeCore:
     """

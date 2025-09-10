@@ -95,7 +95,12 @@ def handle_batch_simulation(
         logger.info("Simulation '%s' completed successfully", sim_file)
 
     except Exception as e:  # pylint: disable=broad-except
-        _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
+        _handle_error(
+            e,
+            sim_file,
+            rabbitmq_manager,
+            source,
+            response_templates)
     finally:
         # Always complete the operation to record metrics
         performance_monitor.complete_operation()

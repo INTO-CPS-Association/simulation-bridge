@@ -17,6 +17,7 @@ from typing import Any, Dict, Optional
 import psutil
 
 from ..comm.interfaces import IMessageBroker
+from ..utils.constants import DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
@@ -195,8 +196,8 @@ class MatlabStreamingController:
         self.message_broker: IMessageBroker = message_broker
         self.start_time: Optional[float] = None
         self.response_templates: Dict = response_templates
-        host = tcp_settings.get('host', 'localhost')
-        port = tcp_settings.get('port', 5678)
+        host = tcp_settings.get('output_host', DEFAULT_OUTPUT_HOST)
+        port = tcp_settings.get('output_port', DEFAULT_OUTPUT_PORT)
         self.connection = StreamingConnection(host, port)
         logger.debug("Path to simulation: %s", self.sim_path)
         logger.debug("Simulation file: %s", self.sim_file)

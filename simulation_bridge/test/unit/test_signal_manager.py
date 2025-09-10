@@ -12,7 +12,6 @@ from simulation_bridge.src.utils import signal_manager
 
 pytestmark = pytest.mark.usefixtures("config_override")
 
-
 @pytest.fixture(autouse=True)
 def config_override(monkeypatch):
     """Override PROTOCOL_CONFIG for isolated tests"""
@@ -50,7 +49,6 @@ def adapter(monkeypatch):
     adapter_inst.do_y = mock.Mock()
     monkeypatch.setattr(signal_manager.SignalManager, '_adapter_instances', {})
     return adapter_inst
-
 
 class TestSignalQueries:
     """Tests for querying available and enabled protocols and signals"""

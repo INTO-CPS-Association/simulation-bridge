@@ -5,6 +5,9 @@ This module contains comprehensive tests for the logger configuration utilities,
 including file logging, console output, log rotation, and colorized formatting.
 """
 
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
 import logging
 import os
 import shutil
@@ -66,7 +69,8 @@ class TestLoggerSetup(unittest.TestCase):
             self.assertIsInstance(logger, logging.Logger)
             self.assertEqual(logger.name, self.logger_name)
             self.assertEqual(logger.level, DEFAULT_LOG_LEVEL)
-            self.assertEqual(len(logger.handlers), 2)  # File + Console handlers
+            # File + Console handlers
+            self.assertEqual(len(logger.handlers), 2)
 
             # Close handlers before removing temp directory
             for handler in logger.handlers[:]:
@@ -102,7 +106,8 @@ class TestLoggerSetup(unittest.TestCase):
         )
 
         self.assertTrue(os.path.exists(log_dir))
-        # Log file might not exist until first write, but directory should exist
+        # Log file might not exist until first write, but directory should
+        # exist
 
     def test_file_handler_configuration(self):
         """Test file handler configuration."""

@@ -3,8 +3,7 @@
 import os
 import pytest
 from pathlib import Path
-from importlib import resources
-from unittest.mock import patch, mock_open
+from unittest.mock import patch
 
 import yaml
 from src.utils.config_loader import (
@@ -17,8 +16,9 @@ from src.utils.config_loader import (
 
 
 @pytest.fixture
-def sample_config_dict():
+def sample_config_dict(dummy_credentials):
     """Return a sample configuration dictionary for testing."""
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
     return {
         "agent": {
             "agent_id": "matlab"
@@ -26,8 +26,8 @@ def sample_config_dict():
         "rabbitmq": {
             "host": "localhost",
             "port": 5672,
-            "username": "guest",
-            "password": "guest"
+            "username": rabbit_creds.get("username", "guest"),
+            "password": rabbit_creds.get("password", "guest"),
         },
         "nested": {
             "deep": {
@@ -38,16 +38,23 @@ def sample_config_dict():
 
 
 @pytest.fixture
-def sample_yaml_content():
+def sample_yaml_content(dummy_credentials):
     """Return sample YAML content for testing."""
-    return """
+    rabbit_creds = dummy_credentials.get("rabbitmq", {})
+
+    host = rabbit_creds.get("host", "localhost")
+    port = rabbit_creds.get("port", 5672)
+    username = rabbit_creds.get("username", "guest")
+    password = rabbit_creds.get("password", "guest")
+
+    return f"""
     agent:
       agent_id: matlab
     rabbitmq:
-      host: "${HOSTNAME:localhost}"
-      port: 5672
-      username: "${USERNAME:guest}"
-      password: "${PASSWORD:guest}"
+      host: "{host}"
+      port: {port}
+      username: "{username}"
+      password: "{password}"
     nested:
       deep:
         value: 42

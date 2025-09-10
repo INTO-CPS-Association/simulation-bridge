@@ -1,5 +1,9 @@
 """Test suite for streaming functionality."""
 
+
+# pylint: disable=too-many-positional-arguments
+
+
 import socket
 import time
 from pathlib import Path
@@ -7,6 +11,7 @@ from unittest.mock import MagicMock, Mock, patch
 import subprocess
 
 import pytest
+from pytest import approx
 
 from src.core.streaming import (
     MatlabStreamingController,
@@ -232,7 +237,7 @@ def test_controller_start_success(
     args = mock_rabbit_client.send_result.call_args[0]
     assert len(args) >= 2
     success_data = args[1]
-    assert success_data['status'] == 'completed'
+    assert success_data['status'] == 'Simulation Started'
     assert 'metadata' in success_data
     assert 'simulation' in success_data
     assert success_data['simulation']['type'] == 'streaming'
@@ -264,10 +269,12 @@ def test_controller_run_success(
     matlab_controller.connection = conn
 
     # Pass performance_monitor as arg
-    matlab_controller.run({'param': 'value'}, performance_monitor=performance_monitor)
+    matlab_controller.run({'param': 'value'},
+                          performance_monitor=performance_monitor)
 
     # Verify result was sent
     assert mock_rabbit_client.send_result.call_count >= 1
+
 
 def test_get_metadata(matlab_controller, monkeypatch):
     """
@@ -323,8 +330,8 @@ def test_get_metadata(matlab_controller, monkeypatch):
 
     # Verify values make sense
     assert metadata['execution_time'] >= 2.0  # At least 2 seconds
-    assert metadata['matlab_memory'] == 1.0  # 1 MB
-    assert metadata['matlab_cpu'] == 5.0  # 5%
+    assert metadata['matlab_memory'] == approx(1.0, rel=1e-9, abs=1e-9)  # 1 MB
+    assert metadata['matlab_cpu'] == approx(5.0, rel=1e-9, abs=1e-9)  # 5%
 
 
 def test_handle_streaming_error_bad_request(
@@ -366,7 +373,7 @@ def test_handle_streaming_simulation_missing_fields(
         {'simulation': {'foo': 'bar'}},  # Missing data
         'test_queue',
         mock_rabbit_client,
-        None,  # path_simulation not specified
+        str(Path("test_path")),
         response_templates,
         tcp_settings
     )

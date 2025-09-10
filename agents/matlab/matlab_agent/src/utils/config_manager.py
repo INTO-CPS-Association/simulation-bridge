@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from .logger import get_logger
 from .config_loader import load_config
+from .constants import DEFAULT_INPUT_PORT, DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
 
 logger = get_logger()
 
@@ -59,8 +60,9 @@ class Config(BaseModel):
     performance_log_filename: str = Field(default="performance_metrics.csv")
 
     # TCP configuration
-    tcp_host: str = Field(default="localhost")
-    tcp_port: int = Field(default=5678)
+    tcp_host: str = Field(default=DEFAULT_OUTPUT_HOST)
+    tcp_input_port: int = Field(default=DEFAULT_INPUT_PORT)
+    tcp_output_port: int = Field(default=DEFAULT_OUTPUT_PORT)
 
     # Response templates
     # Success template
@@ -129,7 +131,8 @@ class Config(BaseModel):
             },
             "tcp": {
                 "host": self.tcp_host,
-                "port": self.tcp_port
+                "input_port": self.tcp_input_port,
+                "output_port": self.tcp_output_port
             },
             "response_templates": {
                 "success": {
@@ -213,8 +216,9 @@ class Config(BaseModel):
 
         # Extract tcp section if present
         if tcp := config_dict.get("tcp", {}):
-            flat_config["tcp_host"] = tcp.get("host", "localhost")
-            flat_config["tcp_port"] = tcp.get("port", 5678)
+            flat_config["tcp_host"] = tcp.get("host", DEFAULT_OUTPUT_HOST)
+            flat_config["tcp_input_port"] = tcp.get("input_port", DEFAULT_INPUT_PORT)
+            flat_config["tcp_output_port"] = tcp.get("output_port", DEFAULT_OUTPUT_PORT)
 
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
