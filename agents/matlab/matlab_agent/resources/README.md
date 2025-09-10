@@ -18,11 +18,21 @@ This Python module provides a simple RabbitMQ client to send simulation requests
 
 ## Installation
 
-Before using this agent, ensure the required Python packages are installed:
+It is recommended to run the examples in an isolated Python environment and
+install the required dependencies:
 
 ```bash
-pip install pika pyyaml
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate   # On Windows use: .\.venv\Scripts\activate
+
+# Install dependencies
+pip install pika pyyaml anyio aio-pika
 ```
+
+The `pika` and `aio-pika` libraries provide RabbitMQ clients for the synchronous
+and asynchronous examples respectively, while `anyio` and `pyyaml` handle file
+I/O and YAML parsing.
 
 ## Clients
 
