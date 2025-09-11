@@ -5,16 +5,17 @@ import threading
 from typing import Any, Dict
 from typing import Optional
 from ..utils.create_response import create_response
-from ..utils.constants import UDP_HOST, UDP_PORT
 from ..utils.logger import get_logger
 from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
 logger = get_logger()
 
 class Listener:
-    def __init__(self, config: Dict[str, Any], host: str = UDP_HOST, port: int = UDP_PORT) -> None:
-        self.host = host
-        self.port = port
+    def __init__(self, config: Dict[str, Any], host: Optional[str] = None, port: Optional[int] = None) -> None:
+        # Prefer explicit overrides, otherwise read from config
+        udp_cfg = (config.get('udp', {}) or {})
+        self.host = host if host is not None else udp_cfg.get('host', 'localhost')
+        self.port = port if port is not None else int(udp_cfg.get('port', 9876))
         self._stop_event = threading.Event()
         self._sock: Optional[socket.socket] = None
         self._lock = threading.Lock()

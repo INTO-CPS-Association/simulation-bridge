@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from .logger import get_logger
 from .config_loader import load_config
-from .constants import DEFAULT_INPUT_PORT, DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
 
 logger = get_logger()
 
@@ -54,15 +53,9 @@ class Config(BaseModel):
     log_level: LogLevel = Field(default=LogLevel.INFO)
     log_file: str = Field(default="logs/anylogic_agent.log")
 
-    # Performance configuration
-    performance_enabled: bool = Field(default=False)
-    performance_log_dir: str = Field(default="performance_logs")
-    performance_log_filename: str = Field(default="performance_metrics.csv")
-
-    # TCP configuration
-    tcp_host: str = Field(default=DEFAULT_OUTPUT_HOST)
-    tcp_input_port: int = Field(default=DEFAULT_INPUT_PORT)
-    tcp_output_port: int = Field(default=DEFAULT_OUTPUT_PORT)
+    # UDP configuration
+    udp_host: str = Field(default="localhost")
+    udp_port: int = Field(default=9876)
 
     # Response templates
     # Success template
@@ -124,15 +117,9 @@ class Config(BaseModel):
                 "level": self.log_level.value,
                 "file": self.log_file
             },
-            "performance": {
-                "enabled": self.performance_enabled,
-                "log_dir": self.performance_log_dir,
-                "log_filename": self.performance_log_filename
-            },
-            "tcp": {
-                "host": self.tcp_host,
-                "input_port": self.tcp_input_port,
-                "output_port": self.tcp_output_port
+            "udp": {
+                "host": self.udp_host,
+                "port": self.udp_port
             },
             "response_templates": {
                 "success": {
@@ -205,20 +192,10 @@ class Config(BaseModel):
             flat_config["log_file"] = logging.get(
                 "file", "logs/anylogic_agent.log")
 
-        # Extract performance section if present
-        if performance := config_dict.get("performance", {}):
-            flat_config["performance_enabled"] = performance.get(
-                "enabled", False)
-            flat_config["performance_log_dir"] = performance.get(
-                "log_dir", "performance_logs")
-            flat_config["performance_log_filename"] = performance.get(
-                "log_filename", "performance_metrics.csv")
-
-        # Extract tcp section if present
-        if tcp := config_dict.get("tcp", {}):
-            flat_config["tcp_host"] = tcp.get("host", DEFAULT_OUTPUT_HOST)
-            flat_config["tcp_input_port"] = tcp.get("input_port", DEFAULT_INPUT_PORT)
-            flat_config["tcp_output_port"] = tcp.get("output_port", DEFAULT_OUTPUT_PORT)
+        # Extract udp section if present
+        if udp := config_dict.get("udp", {}):
+            flat_config["udp_host"] = udp.get("host", "localhost")
+            flat_config["udp_port"] = udp.get("port", 9876)
 
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
