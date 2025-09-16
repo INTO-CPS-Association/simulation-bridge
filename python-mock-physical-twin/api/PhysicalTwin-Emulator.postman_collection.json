@@ -1,0 +1,203 @@
+{
+	"info": {
+		"_postman_id": "5825f6ed-abbd-4357-ac0c-4ad90c89285c",
+		"name": "PhysicalTwin-Emulator",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "9786484"
+	},
+	"item": [
+		{
+			"name": "List Devices",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Device",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Device Sensors",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/sensors",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"sensors"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Device Actuators",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/actuators",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"actuators"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Device Actuators by Id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/actuators/demoActuator",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"actuators",
+						"demoActuator"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Device Actuator",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/actuators/demoActuator",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"actuators",
+						"demoActuator"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Trigger Device Actuator By Id",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/actuators/demoActuator",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"actuators",
+						"demoActuator"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Device Sensor by Id",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://127.0.0.1:5555/devices/device1/sensors/numericSensor",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "5555",
+					"path": [
+						"devices",
+						"device1",
+						"sensors",
+						"numericSensor"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
