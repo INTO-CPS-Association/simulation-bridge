@@ -61,17 +61,13 @@ def handle_batch_simulation(
         except Simul8SimulationError as e:
             logger.error(f"DEBUG: Simul8 simulation error: {str(e)}")
             raise e
-        logger.debug(f"validating simulation data")
-        function_name = _validate_simulation_data(data)
-        logger.debug(f"Validation complete, function_name={function_name}")
-
+        
         sim_path = path_simulation
         logger.debug(f"extracting I/O specs")
         inputs, outputs = _extract_io_specs(data)
         logger.debug(f"I/O extraction complete, inputs={inputs}, outputs={outputs}")
         
         logger.debug(f"Starting simulation '{sim_file}' at path '{sim_path}'")
-        sim = Simul8Simulator(sim_path, sim_file, function_name)
 
         logger.debug("Simulator created, about to record startup complete")
         # Record startup complete
@@ -139,19 +135,18 @@ def _handle_simulation(
         
         
 def _validate_simulation_data(
-        data: Dict[str, Any]) -> Tuple[str, Optional[str]]:
-    """Validate and extract simulation parameters."""
+        data: Dict[str, Any]) -> str:
+    """Validate and extract simulation file name for Simul8."""
     sim_file = data.get('file')
     if not sim_file:
         raise ValueError("Missing 'file' in simulation config")
-    return data.get('function_name')
+    return sim_file
 
 
 def _extract_io_specs(data: Dict[str, Any]
                       ) -> Tuple[Dict[str, Any], List[str]]:
     """Extract input and output specifications from data."""
     inputs = data.get('inputs', {})
-    # Filter out run_time and other non-CSV parameters
     filtered_inputs = {k: v for k, v in inputs.items() if k not in ['run_time', 'runtime']}
     outputs = data.get('outputs', [])
     
