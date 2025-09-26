@@ -203,11 +203,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
                 return
             logger.info("Received simulation type: %s", sim_type)
-            
-            
-            # RUN THE SIMULATION
-            print("HERE WE SHOULD RUN THE SIMULATION")
-            print("Simulation requested:", sim_file, "of type", sim_type, "from", source,
+            logger.debug("Simulation requested:", sim_file, "of type", sim_type, "from", source,
                   "with request ID", request_id, "and bridge meta", bridge_meta,
                   "and inputs", simulation_data.inputs, "and outputs", simulation_data.outputs, "\n"
                   "Simulation path:", self.path_simulation, "\n"
@@ -218,6 +214,36 @@ class MessageHandler(IRabbitMQMessageHandler):
                   "\nMethod:", method,
                   "\nProperties:", properties,)
 
+            # Open the communication and send results only when a message request is received. 
+            # Currently, every time we get a result from the simulator we forward it to the client; 
+            # instead, it should be modified so that results are sent only if a message request is present,
+            # while all other simulator outputs must be ignored.
+            # Process based on simulation type
+            if sim_type == 'batch':
+                # TODO: to implement in a separate batch.py file, to manage batch simulations, HAVE A LOOK TO MATLAB AGENT
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            elif sim_type == 'streaming':
+                # TODO: to implement in a separate streaming.py file, to manage streaming simulations, HAVE A LOOK TO MATLAB AGENT
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            elif sim_type == 'interactive':
+                # TODO: to implement in a separate interactive.py file, to manage interactive simulations, HAVE A LOOK TO MATLAB AGENT
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            else:
+                logger.error("Unknown simulation type: %s", sim_type)
+                error_response = create_response(
+                    template_type='error',
+                    sim_file=sim_file,
+                    sim_type=sim_type,
+                    response_templates={},
+                    bridge_meta=bridge_meta,
+                    request_id=request_id,
+                    error={
+                        'message': f'Unknown simulation type: {sim_type}',
+                        'type': 'invalid_simulation_type'
+                    }
+                )
+                self.rabbitmq_manager.send_result(source, error_response)
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
         except Exception as e:
             logger.error("Error processing message %s: %s", message_id, e)
             error_response = create_response(
