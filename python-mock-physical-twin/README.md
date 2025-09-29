@@ -176,6 +176,44 @@ independent_communication: True
 device_update_delay_ms: 1000 # Update every 10 seconds if independent_communication is False
 ```
 
+#### Simulation Bridge AMQP Example Configuration
+
+The emulator can forward aggregated device telemetry to the Simulation Bridge via RabbitMQ by
+reusing the client templates shipped with the main project. Copy
+`simulation_bridge/resources/rabbitmq/rabbitmq_use.yaml.template` and
+`simulation_bridge/resources/simulation.yaml.template` to
+`rabbitmq_use.yaml` and `simulation.yaml`, then reference them in the protocol configuration:
+
+```yaml
+protocols:
+  - id: "simulationBridge"
+    type: "simulation_bridge_amqp"
+    config:
+      client_config: "../simulation_bridge/resources/rabbitmq/rabbitmq_use.yaml"
+      simulation_api: "../simulation_bridge/resources/simulation.yaml"
+      aggregate:
+        device_id: "device1"
+        sensor_id: "bridgeAggregate"
+        sensor_config:
+          type: "string"
+          update_time_ms: 1000
+devices:
+  - id: "device1"
+    protocol_id: "simulationBridge"
+    sensors:
+      - id: "bridgeAggregate"
+        type: "string"
+        update_time_ms: 60000
+        initial_value: {}
+    actuators: []
+independent_communication: False
+device_update_delay_ms: 1000
+```
+
+The `aggregate` section identifies the device and sensor that will store the simulation
+results. If the sensor is not already declared under the device, the optional
+`sensor_config` block is used to create it at runtime.
+
 ### Running the Emulator
 
 To start the IoT device emulator, run the `physical_twin_emulator.py` script

@@ -44,6 +44,7 @@ from app.device.actuator import Actuator
 from app.device.iot_device import IoTDevice
 from app.protocol.http_protocol import HttpProtocol
 from app.protocol.mqtt_protocol import MqttProtocol
+from app.protocol.simulation_bridge_amqp_protocol import SimulationBridgeAmqpProtocol
 from app.utils.emulator_utils import ProtocolType
 
 
@@ -75,18 +76,31 @@ def main(config_file):
 
     protocol_dict = {}
     device_dict = {}
+    config_dir = os.path.dirname(os.path.abspath(config_file))
 
     # Extract Supported and Configured Protocols
     for protocol_config in config['protocols']:
+        protocol_config.setdefault('config', {})
+        protocol_config['config'].setdefault('base_path', config_dir)
+
         # HTTP Protocol Support
         if protocol_config["type"] == ProtocolType.HTTP_PROTOCOL_TYPE.value:
             protocol = HttpProtocol(protocol_id=protocol_config["id"],
+                                    device_dict=device_dict,
                                     config=protocol_config["config"])
             protocol_dict[protocol.id] = protocol
         # MQTT Protocol Support
         elif protocol_config["type"] == ProtocolType.MQTT_PROTOCOL_TYPE.value:
             protocol = MqttProtocol(protocol_id=protocol_config["id"],
-                                        config=protocol_config["config"])
+                                    device_dict=device_dict,
+                                    config=protocol_config["config"])
+            protocol_dict[protocol.id] = protocol
+        elif protocol_config["type"] == ProtocolType.SIMULATION_BRIDGE_AMQP_PROTOCOL_TYPE.value:
+            protocol = SimulationBridgeAmqpProtocol(
+                protocol_id=protocol_config["id"],
+                device_dict=device_dict,
+                config=protocol_config["config"],
+            )
             protocol_dict[protocol.id] = protocol
         else:
             print(f'Protocol Type not found ! Wrong Type: {protocol_config["type"]}')
