@@ -43,6 +43,7 @@ class ProtocolType(Enum):
     """
     HTTP_PROTOCOL_TYPE = "http"
     MQTT_PROTOCOL_TYPE = "mqtt"
+    SIMULATION_BRIDGE_AMQP = "simulation_bridge_amqp"
 
 
 class TimeUnit(Enum):

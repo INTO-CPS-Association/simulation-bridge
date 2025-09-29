@@ -77,6 +77,9 @@ Details and endpoints related to the RESTful APIs exposed by the implementation 
 collection in the repository folder [api](api). You can import it in PostMan and test the APIs.
 
 ```yaml
+simulation_bridge:
+  client_config: "../simulation_bridge/config/config.yaml" # Path relative to this YAML file
+  simulation_api: "../simulation_bridge/resources/inmemory/client.py"
 protocols:
   - id: "httpProtocol"
     type: "http"
@@ -110,6 +113,43 @@ devices:
         initial_value: "ON"
 independent_communication: True
 device_update_delay_ms: 10 # Update every 10 seconds if independent_communication is False
+```
+
+#### Simulation Bridge AMQP Configuration
+
+Use the `simulation_bridge` section to define the file paths required by the
+Simulation Bridge runtime. The emulator resolves the values relative to the
+current YAML file and passes them to the protocol instance so it can start the
+simulation. Within a protocol configuration you can reference these values by
+using the `${simulation_bridge.client_config}` and
+`${simulation_bridge.simulation_api}` placeholders.
+
+```yaml
+simulation_bridge:
+  client_config: "./simulation_bridge/config/client_config.yaml"
+  simulation_api: "./simulation_bridge/api/simulation_api.py"
+protocols:
+  - id: "simBridgeAmqp"
+    type: "simulation_bridge_amqp"
+    config:
+      client_config: "${simulation_bridge.client_config}"
+      simulation_api: "${simulation_bridge.simulation_api}"
+devices:
+  - id: "device1"
+    protocol_id: "simBridgeAmqp"
+    sensors:
+      - id: "numericSensor"
+        type: "numeric"
+        update_time_ms: 1000
+        min_val: 0
+        max_val: 10
+        initial_value: 0
+    actuators:
+      - id: "demoActuator"
+        type: "string"
+        initial_value: "ON"
+independent_communication: True
+device_update_delay_ms: 1000
 ```
 
 #### MQTT Example Configuration File
