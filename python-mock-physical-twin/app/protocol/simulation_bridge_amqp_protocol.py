@@ -1,3 +1,4 @@
+
 """Simulation Bridge protocol that exchanges messages through RabbitMQ."""
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from pika.adapters.blocking_connection import BlockingChannel
 import yaml
 
 from app.device.sensor import Sensor
+
 from app.protocol.protocol import (
     InvalidConfigurationError,
     Protocol,

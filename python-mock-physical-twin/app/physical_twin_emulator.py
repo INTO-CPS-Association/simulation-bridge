@@ -44,7 +44,7 @@ from app.device.actuator import Actuator
 from app.device.iot_device import IoTDevice
 from app.protocol.http_protocol import HttpProtocol
 from app.protocol.mqtt_protocol import MqttProtocol
-from app.protocol.simulation_bridge_amqp_protocol import SimulationBridgeAmqpProtocol
+from app.protocol.simulation_bridge_amqp_protocol import SimulationBridgeAMQPProtocol
 from app.utils.emulator_utils import ProtocolType
 
 
@@ -74,6 +74,28 @@ def main(config_file):
     # Load configuration from YAML file
     config = load_devices_from_yaml(config_file)
 
+    config_dir = os.path.dirname(os.path.abspath(config_file))
+    simulation_bridge_config_raw = config.get('simulation_bridge', {})
+    simulation_bridge_config = {}
+    for key, value in simulation_bridge_config_raw.items():
+        if key in {'client_config', 'simulation_api'} and isinstance(value, str):
+            if not os.path.isabs(value):
+                simulation_bridge_config[key] = os.path.abspath(os.path.join(config_dir, value))
+            else:
+                simulation_bridge_config[key] = value
+        else:
+            simulation_bridge_config[key] = value
+
+    def resolve_simulation_bridge_reference(value):
+        if not isinstance(value, str):
+            return value
+        references = {
+            '${simulation_bridge.client_config}': simulation_bridge_config.get('client_config'),
+            '${simulation_bridge.simulation_api}': simulation_bridge_config.get('simulation_api'),
+        }
+        resolved_value = references.get(value)
+        return resolved_value if resolved_value else value
+
     protocol_dict = {}
     device_dict = {}
     config_dir = os.path.dirname(os.path.abspath(config_file))
@@ -85,12 +107,20 @@ def main(config_file):
 
         # HTTP Protocol Support
         if protocol_config["type"] == ProtocolType.HTTP_PROTOCOL_TYPE.value:
+            resolved_config = {
+                key: resolve_simulation_bridge_reference(val)
+                for key, val in protocol_config["config"].items()
+            }
             protocol = HttpProtocol(protocol_id=protocol_config["id"],
                                     device_dict=device_dict,
                                     config=protocol_config["config"])
             protocol_dict[protocol.id] = protocol
         # MQTT Protocol Support
         elif protocol_config["type"] == ProtocolType.MQTT_PROTOCOL_TYPE.value:
+            resolved_config = {
+                key: resolve_simulation_bridge_reference(val)
+                for key, val in protocol_config["config"].items()
+            }
             protocol = MqttProtocol(protocol_id=protocol_config["id"],
                                     device_dict=device_dict,
                                     config=protocol_config["config"])
