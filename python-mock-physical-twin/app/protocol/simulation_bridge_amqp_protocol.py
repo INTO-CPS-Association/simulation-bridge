@@ -81,8 +81,8 @@ class SimulationBridgeAmqpProtocol(Protocol):
         self._stop_event.clear()
         self._ensure_connection()
         self._ensure_aggregate_sensor()
-        self._start_consumer()
         self._publish_simulation_request()
+        self._start_consumer()
 
     def stop(self) -> None:  # type: ignore[override]
         print(f"Stopping protocol: {self.id} Type: {self.type}")

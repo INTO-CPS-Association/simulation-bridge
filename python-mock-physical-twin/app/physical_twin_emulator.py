@@ -44,7 +44,7 @@ from app.device.actuator import Actuator
 from app.device.iot_device import IoTDevice
 from app.protocol.http_protocol import HttpProtocol
 from app.protocol.mqtt_protocol import MqttProtocol
-from app.protocol.simulation_bridge_amqp_protocol import SimulationBridgeAMQPProtocol
+from app.protocol.simulation_bridge_amqp_protocol import SimulationBridgeAmqpProtocol
 from app.utils.emulator_utils import ProtocolType
 
 
