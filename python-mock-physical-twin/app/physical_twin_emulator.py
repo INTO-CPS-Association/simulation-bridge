@@ -98,9 +98,13 @@ def main(config_file):
 
     protocol_dict = {}
     device_dict = {}
+    config_dir = os.path.dirname(os.path.abspath(config_file))
 
     # Extract Supported and Configured Protocols
     for protocol_config in config['protocols']:
+        protocol_config.setdefault('config', {})
+        protocol_config['config'].setdefault('base_path', config_dir)
+
         # HTTP Protocol Support
         if protocol_config["type"] == ProtocolType.HTTP_PROTOCOL_TYPE.value:
             resolved_config = {
@@ -108,7 +112,8 @@ def main(config_file):
                 for key, val in protocol_config["config"].items()
             }
             protocol = HttpProtocol(protocol_id=protocol_config["id"],
-                                    config=resolved_config)
+                                    device_dict=device_dict,
+                                    config=protocol_config["config"])
             protocol_dict[protocol.id] = protocol
         # MQTT Protocol Support
         elif protocol_config["type"] == ProtocolType.MQTT_PROTOCOL_TYPE.value:
@@ -117,17 +122,14 @@ def main(config_file):
                 for key, val in protocol_config["config"].items()
             }
             protocol = MqttProtocol(protocol_id=protocol_config["id"],
-                                        config=resolved_config)
+                                    device_dict=device_dict,
+                                    config=protocol_config["config"])
             protocol_dict[protocol.id] = protocol
-        elif protocol_config["type"] == ProtocolType.SIMULATION_BRIDGE_AMQP.value:
-            resolved_config = {
-                key: resolve_simulation_bridge_reference(val)
-                for key, val in protocol_config.get("config", {}).items()
-            }
-            protocol = SimulationBridgeAMQPProtocol(
+        elif protocol_config["type"] == ProtocolType.SIMULATION_BRIDGE_AMQP_PROTOCOL_TYPE.value:
+            protocol = SimulationBridgeAmqpProtocol(
                 protocol_id=protocol_config["id"],
-                config=resolved_config,
-                simulation_bridge_config=simulation_bridge_config,
+                device_dict=device_dict,
+                config=protocol_config["config"],
             )
             protocol_dict[protocol.id] = protocol
         else:
