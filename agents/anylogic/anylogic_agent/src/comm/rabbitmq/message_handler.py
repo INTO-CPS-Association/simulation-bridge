@@ -206,11 +206,11 @@ class MessageHandler(IRabbitMQMessageHandler):
             logger.info("Received simulation type: %s", sim_type)
             logger.debug(
                 (
-                    """Simulation requested: %s of type %s from %s 
+                    """Simulation requested: %s of type %s from %s
                     with request ID %s and bridge meta %s
-                    inputs=%s outputs=%s\nSimulation path: 
+                    inputs=%s outputs=%s\nSimulation path:
                     %s\nResponse templates: %s
-                    \nConfiguration: %s\nRabbitMQ Manager: 
+                    \nConfiguration: %s\nRabbitMQ Manager:
                     %s\nChannel: %s\nMethod: %s\nProperties: %s"""
                 ),
                 sim_file,
@@ -235,7 +235,8 @@ class MessageHandler(IRabbitMQMessageHandler):
             # while all other simulator outputs must be ignored.
             # Process based on simulation type
             if sim_type == 'batch':
-                # TODO: to implement in a separate batch.py file, to manage batch simulations, HAVE A LOOK TO MATLAB AGENT
+                # TODO: to implement in a separate batch.py file, to manage
+                # batch simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             elif sim_type == 'streaming':
                 ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -247,7 +248,8 @@ class MessageHandler(IRabbitMQMessageHandler):
                     self.response_templates,
                 )
             elif sim_type == 'interactive':
-                # TODO: to implement in a separate interactive.py file, to manage interactive simulations, HAVE A LOOK TO MATLAB AGENT
+                # TODO: to implement in a separate interactive.py file, to
+                # manage interactive simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             else:
                 logger.error("Unknown simulation type: %s", sim_type)

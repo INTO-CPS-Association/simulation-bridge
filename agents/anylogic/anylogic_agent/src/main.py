@@ -22,7 +22,8 @@ ANYLOGIC_AGENT_API = 'anylogic_agent.api'
               help='Generate a default configuration file in the current directory')
 @click.option('--generate-project', is_flag=True,
               help='Generate default project files in the current directory')
-def main(config_file=None, generate_config=False, generate_project=False) -> None:
+def main(config_file=None, generate_config=False,
+         generate_project=False) -> None:
     """
     An agent service to manage Anylogic simulations.
     """

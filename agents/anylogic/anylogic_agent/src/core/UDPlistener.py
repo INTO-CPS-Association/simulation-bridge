@@ -167,7 +167,8 @@ class Listener:
             )
 
     def _ensure_broker_connected(self) -> bool:
-        if getattr(self.message_broker, 'channel', None) and self.message_broker.channel.is_open:
+        if getattr(self.message_broker, 'channel',
+                   None) and self.message_broker.channel.is_open:
             return True
         if not self.message_broker.connect():
             logger.error(
