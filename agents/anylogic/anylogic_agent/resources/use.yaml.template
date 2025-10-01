@@ -7,5 +7,5 @@ rabbitmq:
   vhost: / # RabbitMQ virtual host
 
 # Default path to the simulation YAML payload
-# Pbsolute or relative path of the file in single quotes
+# Absolute or relative path of the file in single quotes
 simulation_request: simulation.yaml

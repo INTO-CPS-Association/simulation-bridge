@@ -4,9 +4,8 @@ abstraction to manage communication and handle simulation processing.
 """
 
 from typing import Any, Dict, Optional
-import threading
 
-from .listener import Listener
+from .streaming import stop_all_streaming_sessions
 
 from ..interfaces.config_manager import IConfigManager
 from ..utils.config_manager import ConfigManager
@@ -49,8 +48,6 @@ class AnylogicAgent:
         self.comm.connect()
         self.comm.setup()
         self.comm.register_message_handler()
-        # Initialize UDP Listener
-        self.listener = Listener(self.config)
         logger.debug("ANYLOGIC Agent initialized successfully")
 
     def start(self) -> None:
@@ -58,14 +55,6 @@ class AnylogicAgent:
         Start the agent and begin consuming messages.
         """
         try:
-            logger.info("Starting UDP Listener")
-            listener_thread = threading.Thread(
-                target=self.listener.start,
-                name="udp-listener",
-                daemon=True,
-            )
-            listener_thread.start()
-
             logger.info("ANYLOGIC Agent running and listening for requests")
             # Block in RabbitMQ consumption on the main thread
             self.comm.start_consuming()
@@ -92,11 +81,7 @@ class AnylogicAgent:
         Stop the agent and close all connections.
         """
         logger.info("Stopping ANYLOGIC Agent")
-        # Stop UDP listener first
-        try:
-            self.listener.stop()
-        except Exception:  # Listener may already be stopped
-            pass
+        stop_all_streaming_sessions()
         self.comm.close()
 
         # Performance monitor may not be present; guard usage

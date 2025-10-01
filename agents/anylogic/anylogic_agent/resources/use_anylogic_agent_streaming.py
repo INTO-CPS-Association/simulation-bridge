@@ -1,12 +1,10 @@
 """
-use_anylogic_agent_batch.py
+use_anylogic_agent_streaming.py
 
-RabbitMQ client to send batch simulation requests to a ANYLOGIC Agent
+RabbitMQ client to send streaming simulation requests to ANYLOGIC Agent
 and receive results asynchronously.  When the agent returns
 {"status": "completed"} the program terminates automatically.
 """
-## Listener-only client: start and wait for AMQP results; do not send.
-
 
 import argparse
 import os
@@ -19,7 +17,7 @@ import pika
 import yaml
 
 
-class BatchUsageanylogicAgent:
+class StreamingUsageAnylogicAgent:
     """Client for interacting with the anylogic simulation agent via RabbitMQ."""
 
     def __init__(
@@ -168,19 +166,32 @@ if __name__ == "__main__":
         default="use.yaml",
         help="YAML configuration file (default: use.yaml)",
     )
+    parser.add_argument(
+        "--payload",
+        default=None,
+        help="YAML payload to send (overrides 'simulation_request' in config)",
+    )
     args = parser.parse_args()
 
     AGENT_ID = "dt_anylogic"
     DESTINATION = "anylogic"
-    # Start listener-only client (no sending)
-    client = BatchUsageanylogicAgent(
+
+    # Create client
+    client = StreamingUsageAnylogicAgent(
         AGENT_ID,
         DESTINATION,
         config_path=args.config,
     )
 
     try:
+        # Load and send simulation request
+        payload_path = args.payload or client.simulation_request_path
+        simulation_payload = client._load_yaml(payload_path)
+        client.send_request(simulation_payload)
+
+        # Start listening for results
         client.start_listening()
+
     except KeyboardInterrupt:
         print("\nTerminated by user.")
         try:

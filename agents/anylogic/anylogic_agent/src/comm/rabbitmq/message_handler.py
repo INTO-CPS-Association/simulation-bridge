@@ -15,6 +15,7 @@ import queue
 from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
+from ...core.streaming import handle_streaming_simulation
 
 logger = get_logger()
 
@@ -203,19 +204,33 @@ class MessageHandler(IRabbitMQMessageHandler):
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
                 return
             logger.info("Received simulation type: %s", sim_type)
-            logger.debug("Simulation requested:", sim_file, "of type", sim_type, "from", source,
-                  "with request ID", request_id, "and bridge meta", bridge_meta,
-                  "and inputs", simulation_data.inputs, "and outputs", simulation_data.outputs, "\n"
-                  "Simulation path:", self.path_simulation, "\n"
-                  "Response templates:", self.response_templates,
-                  "\nConfiguration:", self.config,
-                  "\nRabbitMQ Manager:", self.rabbitmq_manager,
-                  "\nChannel:", ch,
-                  "\nMethod:", method,
-                  "\nProperties:", properties,)
+            logger.debug(
+                (
+                    """Simulation requested: %s of type %s from %s 
+                    with request ID %s and bridge meta %s
+                    inputs=%s outputs=%s\nSimulation path: 
+                    %s\nResponse templates: %s
+                    \nConfiguration: %s\nRabbitMQ Manager: 
+                    %s\nChannel: %s\nMethod: %s\nProperties: %s"""
+                ),
+                sim_file,
+                sim_type,
+                source,
+                request_id,
+                bridge_meta,
+                simulation_data.inputs,
+                simulation_data.outputs,
+                self.path_simulation,
+                self.response_templates,
+                self.config,
+                self.rabbitmq_manager,
+                ch,
+                method,
+                properties,
+            )
 
-            # Open the communication and send results only when a message request is received. 
-            # Currently, every time we get a result from the simulator we forward it to the client; 
+            # Open the communication and send results only when a message request is received.
+            # Currently, every time we get a result from the simulator we forward it to the client;
             # instead, it should be modified so that results are sent only if a message request is present,
             # while all other simulator outputs must be ignored.
             # Process based on simulation type
@@ -223,8 +238,14 @@ class MessageHandler(IRabbitMQMessageHandler):
                 # TODO: to implement in a separate batch.py file, to manage batch simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             elif sim_type == 'streaming':
-                # TODO: to implement in a separate streaming.py file, to manage streaming simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
+                handle_streaming_simulation(
+                    msg_dict,
+                    source,
+                    self.rabbitmq_manager,
+                    self.config,
+                    self.response_templates,
+                )
             elif sim_type == 'interactive':
                 # TODO: to implement in a separate interactive.py file, to manage interactive simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
