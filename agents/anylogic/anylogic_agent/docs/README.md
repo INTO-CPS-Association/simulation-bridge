@@ -8,7 +8,7 @@ A Streaming simulation is designed to receive a predefined input configuration a
 
 For this type of simulation, you must use the template given to develop the simulation and import the `BridgeConnection` agent, which should be placed inside the `Main` agent. The `BridgeConnection` handles the UDP connection and communication with the AnyLogic agent.
 
-The `BridgeConnection` agent contains three parameters that are rispectively the ip address, the local port and the remote port to which it publishes the messages and it contains a variable not yet initialized called `communicator`. On the simulation startup `BridgeConnection` executes the following code: 
+The `BridgeConnection` agent contains three parameters that are respectively the ip address, the local port and the remote port to which it publishes the messages and it contains a variable not yet initialized called `communicator`. On the simulation startup `BridgeConnection` executes the following code: 
 
 ```java
 try {
