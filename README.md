@@ -41,10 +41,11 @@ Agent is a software connector that acts as an interpreter between _sim-bridge_ a
 
 _sim-bridge_ supports Batch and Streaming simulation modes, allowing for both discrete and real-time streaming simulation workflows:
 
-| Mode      | Description                                                                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Batch     | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
-| Streaming | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
+| Mode        | Description                                                                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch       | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
+| Streaming   | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
+| Interactive | Allows user interaction with the simulation during execution                                                                                    |
 
 #### Plug-in Protocol Adapters
 
