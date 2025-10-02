@@ -1,39 +1,42 @@
-# ANYLOGIC Agent Clients
+# AnyLogic Agent Client
 
-This directory provides Python clients for interacting with an ANYLOGIC Agent via RabbitMQ. These tools allow you to send simulation requests and receive results directly, using simple YAML configuration files.
+This directory contains a Python client for interacting with an AnyLogic Agent via RabbitMQ. The provided tools enable you to send simulation requests and receive results efficiently, using straightforward YAML configuration files.
 
 ## Overview
 
 - **Streaming Client (`use_anylogic_agent_streaming.py`)**  
-   Publishes simulation requests and listens for asynchronous results until completion.
+   Publishes simulation requests and listens asynchronously for results until the simulation completes.
 
 ## Getting Started
 
 1. **Configuration**  
-   Prepare a YAML config file (default: `use.yaml`) specifying RabbitMQ connection details and the simulation request payload path.
+   Create a YAML configuration file (default: `use.yaml`) specifying RabbitMQ connection parameters and the path to the simulation request payload.
 
 2. **Running the Client**  
-   Use the streaming client to send a request and receive results:
+   Execute the streaming client to submit a request and receive results:
+
    ```bash
    python use_anylogic_agent_streaming.py --config use.yaml --payload request.yaml
    ```
 
+   By default, if command-line options are not provided, the client searches for these files in the current directory.
+
 ## Streaming Client Details
 
 - **Purpose:**  
-   Sends a simulation request to ANYLOGIC Agent and waits for results.
+   Sends simulation requests to the AnyLogic Agent and waits for results.
 
 - **Workflow:**
 
-  1.  Parses CLI arguments for config and payload files.
-  2.  Loads RabbitMQ credentials and simulation payload from YAML.
+  1.  Parses command-line arguments for configuration and payload files.
+  2.  Loads RabbitMQ credentials and simulation payload from YAML files.
   3.  Publishes the payload to the agent via RabbitMQ.
   4.  Listens on a dedicated result queue for messages.
-  5.  Prints each result; exits when `status: completed` is received.
+  5.  Prints each result; exits when a message with `status: completed` is received.
 
 - **Command-line Options:**
-  - `--config PATH` : Specify alternate YAML config file (default: `use.yaml`).
-  - `--payload PATH` : Override payload path from config.
+  - `--config PATH` : Specify an alternative YAML configuration file (default: `use.yaml`).
+  - `--payload PATH` : Specify a custom payload file path.
 
 ## Example use.yaml Configuration
 
@@ -53,4 +56,4 @@ simulation_request: simulation.yaml
 
 ## Result Queue
 
-Results are received on a queue named `Q.<agent_id>.anylogic.result` bound to the `ex.sim.result` exchange.
+Simulation results are received on a queue named `Q.<agent_id>.anylogic.result`, which is bound to the `ex.sim.result` exchange.

@@ -4,51 +4,85 @@
 
 A Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
 
-### Streaming Requirements
+> ⚠️ Detailed information about the project template lives [here](agents/anylogic/anylogic_agent/resources/template/README.md)
 
-For this type of simulation, you must use the template given to develop the simulation and import the `BridgeConnection` agent, which should be placed inside the `Main` agent. The `BridgeConnection` handles the UDP connection and communication with the AnyLogic agent.
+### New Simulation (from scratch)
 
-The `BridgeConnection` agent contains three parameters that are respectively the ip address, the local port and the remote port to which it publishes the messages and it contains a variable not yet initialized called `communicator`. On the simulation startup `BridgeConnection` executes the following code: 
+#### Steps to Set Up and Run the Streaming Simulation
 
-```java
-try {
-	this.communicator = new UDPCommunicator(ip, localPort, remotePort);
-	this.communicator.setParser(new JsonParser());
-	this.communicator.addListener(this::onMessageFromBridge, Map.of());
-}
-catch (UnknownHostException e){
-	error(e, "Unknown host: "+ip);
-}
-catch (SocketException e) {
-	error(e, "Socket error");
-}
+##### 1. Generate the Project Template
+
+```sh
+poetry install
+poetry run anylogic-agent --generate-project
 ```
 
-`onMessageFromBridge` is a function inside `BridgeConnection` that handles the receiving of messages from external systems (e.g., The Simulation Bridge) to the simulation. `BridgeConnection` contains another function called `onMessageReceived` that handles the sending of messages from the simulation to external systems.
+This creates a `template/` folder containing `template.alp`, `shared.jar`, and a README describing the template structure.
 
-To access the function that sends messages to external systems by any model's agent call the `connections.send()` function by passing to it the payload of the message as `Map<string, object>` and the receiver that is an agent (e.g., BridgeConnection) that handles the forward of the messages to external systems. `connections.send()` is an intrinsic AnyLogic function that allows the communication between different model's agents thanks to an element called `connections` that is a common channel that links all the model's agent. Once `connections` receives a message from an agent it executes the code contained in the `On message received` window (e.g., call `onMessageReceived` function).
+##### 2. Open the Project in AnyLogic
 
-#### Example
+- Open `template/template.alp` in AnyLogic.
+- Ensure `shared.jar` is in the same folder; it provides required helper classes.
 
-Below there is an example :
+##### 3. Review the BridgeConnection Component
 
-```java
-connections.send(Map.of("message_type", "simulation update", "occurred_event", "item generated", "data", Map.of("x", getX(), "y", getY())), bridgeConnection);
-- Receiver: bridgeConnection
+- In the Main agent, locate the pre-wired `BridgeConnection` component.
+- This manages the UDP connection with the AnyLogic Agent.
+- See the template README for more details.
 
-Pay attention to the notation of AnyLogic key-value: in the given example key = message_type, value=simulation update.
+##### 4. Implement Your Simulation Logic
 
-The map of the strings and objects can be customized as needed, provided they follow the required function signature.
+- **To send messages outside the model:**
 
-#### References
+  ```java
+  connections.send(payload, bridgeConnection);
+  ```
 
-For additional guidance, refer to the example files located in the `examples/` folder:
+  where `payload` is a `Map<String, Object>` describing the update.
+
+- **To handle incoming messages from the Agent:**
+  Implement the function:
+  ```java
+  void onMessageFromBridge(Map<String, Object> message)
+  ```
+  inside `BridgeConnection`.
+
+##### 5. Configure Runtime Settings
+
+- Set UDP ports, host, and message frequency in the `BridgeConnection` properties or via parameters in Main.
+
+##### 6. Running the Simulation
+
+- **Start the AnyLogic Agent:**
+  - Configure it to use the same UDP ports as your simulation (_config.yaml_).
+  - Launch the agent process with:
+  ```sh
+  poetry run anylogic-agent
+  ```
+- **Wait for Simulation Requests:**  
+   The agent remains idle until a simulation request arrives.  
+   Upon receiving a request, it checks for the simulation file and starts a UDP listener to capture results.
+
+- **Run the Simulation in AnyLogic:**  
+   Only now, Launch the simulation in AnyLogic.  
+   Output messages are sent to `BridgeConnection`, forwarded to the AnyLogic Agent, and then to the connected client (or Simulation Bridge).
+
+> **In summary:**  
+> Once the agent is running and the simulation is started in AnyLogic, data will automatically stream from the simulation → BridgeConnection → AnyLogic Agent → client.
+
+Refer to the example files in the `examples/` folder:
 
 - `smart_factory/simulation.alp`
 - `smart_factory_4.0/simulation.alp`
+  These files provide reference implementations to help you structure your simulation logic.
 
-These files provide reference implementations that can help in structuring your simulation logic.
+### Existing Simulations integration
 
-#### Notes
+To integrate an existing AnyLogic simulation with the AnyLogic Agent, follow these steps:
 
-No additional constraints are imposed on the implementation. The function should be designed to meet the specific requirements of the simulation scenario.
+1. **Open Your Existing Simulation**: Launch AnyLogic and open your existing simulation project.
+2. **Add the BridgeConnection Component**: In the Main agent of your simulation, add the `BridgeConnection` component from the template. This component will handle UDP communication with the AnyLogic Agent.
+3. **Configure the BridgeConnection**: Set the necessary parameters in the `BridgeConnection` component, such as UDP ports and host settings, to match those configured in the AnyLogic Agent.
+4. **Implement Message Handling**: If your simulation needs to send data to or receive data from the AnyLogic Agent, implement the `onMessageFromBridge` method in the `BridgeConnection` component to handle incoming messages. Use the `connections.send()` method to send messages from your simulation.
+5. **Test the Integration**: Start the AnyLogic Agent and run your simulation to ensure that data is being correctly sent and received.
+6. **Adjust Simulation Logic as Needed**: Depending on your simulation's requirements, you may need to adjust the logic to accommodate real-time data exchange.

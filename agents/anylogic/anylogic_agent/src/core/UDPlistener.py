@@ -113,7 +113,7 @@ class Listener:
             return
 
         template_type = 'progress' if 'progress' in output else 'streaming'
-        data_payload = output.get('data', output)
+        data_payload = output
         progress = (output.get('progress') or {}).get(
             'percentage') if template_type == 'progress' else None
         message = (output.get('progress') or {}).get(

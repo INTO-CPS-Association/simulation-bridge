@@ -98,6 +98,9 @@ def generate_default_project():
         'client/simulation.yaml': (ANYLOGIC_AGENT_API,
                                    'simulation.yaml.template'),
         'client/README.md': (ANYLOGIC_AGENT_RESOURCES, 'README.md'),
+        'template/README.md': (ANYLOGIC_AGENT_RESOURCES, 'TEMPLATE.md'),
+        'template/template.alp': (ANYLOGIC_AGENT_RESOURCES, 'template.alp'),
+        'template/shared.jar': (ANYLOGIC_AGENT_RESOURCES, 'shared.jar'),
     }
 
     # Descriptions for each file
@@ -107,6 +110,9 @@ def generate_default_project():
         'client/use.yaml': "YAML configuration for the example client script",
         'client/simulation.yaml': "YAML template for defining simulations",
         'client/README.md': "Instructions for using the example client scripts",
+        'template/README.md': "Instructions on how to use the template and start developing your AnyLogic simulation",
+        'template/template.alp': "Base AnyLogic project file to start your simulation",
+        'template/shared.jar': "Java library required for UDP communication in AnyLogic",
     }
 
     try:
