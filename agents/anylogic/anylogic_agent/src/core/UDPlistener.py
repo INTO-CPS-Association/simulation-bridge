@@ -90,16 +90,6 @@ class Listener:
                         logger.error("Invalid JSON")
                         continue
                     self._process_output(msg)
-
-                    send_time = (msg.get("simulation_info", {})
-                                 or {}).get("system_time")
-
-                    if send_time is not None:
-                        receive_time = int(time.time() * 1000)
-                        delta = receive_time - int(send_time)
-                        logger.debug(f"Delay: {delta} ms")
-                    else:
-                        logger.warning("system_time not found in message")
             except KeyboardInterrupt:
                 logger.info("\nStopped by user.")
             finally:
