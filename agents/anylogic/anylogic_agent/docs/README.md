@@ -33,12 +33,7 @@ To access the function that sends messages to external systems by any model's ag
 Below there is an example :
 
 ```java
-connections.send(Map.of("message_type", "simulation update", "occurren_event", "item generated", "data", Map.of("x", getX(), "y", getY())), bridgeConnection);
-```
-
-In this example:
-
-- Message payload: Map.of("message_type", "simulation update", "occurren_event", "item_generated", "data", Map.of("x", getX(), "y", getY()))
+connections.send(Map.of("message_type", "simulation update", "occurred_event", "item generated", "data", Map.of("x", getX(), "y", getY())), bridgeConnection);
 - Receiver: bridgeConnection
 
 Pay attention to the notation of AnyLogic key-value: in the given example key = message_type, value=simulation update.
