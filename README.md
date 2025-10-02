@@ -77,6 +77,13 @@ Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AM
 - [**Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
 - [**Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
 
+### Anylogic Agent
+
+- [**Anylogic Agent** ↗](agents/anylogic/README.md): Explanation of the Anylogic agent functionality and configuration.
+- [**Anylogic Simulation Constraints** ↗](agents/anylogic/anylogic_agent/docs/README.md): A breakdown of the constraints and requirements for Anylogic-driven simulations.
+- [**Quick Start** ↗](agents/anylogic/anylogic_agent/resources/README.md): A quick start guide for using the Anylogic agent client.
+- [**Anylogic Template** ↗](agents/anylogic/anylogic_agent/resources/TEMPLATE.md): Explanation of the Anylogic agent functionality and configuration.
+
 ## Package Development
 
 The developer-specific commands are
