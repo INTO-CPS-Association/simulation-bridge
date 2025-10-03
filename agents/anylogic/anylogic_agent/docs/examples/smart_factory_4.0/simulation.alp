@@ -794,42 +794,9 @@
 			</Connectors>
 			<Events>
 				<Event>
-					<Id>1695718370225</Id>
-					<Name><![CDATA[itemGenerated]]></Name>
-					<X>50</X><Y>50</Y>
-					<Label><X>10</X><Y>0</Y></Label>
-					<PublicFlag>false</PublicFlag>
-					<PresentationFlag>true</PresentationFlag>
-					<ShowLabel>true</ShowLabel>
-					<Properties TriggerType="timeout" Mode="userControls">
-						<Timeout Class="CodeUnitValue">
-							<Code><![CDATA[0]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
-						</Timeout>
-						<Rate Class="CodeUnitValue">
-							<Code><![CDATA[1]]></Code>
-							<Unit Class="RateUnits"><![CDATA[PER_SECOND]]></Unit>
-						</Rate>
-						<Id>1695634399996</Id>
-						<OccurrenceAtTime>true</OccurrenceAtTime>
-						<OccurrenceDate>1695801600000</OccurrenceDate>
-						<OccurrenceTime Class="CodeUnitValue">
-							<Code><![CDATA[5]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
-						</OccurrenceTime>
-						<RecurrenceCode Class="CodeUnitValue">
-							<Code><![CDATA[5]]></Code>
-							<Unit Class="TimeUnits"><![CDATA[SECOND]]></Unit>
-						</RecurrenceCode>
-						<Condition><![CDATA[false]]></Condition>
-					</Properties>
-					<Action><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("x", getX(), "y", getY())), bridgeConnection);]]></Action>
-					<Logging>false</Logging>
-				</Event>
-				<Event>
 					<Id>1749725299887</Id>
 					<Name><![CDATA[endEffectorPos]]></Name>
-					<X>50</X><Y>80</Y>
+					<X>50</X><Y>50</Y>
 					<Label><X>10</X><Y>0</Y></Label>
 					<PublicFlag>false</PublicFlag>
 					<PresentationFlag>true</PresentationFlag>
@@ -1228,7 +1195,7 @@ else if (variable.equals("executionTime")) {
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759314117718</Id>
+									<Id>1759440017254</Id>
 									<GenericParameterSubstitute>
 										<GenericParameterSubstituteReference>
 											<PackageName><![CDATA[external_connectivity]]></PackageName>
@@ -1264,7 +1231,7 @@ else if (variable.equals("executionTime")) {
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759314117717</Id>
+										<Id>1759440017253</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -1331,7 +1298,7 @@ else if (variable.equals("executionTime")) {
 						<Parameter>
 							<Name><![CDATA[onExit]]></Name>
 							<Value Class="CodeValue">
-								<Code><![CDATA[itemGenerated.restart();]]></Code>
+								<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("initial_x", agent.getX(), "initial_y", agent.getY())), bridgeConnection);]]></Code>
 							</Value>
 						</Parameter>
 						<Parameter>
@@ -1900,7 +1867,7 @@ else if (variable.equals("executionTime")) {
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759314117726</Id>
+									<Id>1759440017263</Id>
 									<ActiveObjectClass>
 										<PackageName><![CDATA[external_connectivity]]></PackageName>
 										<ClassName><![CDATA[Worker]]></ClassName>
@@ -1931,7 +1898,7 @@ else if (variable.equals("executionTime")) {
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759314117725</Id>
+										<Id>1759440017262</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -4407,7 +4374,7 @@ conveyor6.stop();]]></Code>
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759314117734</Id>
+									<Id>1759440017310</Id>
 									<ActiveObjectClass>
 										<PackageName><![CDATA[external_connectivity]]></PackageName>
 										<ClassName><![CDATA[AGV]]></ClassName>
@@ -4438,7 +4405,7 @@ conveyor6.stop();]]></Code>
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759314117733</Id>
+										<Id>1759440017309</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -4883,7 +4850,9 @@ stopLight.setFillColor(gold);]]></Code>
 							<Parameter>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
-									<Code><![CDATA[conveyor.run();
+									<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("destination_x", agent.getX(), "destination_y", agent.getY())), bridgeConnection);
+
+conveyor.run();
 connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis()), "data", Map.of("input_photo_cell", true)), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
@@ -5738,7 +5707,9 @@ stopLight3.setFillColor(gold);]]></Code>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
 									<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis()), "data", Map.of("conveyor_out_photo_cell", true)), bridgeConnection);
-conveyor3.stop();]]></Code>
+conveyor3.stop();
+
+connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("exit_position_x", agent.getX(), "exit_position_y", agent.getY())), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
 							<Parameter>
@@ -7004,7 +6975,9 @@ else
 							<Parameter>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
-									<Code><![CDATA[conveyor4.run();]]></Code>
+									<Code><![CDATA[conveyor4.run();
+
+connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("enter_position_x", agent.getX(), "enter_position_y", agent.getY())), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
 							<Parameter>
@@ -7075,7 +7048,9 @@ else
 							<Parameter>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
-									<Code><![CDATA[conveyor4.stop();]]></Code>
+									<Code><![CDATA[conveyor4.stop();
+
+connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("exit_pos_x_worker", agent.getX(), "exit_pos_y_worker", agent.getY())), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
 							<Parameter>
@@ -7152,7 +7127,7 @@ else
 								<Value Class="EntityCodeValue">
 									<IsAgentEntity>false</IsAgentEntity>
 									<EntityEmbeddedObject>
-										<Id>1759314117742</Id>
+										<Id>1759440017354</Id>
 										<GenericParameterSubstitute>
 											<GenericParameterSubstituteReference>
 												<PackageName><![CDATA[external_connectivity]]></PackageName>
@@ -7179,7 +7154,7 @@ else
 										</LocationNameCode>
 										<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 										<InitializationDatabaseTableQuery>
-											<Id>1759314117741</Id>
+											<Id>1759440017353</Id>
 											<TableReference>
 											</TableReference>
 										</InitializationDatabaseTableQuery>
@@ -7785,7 +7760,9 @@ stopLight6.setFillColor(gold);]]></Code>
 							<Parameter>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
-									<Code><![CDATA[conveyor5.run();
+									<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("enter_pos_x_mirror", agent.getX(), "enter_pos_y_mirror", agent.getY())), bridgeConnection);
+
+conveyor5.run();
 connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis()), "data", Map.of("input_photo_cell_2", true)), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
@@ -8640,7 +8617,9 @@ stopLight9.setFillColor(gold);]]></Code>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
 									<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis()), "data", Map.of("conveyor_out_photo_cell", true)), bridgeConnection);
-conveyor8.stop();]]></Code>
+conveyor8.stop();
+
+connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("exit_pos_x_mirror", agent.getX(), "exit_pos_y_mirror", agent.getY())), bridgeConnection);]]></Code>
 								</Value>
 							</Parameter>
 							<Parameter>
@@ -9315,7 +9294,9 @@ stopLight8.setFillColor(gold);]]></Code>
 							<Parameter>
 								<Name><![CDATA[onLeadingEdgeEnter]]></Name>
 								<Value Class="CodeValue">
-									<Code><![CDATA[conveyor9.run();]]></Code>
+									<Code><![CDATA[connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "system_time", System.currentTimeMillis(), "type", "item"), "data", Map.of("enter_pos_x_last", agent.getX(), "enter_pos_y_last", agent.getY())), bridgeConnection);
+
+conveyor9.run();]]></Code>
 								</Value>
 							</Parameter>
 							<Parameter>
