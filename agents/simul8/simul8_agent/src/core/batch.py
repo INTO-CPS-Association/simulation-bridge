@@ -147,7 +147,8 @@ def _extract_io_specs(data: Dict[str, Any]
                       ) -> Tuple[Dict[str, Any], List[str]]:
     """Extract input and output specifications from data."""
     inputs = data.get('inputs', {})
-    filtered_inputs = {k: v for k, v in inputs.items() if k not in ['run_time', 'runtime']}
+    # Only filter out 'run_time', not 'runtime'
+    filtered_inputs = {k: v for k, v in inputs.items() if k != 'run_time'}
     outputs = data.get('outputs', [])
     
     if not outputs:

@@ -20,7 +20,7 @@ from .utils.config_loader import load_config
 def main(config_file=None, generate_config=False,
          generate_project=False) -> None:
     """
-    An agent service to manage simul8 simulations.
+    An agent service to manage Simul8 simulations.
     """
     if generate_config:
         generate_default_config()
