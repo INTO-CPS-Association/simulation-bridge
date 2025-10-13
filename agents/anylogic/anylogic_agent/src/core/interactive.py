@@ -6,8 +6,6 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
-
 from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
@@ -49,15 +47,6 @@ class InteractiveSession:
             self.writer_thread.join(timeout=2)
         if self.listener_thread.is_alive():
             self.listener_thread.join(timeout=2)
-
-
-def _parse_frame(body: bytes) -> Dict[str, Any]:
-    """Decode a YAML frame received from RabbitMQ."""
-    try:
-        return yaml.safe_load(body)
-    except yaml.YAMLError as exc:
-        logger.error("[ANYLOGIC INTERACTIVE] Bad frame: %s", exc)
-        return {}
 
 
 def handle_interactive_simulation(

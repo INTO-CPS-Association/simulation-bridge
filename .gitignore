@@ -218,4 +218,4 @@ performance_old/
 #ANYLOGIC
 .alp.autosave
 template/
-agents/Anylogic/logs/*
+agents/Anylogic/logs/
