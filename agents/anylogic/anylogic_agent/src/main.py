@@ -93,6 +93,8 @@ def generate_default_project():
         'config.yaml': ('anylogic_agent.config', 'config.yaml.template'),
         'client/use_anylogic_agent_streaming.py': (ANYLOGIC_AGENT_RESOURCES,
                                                    'use_anylogic_agent_streaming.py'),
+        'client/use_anylogic_agent_interactive.py': (ANYLOGIC_AGENT_RESOURCES,
+                                                   'use_anylogic_agent_interactive.py'),
         'client/use.yaml': (ANYLOGIC_AGENT_RESOURCES,
                             'use.yaml.template'),
         'client/simulation.yaml': (ANYLOGIC_AGENT_API,
@@ -107,6 +109,7 @@ def generate_default_project():
     file_descriptions = {
         'config.yaml': "Configuration file for the MATLAB agent",
         'client/use_anylogic_agent_streaming.py': "Example client script for streaming simulations",
+        'client/use_anylogic_agent_interactive.py': "Example client script for interactive simulations",
         'client/use.yaml': "YAML configuration for the example client script",
         'client/simulation.yaml': "YAML template for defining simulations",
         'client/README.md': "Instructions for using the example client scripts",

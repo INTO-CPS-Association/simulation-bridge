@@ -107,7 +107,9 @@ logging:
 
 udp:
   host: localhost
-  port: 9876
+  ip: 127.0.0.1
+  output_port: 9876
+  input_port: 9877
 
 response_templates:
   success:

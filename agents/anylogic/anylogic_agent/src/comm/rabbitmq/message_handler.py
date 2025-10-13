@@ -16,6 +16,7 @@ from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.streaming import handle_streaming_simulation
+from ...core.anylogic_interactive import handle_interactive_simulation  # <-- ADD THIS IMPORT
 
 logger = get_logger()
 
@@ -248,9 +249,14 @@ class MessageHandler(IRabbitMQMessageHandler):
                     self.response_templates,
                 )
             elif sim_type == 'interactive':
-                # TODO: to implement in a separate interactive.py file, to
-                # manage interactive simulations, HAVE A LOOK TO MATLAB AGENT
                 ch.basic_ack(delivery_tag=method.delivery_tag)
+                handle_interactive_simulation(
+                    msg_dict,
+                    source,
+                    self.rabbitmq_manager,
+                    self.config,
+                    self.response_templates,
+                )
             else:
                 logger.error("Unknown simulation type: %s", sim_type)
                 error_response = create_response(
