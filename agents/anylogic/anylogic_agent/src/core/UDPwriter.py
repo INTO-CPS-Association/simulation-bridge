@@ -68,14 +68,6 @@ class Writer:
         self.channel = self.connection.channel()
 
         # Subscribe to the command queue
-        # self.command_queue = f"Q.{self.destination}.command.{self.request_id}"
-        # self.channel.queue_declare(queue=self.command_queue, durable=True)
-        # self.channel.queue_bind(
-        #     exchange="ex.input.stream",
-        #     queue=self.command_queue,
-        #     routing_key=f"{self.destination}.command.{self.request_id}",
-        # )
-        
         self.command_queue = f"Q.{self.destination}.interactive.{self.request_id}"
         self.channel.queue_declare(queue=self.command_queue, durable=True)
         self.channel.queue_bind(
@@ -83,7 +75,6 @@ class Writer:
             queue=self.command_queue,
             routing_key=self.stream_key,
         )
-
 
         """Start UDP writer loop for the configured simulation."""
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -115,52 +106,11 @@ class Writer:
             self.channel.basic_consume(queue=self.command_queue, on_message_callback=callback)
             try:
                 self.channel.start_consuming()
-            # except KeyboardInterrupt:
-            #     logger.info("Stopped by user.")
-            #     channel.stop_consuming()
-            #     connection.close()
             except (KeyboardInterrupt, EOFError):
                     logger.info("Stopped by user.")
                     self.channel.stop_consuming()
                     self.connection.close()
                     self._handle_completion()
-
-            # try:
-            #     while not self._stop_event.is_set():
-            #         try:                        
-            #             msg_text = {
-            #                 "type": "command to be executed",
-            #                 #"message": input("Enter a message to send to AnyLogic")
-            #                 "data": {
-            #                     "variable": input("Which variable do you want to change: conveyorTargetState, conveyor1TargetState, conveyor2TargetState, conveyor3TargetState, executionTime? "),
-            #                     "state": input("active/not active for conveyorTargetState or low/medium/high for executionTime: ")
-            #                     }                            
-            #             }
-            #             self._send_udp(sock, msg_text)
-            #             self._process_output(msg_text)
-            #         except OSError as e:
-            #             # Socket closed during shutdown or other error
-            #             if self._stop_event.is_set():
-            #                 break
-            #             logger.error(f"Socket error while receiving: {e}")
-            #             break
-            #             # if msg_text.lower() == 'exit':
-            #             #     logger.info("Exiting UDP writer loop.")
-            #             #     self._handle_completion()
-            #             #     break
-            #             # Optionally, parse as JSON or send as plain text
-            #             # try:
-            #             #     msg = json.loads(msg_text)
-            #             # except json.JSONDecodeError:
-            #             #     msg = {"message": msg_text}
-            #         except (KeyboardInterrupt, EOFError):
-            #             logger.info("Stopped by user.")
-            #             self._handle_completion()
-            #             break
-            # finally:
-            #     with self._lock:
-            #         self._sock = None
-            #     self._ready_event.clear()
 
     def wait_until_ready(self, timeout: float = 5.0) -> bool:
         """Wait until the socket is ready to send."""

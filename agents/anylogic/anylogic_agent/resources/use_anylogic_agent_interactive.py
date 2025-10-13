@@ -119,13 +119,11 @@ class InteractiveUsageAnylogicAgent:
             while True:
                 msg = {
                     "type": "command to be executed",
-                    #"message": input("Enter a message to send to AnyLogic")
                     "data": {
                         "variable": input("Which variable do you want to change: conveyorTargetState, conveyor1TargetState, conveyor2TargetState, conveyor3TargetState, executionTime? "),
                         "state": input("active/not active for conveyorTargetState or low/medium/high for executionTime: ")
                         }                            
                 }
-                #routing_key=f"{self.destination_id}.result.{self.agent_id}",
                 self.channel.basic_publish(
                     exchange="ex.input.stream",
                     routing_key=stream_key,
