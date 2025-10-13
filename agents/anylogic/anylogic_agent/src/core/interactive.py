@@ -203,7 +203,7 @@ def handle_interactive_simulation(
         message='Interactive writer and listener ready',
         data={
             'status': 'ready',
-            'writer_ip': writer.ip,
+            'writer_ip': writer.host,
             'writer_port': writer.input_port,
             'listener_host': listener.host,
             'listener_port': listener.output_port,
@@ -214,7 +214,7 @@ def handle_interactive_simulation(
         "Started interactive writer and listener for %s (request %s) on writer %s:%s, listener %s:%s",
         sim_file,
         request_id,
-        writer.ip,
+        writer.host,
         writer.input_port,
         listener.host,
         listener.output_port,

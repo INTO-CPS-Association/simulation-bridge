@@ -16,7 +16,7 @@ from .interfaces import IRabbitMQMessageHandler
 from ...utils.logger import get_logger
 from ...utils.create_response import create_response
 from ...core.streaming import handle_streaming_simulation
-from ...core.anylogic_interactive import handle_interactive_simulation  # <-- ADD THIS IMPORT
+from ...core.interactive import handle_interactive_simulation
 
 logger = get_logger()
 

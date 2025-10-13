@@ -23,13 +23,13 @@ class Writer:
         stream_key: str,
         bridge_meta: Optional[Any] = None,
         *,
-        ip: Optional[str] = None,
+        host: Optional[str] = None,
         input_port: Optional[int] = None,
         sim_type: str = 'interactive',
         on_complete: Optional[Callable[[str], None]] = None,
     ) -> None:
         udp_cfg = (config.get('udp', {}) or {})
-        self.ip = ip if ip is not None else udp_cfg.get('ip', '127.0.0.1')
+        self.host = host if host is not None else udp_cfg.get('host', 'localhost')
         self.input_port = input_port if input_port is not None else int(udp_cfg.get('input_port', 9877))
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()
@@ -64,15 +64,15 @@ class Writer:
             credentials=credentials,
             heartbeat=rabbitmq_cfg.get('heartbeat', 600),
         )
-        self.connection = pika.BlockingConnection(connection_params)
-        self.channel = self.connection.channel()
+        connection = pika.BlockingConnection(connection_params)
+        channel = connection.channel()
 
         # Subscribe to the command queue
-        self.command_queue = f"Q.{self.destination}.interactive.{self.request_id}"
-        self.channel.queue_declare(queue=self.command_queue, durable=True)
-        self.channel.queue_bind(
+        command_queue = f"Q.{self.destination}.interactive.{self.request_id}"
+        channel.queue_declare(queue=command_queue, durable=True)
+        channel.queue_bind(
             exchange="ex.input.stream",
-            queue=self.command_queue,
+            queue=command_queue,
             routing_key=self.stream_key,
         )
 
@@ -82,7 +82,7 @@ class Writer:
                 self._sock = sock
             logger.info(
                 "UDP writer forwarding to %s:%s for %s (request %s)",
-                self.ip,
+                self.host,
                 self.input_port,
                 self.sim_file,
                 self.request_id,
@@ -92,25 +92,24 @@ class Writer:
             def callback(ch, method, properties, body):
                 msg = yaml.safe_load(body)
                 self._send_udp(sock, msg)
-                self._process_output(msg)
                 ch.basic_ack(method.delivery_tag)
                 logger.info(
                     "Forwarded message to %s:%s for %s (request %s): %s",
-                    self.ip,
+                    self.host,
                     self.input_port,
                     self.sim_file,
                     self.request_id,
                     msg,
                 )
 
-            self.channel.basic_consume(queue=self.command_queue, on_message_callback=callback)
+            channel.basic_consume(queue=command_queue, on_message_callback=callback)
             try:
-                self.channel.start_consuming()
+                channel.start_consuming()
             except (KeyboardInterrupt, EOFError):
                     logger.info("Stopped by user.")
-                    self.channel.stop_consuming()
-                    self.connection.close()
-                    self._handle_completion()
+                    channel.stop_consuming()
+                    connection.close()
+                    self.stop()
 
     def wait_until_ready(self, timeout: float = 5.0) -> bool:
         """Wait until the socket is ready to send."""
@@ -123,56 +122,10 @@ class Writer:
     def _send_udp(self, sock: socket.socket, msg: dict) -> None:
         data = json.dumps(msg).encode("utf-8")
         try:
-            sock.sendto(data, (self.ip, self.input_port))
-            logger.debug("Sent to %s:%s: %s", self.ip, self.input_port, data)
+            sock.sendto(data, (self.host, self.input_port))
+            logger.debug("Sent to %s:%s: %s", self.host, self.input_port, data)
         except Exception as exc:
             logger.error("Error sending UDP message: %s", exc)
-
-    def _process_output(self, output: Dict[str, Any]) -> None:
-        """Send info about the sent message to RabbitMQ."""
-        template_type = 'progress' if 'progress' in output else 'streaming'
-        data_payload = output
-        progress = (output.get('progress') or {}).get(
-            'percentage') if template_type == 'progress' else None
-        message = (output.get('progress') or {}).get(
-            'message') if template_type == 'progress' else None
-        metadata = output.get('metadata') or output.get('simulation_info') or {}
-
-        response = create_response(
-            template_type,
-            self.sim_file,
-            self.sim_type,
-            self.response_templates,
-            bridge_meta=self.bridge_meta,
-            request_id=self.request_id,
-            data=data_payload,
-            metadata=metadata,
-            sequence=self._next_sequence(),
-            percentage=progress,
-            message=message,
-        )
-
-        if not self._ensure_broker_connected():
-            return
-
-        try:
-            success = self.message_broker.send_result(
-                destination=self.destination, result=response)
-        except Exception as exc:
-            logger.error(
-                "Error sending streaming result for %s (request %s): %s",
-                self.sim_file,
-                self.request_id,
-                exc,
-            )
-            return
-
-        if not success:
-            logger.error(
-                "Failed to send streaming result for %s (request %s)",
-                self.sim_file,
-                self.request_id,
-            )
 
     def _ensure_broker_connected(self) -> bool:
         if getattr(self.message_broker, 'channel',
@@ -186,65 +139,6 @@ class Writer:
             )
             return False
         return True
-
-    def _handle_completion(self) -> None:
-        """Send completion message to RabbitMQ and stop."""
-        data_payload = {}
-        metadata = {}
-
-        success = False
-        if self._ensure_broker_connected():
-            try:
-                response = create_response(
-                    template_type='success',
-                    sim_file=self.sim_file,
-                    sim_type=self.sim_type,
-                    response_templates=self.response_templates,
-                    bridge_meta=self.bridge_meta,
-                    request_id=self.request_id,
-                    data=data_payload,
-                    metadata=metadata,
-                )
-                success = self.message_broker.send_result(
-                    destination=self.destination, result=response)
-            except Exception as exc:
-                logger.error(
-                    "Error sending completion result for %s (request %s): %s",
-                    self.sim_file,
-                    self.request_id,
-                    exc,
-                )
-                success = False
-        else:
-            logger.error(
-                "Completion detected for %s (request %s) but RabbitMQ connection is unavailable",
-                self.sim_file,
-                self.request_id,
-            )
-
-        if success:
-            logger.info(
-                "Sent completion result for %s (request %s)",
-                self.sim_file,
-                self.request_id,
-            )
-        else:
-            logger.error(
-                "Failed to send completion result for %s (request %s)",
-                self.sim_file,
-                self.request_id,
-            )
-
-        if self._on_complete:
-            try:
-                self._on_complete(self.request_id)
-            except Exception:
-                logger.exception(
-                    "Error while executing completion callback for request %s",
-                    self.request_id,
-                )
-
-        self.stop()
 
     def stop(self) -> None:
         """Signal the writer loop to stop."""

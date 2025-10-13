@@ -55,7 +55,6 @@ class Config(BaseModel):
 
     # UDP configuration
     udp_host: str = Field(default="localhost")
-    udp_ip: str = Field(default="127.0.0.1")
     udp_output_port: int = Field(default=9876)
     udp_input_port: int = Field(default=9877)
 
@@ -121,7 +120,6 @@ class Config(BaseModel):
             },
             "udp": {
                 "host": self.udp_host,
-                "ip": self.udp_ip,
                 "output_port": self.udp_output_port,
                 "input_port": self.udp_input_port
             },
@@ -199,7 +197,6 @@ class Config(BaseModel):
         # Extract udp section if present
         if udp := config_dict.get("udp", {}):
             flat_config["udp_host"] = udp.get("host", "localhost")
-            flat_config["udp_ip"] = udp.get("ip", "127.0.0.1")
             flat_config["udp_output_port"] = udp.get("output_port", 9876)
             flat_config["udp_input_port"] = udp.get("input_port", 9877)
 
