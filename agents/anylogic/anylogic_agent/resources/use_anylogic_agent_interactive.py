@@ -1,250 +1,231 @@
 """
 use_anylogic_agent_interactive.py
 
-RabbitMQ client to send interactive simulation requests to ANYLOGIC Agent
-and receive results asynchronously. When the agent returns
-{"status": "completed"} the program terminates automatically.
+Asynchronous RabbitMQ client for sending interactive simulation requests
+to the AnyLogic agent
 """
 
 import argparse
-import os
+import asyncio
 import ssl
-import sys
 import uuid
 from typing import Any, Dict
 
-import pika
+import anyio
 import yaml
+from aio_pika import (
+    connect_robust,
+    ExchangeType,
+    Message,
+    DeliveryMode,
+)
 
 
 class InteractiveUsageAnylogicAgent:
-    """Client for interacting with the anylogic simulation agent via RabbitMQ (interactive mode)."""
+    """
+    Asynchronous client that interacts with a AnyLogic agent for running interactive simulations.
+    This class connects to RabbitMQ, sends requests to the AnyLogic agent, streams input frames,
+    and processes the results.
+    """
 
-    def __init__(
-        self,
-        agent_identifier: str = "dt",
-        destination_identifier: str = "anylogic",
-        config_path: str = "use.yaml",
-    ) -> None:
-        self.agent_id: str = agent_identifier
-        self.destination_id: str = destination_identifier
+    def __init__(self, agent_id: str, destination_id: str,
+                 rabbitmq_cfg: Dict[str, Any]) -> None:
+        """
+        Initializes the agent with necessary identifiers and configuration.
+        Sets up the result queue for receiving simulation results.
+        """
+        self.agent_id = agent_id
+        self.destination_id = destination_id
+        self.cfg = rabbitmq_cfg
+        # Queue to receive results
+        self.result_queue = f"Q.{agent_id}.anylogic.result"
+        # Event to stop the stream when the simulation ends
+        self.stop_event = asyncio.Event()
 
-        # --- Load configuration
-        self.config = self._load_yaml(config_path)
-        self.simulation_request_path: str = self.config.get(
-            "simulation_request", "simulation.yaml"
-        )
-        rabbitmq_cfg: Dict[str, Any] = self.config.get("rabbitmq", {})
+    async def setup(self) -> None:
+        """
+        Connects to RabbitMQ, declares necessary exchanges and queues for sending/receiving messages.
+        This includes setting up TLS if enabled in the configuration.
+        """
+        tls_enabled: bool = bool(self.cfg.get("tls", False))
+        # Default port is 5671 for TLS, 5672 otherwise
+        port = self.cfg.get("port", 5671 if tls_enabled else 5672)
 
-        # --- Credentials
-        credentials = pika.PlainCredentials(
-            rabbitmq_cfg.get("username", "guest"),
-            rabbitmq_cfg.get("password", "guest"),
-        )
-
-        # --- TLS / non-TLS parameters
-        tls_enabled: bool = bool(rabbitmq_cfg.get("tls", False))
-        ssl_options = None
-        port = rabbitmq_cfg.get("port", 5671 if tls_enabled else 5672)
-
+        ssl_ctx = None
         if tls_enabled:
-            context = ssl.create_default_context()
-            context.minimum_version = ssl.TLSVersion.TLSv1_2
-            ssl_options = pika.SSLOptions(
-                context, rabbitmq_cfg.get("host", "localhost")
-            )
+            # Create SSL context if TLS is enabled
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.minimum_version = ssl.TLSVersion.TLSv1_2
 
-        connection_params = pika.ConnectionParameters(
-            host=rabbitmq_cfg.get("host", "localhost"),
+        # Establish connection to RabbitMQ using the configuration settings
+        self.connection = await connect_robust(
+            host=self.cfg.get("host", "localhost"),
             port=port,
-            virtual_host=rabbitmq_cfg.get("vhost", "/"),
-            credentials=credentials,
-            heartbeat=rabbitmq_cfg.get("heartbeat", 600),
-            ssl_options=ssl_options,
+            virtualhost=self.cfg.get("vhost", "/"),
+            login=self.cfg.get("username", "guest"),
+            password=self.cfg.get("password", "guest"),
+            heartbeat=self.cfg.get("heartbeat", 600),
+            ssl=tls_enabled,  # Enable SSL if needed
         )
 
-        # --- Establish connection / channel
-        self.connection = pika.BlockingConnection(connection_params)
-        self.channel = self.connection.channel()
+        self.channel = await self.connection.channel()  # Create a new channel
+        # Set prefetch count to avoid overwhelming the consumer
+        await self.channel.set_qos(prefetch_count=1)
 
-        # --- Infrastructure
-        self.result_queue: str = ""
-        self._setup_channels()
-
-    def _setup_channels(self) -> None:
-        self.channel.exchange_declare(
-            exchange="ex.bridge.output", exchange_type="topic", durable=True
+        # Declare RabbitMQ exchanges for different types of communication
+        self.ex_bridge = await self.channel.declare_exchange(
+            "ex.bridge.output", ExchangeType.TOPIC, durable=True
         )
-        self.channel.exchange_declare(
-            exchange="ex.sim.result", exchange_type="topic", durable=True
+        self.ex_result = await self.channel.declare_exchange(
+            "ex.sim.result", ExchangeType.TOPIC, durable=True
         )
-        self.channel.exchange_declare(
-            exchange="ex.input.stream", exchange_type="topic", durable=True
+        self.ex_stream = await self.channel.declare_exchange(
+            "ex.input.stream", ExchangeType.TOPIC, durable=True
         )
 
-        self.result_queue = f"Q.{self.agent_id}.anylogic.result"
-        self.channel.queue_declare(queue=self.result_queue, durable=True)
-        self.channel.queue_bind(
-            exchange="ex.sim.result",
-            queue=self.result_queue,
+        # Declare the result queue where the agent will receive simulation
+        # results
+        self.queue = await self.channel.declare_queue(
+            self.result_queue, durable=True
+        )
+        await self.queue.bind(
+            self.ex_result,
             routing_key=f"{self.destination_id}.result.{self.agent_id}",
         )
-        print(f"[{self.agent_id.upper()}] Infrastructure ready.")
 
-    def send_request(self, payload_data: Dict[str, Any], request_id: str) -> None:
-        payload = {**payload_data}
-        payload.setdefault("simulation", {})["request_id"] = request_id
-        payload["simulation"].setdefault("bridge_meta", {})["protocol"] = "rabbitmq"
+    async def send_initial_interactive_request(
+        self, payload: Dict[str, Any], request_id: str
+    ) -> None:
+        """
+        Sends the initial request to the MATLAB simulation. This includes necessary
+        metadata and sets up the simulation environment.
 
-        self.channel.basic_publish(
-            exchange="ex.bridge.output",
-            routing_key=f"{self.agent_id}.{self.destination_id}",
-            body=yaml.dump(payload, default_flow_style=False),
-            properties=pika.BasicProperties(
-                delivery_mode=2,
-                content_type="application/x-yaml",
-                message_id=str(uuid.uuid4()),
+        """
+        payload["simulation"]["request_id"] = request_id
+        payload["simulation"].setdefault("bridge_meta", {})[
+            "protocol"] = "rabbitmq"
+
+        routing_key = f"{self.agent_id}.{self.destination_id}"
+        # Publish the request message to the bridge exchange
+        await self.ex_bridge.publish(
+            Message(
+                body=yaml.dump(payload, default_flow_style=False).encode(),
+                delivery_mode=DeliveryMode.PERSISTENT,  # Ensure message is persistent
+                content_type="application/x-yaml",  # Content type is YAML
+                message_id=str(uuid.uuid4()),  # Unique ID for the message
             ),
+            routing_key=routing_key,
         )
-        print(f"[{self.agent_id.upper()}] Interactive request sent → anylogic "
-              f"(routing key {self.agent_id}.{self.destination_id}).")
+        print(
+            f"[INIT] Sent interactive request (rk='{routing_key}') request_id={request_id}")
 
-    def stream_inputs(self, request_id: str, stream_key: str) -> None:
+    async def stream_inputs(self, request_id: str, stream_key: str) -> None:
         """
-        Continuously sends input messages to AnyLogic simulation until completion.
-        Adjust the message structure as needed for your AnyLogic model.
+        Continuously sends input frames to AnyLogic simulation until completion.
         """
-        print(f"[INPUT STREAM] Publishing messages on '{stream_key}' …")
-        try:
-            while True:
-                msg = {
-                    "type": "command to be executed",
-                    "data": {
-                        "variable": input("Which variable do you want to change: conveyorTargetState, conveyor1TargetState, conveyor2TargetState, conveyor3TargetState, executionTime? "),
-                        "state": input("active/not active for conveyorTargetState or low/medium/high for executionTime: ")
-                        }                            
+        # YOU WILL NEED TO ADJUST THIS FUNCTION TO ALIGN WITH THE SPECIFIC
+        # STRUCTURE OF YOUR INPUT FRAMES.
+        print(f"[INPUT STREAM] Publishing frames on '{stream_key}' …")
+        for k in range(
+                100):  # Loop for sending a large number of frames (100 max)
+            if self.stop_event.is_set(
+                # Check if the stop event is set (e.g., when simulation is
+                # complete)
+            ):
+                print("[INPUT STREAM] Received stop signal, ending input stream.")
+                break
+
+            frame = {
+                "type": "command to be executed",
+                "data": {
+                    "variable": "executionTime",
+                    "state": "high" if k % 7 == 0 else "low" if k % 5 == 0 else "medium"
                 }
-                self.channel.basic_publish(
-                    exchange="ex.input.stream",
-                    routing_key=stream_key,
-                    body=yaml.dump(msg),
-                    properties=pika.BasicProperties(
-                        content_type="application/x-yaml",
-                        message_id=str(uuid.uuid4()),
-                    ),
-                )
-                if getattr(self, "_stop_stream", False):
-                    print("[INPUT STREAM] Received stop signal, ending input stream.")
-                    break
-        except Exception as exc:
-            print(f"[INPUT STREAM] Error: {exc}")
+            }
+            # Publish each input frame to the stream exchange
+            await self.ex_stream.publish(
+                Message(
+                    body=yaml.dump(frame).encode(),
+                    content_type="application/x-yaml",
+                    message_id=str(uuid.uuid4()),  # Unique message ID
+                ),
+                routing_key=stream_key,
+            )
+            await asyncio.sleep(1)  # Small delay to avoid flooding the queue
+
         print("[INPUT STREAM] Input loop finished.")
 
-    def _handle_result(self, ch, method, _props, body):  # noqa: N802
-        """Handle incoming simulation messages."""
-        try:
-            result = yaml.safe_load(body)
-            print(f"\n[{self.agent_id.upper()}] Result received:")
-            print(result)
-            print("-" * 40)
+    async def handle_results(self) -> None:
+        """
+        Consumes results asynchronously from the AnyLogic simulation. When a result with status 'completed'
+        is received, it stops the input stream.
+        """
+        async with self.queue.iterator() as q:
+            async for msg in q:  # Continuously listen for incoming messages from the result queue
+                async with msg.process():
+                    result = yaml.safe_load(
+                        msg.body)  # Parse the result message
 
-            ch.basic_ack(method.delivery_tag)
+                    print(f"\n[RESULT] {result}\n" + "-" * 40)
 
-            # Terminate on completed status
-            if result.get("status") == "completed":
-                print(
-                    f"[{self.agent_id.upper()}] Simulation completed successfully.")
-                self._stop_stream = True
-                self._shutdown()
-
-        except Exception as exc:  # pylint: disable=broad-except
-            print(f"Error processing result: {exc}")
-            ch.basic_nack(method.delivery_tag)
-
-    def start_listening(self) -> None:
-        self.channel.basic_consume(
-            queue=self.result_queue, on_message_callback=self._handle_result
-        )
-        print(f"[{self.agent_id.upper()}] Waiting for results "
-              f"(binding key '{self.destination_id}.result.{self.agent_id}')…")
-        self.channel.start_consuming()
-
-    def _shutdown(self) -> None:
-        """Gracefully stop consuming, close the connection and exit."""
-        try:
-            # Stop RabbitMQ consumer loop
-            self.channel.stop_consuming()
-        except Exception:   # channel might already be closing
-            pass
-
-        try:
-            self.connection.close()
-        except Exception:
-            pass
-
-        print(f"[{self.agent_id.upper()}] Connection closed. Exiting…")
-        # Ensure all threads exit – use os._exit to terminate the whole process
-        os._exit(0)
-
-    @staticmethod
-    def _load_yaml(file_path: str) -> Dict[str, Any]:
-        with open(file_path, "r", encoding="utf-8") as fp:
-            return yaml.safe_load(fp)
+                    # Check if the simulation is completed
+                    if isinstance(result, dict) and result.get(
+                            "status") == "completed":
+                        print("Received completion signal from AnyLogic.")
+                        self.stop_event.set()  # Set the stop event to end the input stream
+                        break
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="anylogic Interactive Simulation RabbitMQ Client")
+async def main() -> None:
+    """
+    Main entry point for the script. Handles the command-line arguments,
+    loads configuration and payload, and starts the simulation.
+    """
+    # Command-line argument parsing
+    parser = argparse.ArgumentParser(description="AnyLogic interactive client")
     parser.add_argument(
         "--config",
+        "-c",
         default="use.yaml",
-        help="YAML configuration file (default: use.yaml)",
+        help="YAML with RabbitMQ connection settings (default: use.yaml)",
     )
     parser.add_argument(
-        "--payload",
-        default=None,
-        help="YAML payload to send (overrides 'simulation_request' in config)",
+        "--api-payload",
+        "-p",
+        default="simulation.yaml",
+        help="YAML simulation payload to send (default: simulation.yaml)",
     )
     args = parser.parse_args()
 
-    AGENT_ID = "dt_anylogic"
-    DESTINATION = "anylogic"
+    # Load RabbitMQ configuration from the provided file
+    async with await anyio.open_file(args.config, "r", encoding="utf-8") as f_cfg:
+        rabbit_cfg = yaml.safe_load(await f_cfg.read()).get("rabbitmq", {})
 
-    # Create client
-    client = InteractiveUsageAnylogicAgent(
-        AGENT_ID,
-        DESTINATION,
-        config_path=args.config,
+    # Load the simulation payload from the provided file
+    async with await anyio.open_file(args.api_payload, "r", encoding="utf-8") as f_pl:
+        payload = yaml.safe_load(await f_pl.read())
+
+    # Initialize the simulation client (here, it is AnyLogic-specific)
+    client = InteractiveUsageAnylogicAgent("dt", "anylogic", rabbit_cfg)
+
+    request_id = str(uuid.uuid4())  # Unique request ID for this simulation
+    # Input stream source (RabbitMQ URL)
+    stream_source = payload["simulation"]["inputs"]["stream_source"]
+    # Extract the routing key for the stream
+    stream_key = stream_source.replace("rabbitmq://", "")
+
+    # Setup and send the initial interactive request to AnyLogic
+    await client.setup()
+    await client.send_initial_interactive_request(payload, request_id)
+
+    # Run both result handler and input stream publisher concurrently
+    await asyncio.gather(
+        client.handle_results(),
+        client.stream_inputs(request_id, stream_key),
     )
 
-    try:
-        # Load and send simulation request
-        payload_path = args.payload or client.simulation_request_path
-        simulation_payload = client._load_yaml(payload_path)
-        request_id = str(uuid.uuid4())
+    print("Simulation client finished.")
 
-        # Extract stream key from payload
-        stream_source = simulation_payload["simulation"]["inputs"]["stream_source"]
-        stream_key = stream_source.replace("rabbitmq://", "")
 
-        client.send_request(simulation_payload, request_id)
-
-        # Start listening for results in a background thread
-        import threading
-        client._stop_stream = False
-        listener_thread = threading.Thread(target=client.start_listening, daemon=True)
-        #listener_thread.start()
-
-        # Start input streaming in the main thread
-        client.stream_inputs(request_id, stream_key)
-
-    except KeyboardInterrupt:
-        print("\nTerminated by user.")
-        try:
-            client._shutdown()
-        except Exception:   # best-effort cleanup
-            pass
-        sys.exit(0)
-    except Exception as exc:    # pylint: disable=broad-except
-        print(f"Unexpected error: {exc}")
-        sys.exit(1)
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -107,7 +107,6 @@ logging:
 
 udp:
   host: localhost
-  ip: 127.0.0.1
   output_port: 9876
   input_port: 9877
 
