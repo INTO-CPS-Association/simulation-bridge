@@ -1,8 +1,9 @@
 # AnyLogic Simulation – Guidelines and Best Practices
 
-## Streaming Simulation
+## Batch/Streaming Simulation
 
 A Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
+N.B. For AnyLogic there is no difference between Batch and Streaming simulation .
 
 > ⚠️ Detailed information about the project template lives [here](agents/anylogic/anylogic_agent/resources/template/README.md)
 
@@ -83,6 +84,47 @@ To integrate an existing AnyLogic simulation with the AnyLogic Agent, follow the
 1. **Open Your Existing Simulation**: Launch AnyLogic and open your existing simulation project.
 2. **Add the BridgeConnection Component**: In the Main agent of your simulation, add the `BridgeConnection` component from the template. This component will handle UDP communication with the AnyLogic Agent.
 3. **Configure the BridgeConnection**: Set the necessary parameters in the `BridgeConnection` component, such as UDP ports and host settings, to match those configured in the AnyLogic Agent.
-4. **Implement Message Handling**: If your simulation needs to send data to or receive data from the AnyLogic Agent, implement the `onMessageFromBridge` method in the `BridgeConnection` component to handle incoming messages. Use the `connections.send()` method to send messages from your simulation.
+4. **Implement Message Handling**: If your simulation needs to send data to or receive data from the AnyLogic Agent, implement the `onMessageFromBridge` function in the `BridgeConnection` component to handle incoming messages. Use the `connections.send()` method to send messages from your simulation.
 5. **Test the Integration**: Start the AnyLogic Agent and run your simulation to ensure that data is being correctly sent and received.
 6. **Adjust Simulation Logic as Needed**: Depending on your simulation's requirements, you may need to adjust the logic to accommodate real-time data exchange.
+
+## Interactive Simulation
+
+### Implement your Simulation Logic
+
+- **To handle incoming messages from the Agent:**
+  Implement the function:
+  ```java
+  void onMessageFromBridge(Map<String, Object> message)
+  ```
+  inside `BridgeConnection`.
+
+- **To send received messages to Main**
+  ```java
+  connections.send(message, main);
+  ```
+  inside the body of the `onMessageFromBridge` function inside `BridgeConnection`.
+
+- **To handle messages passed to Main**
+  Inside the `connections` element inside Main write what to do with the message received.
+
+  **Example of actions inside the `connections` element**
+  ```java
+  Map<String, Object> data = (Map<String, Object>) msg.get("data");
+  String variable = (String) data.get("variable");
+
+  "..."
+  
+  else if (variable.equals("executionTime")) {
+    String velocity = (String) data.get("state");
+    if (velocity.equals("low")) {
+      this.executionTime = 6;
+    }
+    else if (velocity.equals("medium")) {
+      this.executionTime = 4;
+    }
+    else if (velocity.equals("high")) {
+      this.executionTime = 2;
+    }
+  }
+  ```

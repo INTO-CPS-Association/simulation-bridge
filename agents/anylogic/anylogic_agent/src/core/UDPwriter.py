@@ -93,7 +93,7 @@ class Writer:
                 msg = yaml.safe_load(body)
                 self._send_udp(sock, msg)
                 ch.basic_ack(method.delivery_tag)
-                logger.info(
+                logger.debug(
                     "Forwarded message to %s:%s for %s (request %s): %s",
                     self.host,
                     self.input_port,
