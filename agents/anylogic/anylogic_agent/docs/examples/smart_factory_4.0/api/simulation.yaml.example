@@ -2,9 +2,10 @@ simulation:
   request_id: abcdef12345
   client_id: dt
   simulator: anylogic
-  type: streaming
+  type: streaming # interactive IF INTERACTIVE MODE
   file: simulation.alp
   inputs:
+    stream_source: "rabbitmq://streaming.inputs.sim123" # IF INTERACTIVE MODE
     i1: "placeholder_for_input_1"
   outputs:
     o1: "placeholder_for_output_1"

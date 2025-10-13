@@ -209,6 +209,13 @@ async def main() -> None:
     client = InteractiveUsageAnylogicAgent("dt", "anylogic", rabbit_cfg)
 
     request_id = str(uuid.uuid4())  # Unique request ID for this simulation
+
+    # Ensure the simulation type is 'interactive'
+    simulation_type = payload["simulation"]["type"]
+    if simulation_type != "interactive":
+        raise ValueError(
+            f"Simulation type must be 'interactive', got '{simulation_type}'")
+
     # Input stream source (RabbitMQ URL)
     stream_source = payload["simulation"]["inputs"]["stream_source"]
     # Extract the routing key for the stream

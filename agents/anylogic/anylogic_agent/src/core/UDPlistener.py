@@ -28,7 +28,8 @@ class Listener:
         udp_cfg = (config.get('udp', {}) or {})
         self.host = host if host is not None else udp_cfg.get(
             'host', 'localhost')
-        self.output_port = output_port if output_port is not None else int(udp_cfg.get('output_port', 9876))
+        self.output_port = output_port if output_port is not None else int(
+            udp_cfg.get('output_port', 9876))
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()
         self._sock: Optional[socket.socket] = None

@@ -1,6 +1,10 @@
 # AnyLogic Simulation – Guidelines and Best Practices
 
-## Batch/Streaming Simulation
+## Batch & Streaming Simulation
+
+> The difference between **Batch** and **Streaming** simulation lies only in the output mode:  
+> Batch simulations produce a single result at the end, while Streaming simulations emit results continuously.  
+> The development and integration process is otherwise identical for both.
 
 A Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
 N.B. For AnyLogic there is no difference between Batch and Streaming simulation .
@@ -74,7 +78,7 @@ This creates a `template/` folder containing `template.alp`, `shared.jar`, and a
 Refer to the example files in the `examples/` folder:
 
 - `smart_factory/simulation.alp`
-- `smart_factory_4.0/simulation.alp`
+- `robot_golem_manufacturing/golem_simulation.alp`
   These files provide reference implementations to help you structure your simulation logic.
 
 ### Existing Simulations integration
@@ -90,41 +94,42 @@ To integrate an existing AnyLogic simulation with the AnyLogic Agent, follow the
 
 ## Interactive Simulation
 
-### Implement your Simulation Logic
+An interactive simulation exchanges messages with the AnyLogic Agent while the model is running. This bidirectional flow lets you react to user input or external systems in real time and push updated state back through the bridge.
 
-- **To handle incoming messages from the Agent:**
-  Implement the function:
-  ```java
-  void onMessageFromBridge(Map<String, Object> message)
-  ```
-  inside `BridgeConnection`.
+### Implement Your Simulation Logic
 
-- **To send received messages to Main**
-  ```java
-  connections.send(message, main);
-  ```
-  inside the body of the `onMessageFromBridge` function inside `BridgeConnection`.
+1. **Handle incoming messages in `BridgeConnection`:**
+   Implement the hook provided in the template so that every message from the Agent is captured.
 
-- **To handle messages passed to Main**
-  Inside the `connections` element inside Main write what to do with the message received.
+   ```java
+   void onMessageFromBridge(Map<String, Object> message)
+   ```
 
-  **Example of actions inside the `connections` element**
-  ```java
-  Map<String, Object> data = (Map<String, Object>) msg.get("data");
-  String variable = (String) data.get("variable");
+2. **Forward messages to `Main`:**
+   Inside `onMessageFromBridge`, pass the payload to the `connections` element so the rest of the model can react.
 
-  "..."
-  
-  else if (variable.equals("executionTime")) {
-    String velocity = (String) data.get("state");
-    if (velocity.equals("low")) {
-      this.executionTime = 6;
-    }
-    else if (velocity.equals("medium")) {
-      this.executionTime = 4;
-    }
-    else if (velocity.equals("high")) {
-      this.executionTime = 2;
-    }
-  }
-  ```
+   ```java
+   connections.send(message, main);
+   ```
+
+3. **Process the message inside `Main`:**
+   In the `connections` element of `Main`, read the fields you expect and update the model state accordingly. The snippet below shows how to branch on a custom `variable` field and adjust model parameters.
+
+   ```java
+   Map<String, Object> data = (Map<String, Object>) msg.get("data");
+   String variable = (String) data.get("variable");
+
+   // Custom logic
+   if ("executionTime".equals(variable)) {
+     String velocity = (String) data.get("state");
+     if ("low".equals(velocity)) {
+       this.executionTime = 6;
+     } else if ("medium".equals(velocity)) {
+       this.executionTime = 4;
+     } else if ("high".equals(velocity)) {
+       this.executionTime = 2;
+     }
+   }
+   ```
+
+Use this structure to fan out to additional variables, trigger events, or drive agents based on the messages you receive.

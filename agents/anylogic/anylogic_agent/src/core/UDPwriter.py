@@ -29,8 +29,10 @@ class Writer:
         on_complete: Optional[Callable[[str], None]] = None,
     ) -> None:
         udp_cfg = (config.get('udp', {}) or {})
-        self.host = host if host is not None else udp_cfg.get('host', 'localhost')
-        self.input_port = input_port if input_port is not None else int(udp_cfg.get('input_port', 9877))
+        self.host = host if host is not None else udp_cfg.get(
+            'host', 'localhost')
+        self.input_port = input_port if input_port is not None else int(
+            udp_cfg.get('input_port', 9877))
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()
         self._sock: Optional[socket.socket] = None
@@ -88,7 +90,7 @@ class Writer:
                 self.request_id,
             )
             self._ready_event.set()
-            
+
             def callback(ch, method, properties, body):
                 msg = yaml.safe_load(body)
                 self._send_udp(sock, msg)
@@ -102,14 +104,16 @@ class Writer:
                     msg,
                 )
 
-            channel.basic_consume(queue=command_queue, on_message_callback=callback)
+            channel.basic_consume(
+                queue=command_queue,
+                on_message_callback=callback)
             try:
                 channel.start_consuming()
             except (KeyboardInterrupt, EOFError):
-                    logger.info("Stopped by user.")
-                    channel.stop_consuming()
-                    connection.close()
-                    self.stop()
+                logger.info("Stopped by user.")
+                channel.stop_consuming()
+                connection.close()
+                self.stop()
 
     def wait_until_ready(self, timeout: float = 5.0) -> bool:
         """Wait until the socket is ready to send."""

@@ -161,7 +161,8 @@ def handle_interactive_simulation(
     listener_thread.start()
 
     # Wait for both to be ready
-    if not writer.wait_until_ready(timeout=5.0) or not listener.wait_until_ready(timeout=5.0):
+    if not writer.wait_until_ready(
+            timeout=5.0) or not listener.wait_until_ready(timeout=5.0):
         writer.stop()
         listener.stop()
         writer_thread.join(timeout=2)
@@ -251,5 +252,6 @@ def _complete_interactive_session(request_id: str) -> None:
     """Finish an interactive session when the writer or listener signals completion."""
     with _SESSIONS_LOCK:
         session = _ACTIVE_SESSIONS.pop(request_id, None)
-    if session and threading.current_thread() is not session.writer_thread and threading.current_thread() is not session.listener_thread:
+    if session and threading.current_thread(
+    ) is not session.writer_thread and threading.current_thread() is not session.listener_thread:
         session.stop()

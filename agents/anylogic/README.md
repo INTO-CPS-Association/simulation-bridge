@@ -148,6 +148,7 @@ This will create:
 
 - `config.yaml`: Configuration file for the agent
 - `client/use_anylogic_agent_streaming.py`: Example client script for streaming simulations
+- `client/use_anylogic_agent_interactive.py`: Example client script for interactive simulations
 - `client/use.yaml`: YAML configuration for the example client script
 - `client/simulation.yaml`: YAML template for defining simulations
 - `client/README.md`: Instructions for using the example client scripts

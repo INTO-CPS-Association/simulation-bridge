@@ -94,7 +94,7 @@ def generate_default_project():
         'client/use_anylogic_agent_streaming.py': (ANYLOGIC_AGENT_RESOURCES,
                                                    'use_anylogic_agent_streaming.py'),
         'client/use_anylogic_agent_interactive.py': (ANYLOGIC_AGENT_RESOURCES,
-                                                   'use_anylogic_agent_interactive.py'),
+                                                     'use_anylogic_agent_interactive.py'),
         'client/use.yaml': (ANYLOGIC_AGENT_RESOURCES,
                             'use.yaml.template'),
         'client/simulation.yaml': (ANYLOGIC_AGENT_API,
