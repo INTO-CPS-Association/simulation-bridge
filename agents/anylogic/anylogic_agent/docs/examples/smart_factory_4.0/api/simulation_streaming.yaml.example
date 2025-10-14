@@ -1,0 +1,10 @@
+simulation:
+  request_id: abcdef12345
+  client_id: dt
+  simulator: anylogic
+  type: streaming
+  file: simulation.alp
+  inputs:
+    i1: "placeholder_for_input_1"
+  outputs:
+    o1: "placeholder_for_output_1"

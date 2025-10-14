@@ -9,7 +9,7 @@ The AnyLogic Agent is a Python-based connector designed to interface with AnyLog
 > Explore the **[Smart Factory 4.0 example](anylogic_agent/docs/examples/smart_factory_4.0/README.md)** to see the AnyLogic Agent in action 🔥
 >
 > <p align="center">
->   <img src="anylogic_agent/images/smart_factory_4.0_video.gif" alt="Smart Factory Animation" width="80%">
+>   <img src="anylogic_agent/images/anylogic_agent_smart_factory_results.gif" alt="Smart Factory Animation" width="80%">
 > </p>
 
 ## Table of Contents

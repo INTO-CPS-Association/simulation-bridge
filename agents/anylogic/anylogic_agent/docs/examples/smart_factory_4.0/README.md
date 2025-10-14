@@ -1,7 +1,21 @@
 # Smart Factory Simulation Model
 
-This example contains the **two-dimensional Smart Factory model**, developed using the **Material Handling Library** in **AnyLogic**.  
-The model simulates a complete automated production line and evaluates the **communication overhead** of bidirectional data exchange between the **Digital Twin (DT)** and the simulation environment through the **DT Simulation Bridge**.
+This AnyLogic simulation model reproduces the physical layout and logic of the **[Fischertechnik Training Factory Industry 4.0 (24V)](https://www.fischertechnik.de/en/products/industry-and-universities/training-models/554868-training-factory-industry-4-0-24v)**, a modular Industry 4.0 training factory used for education and research purposes.
+
+![Fischertechnik Training Factory](../../../images/fischertechnik.png)
+
+#### About the Physical System
+
+The Fischertechnik Training Factory is a small-scale smart factory that demonstrates digitized production processes in real-time, featuring:
+
+- Storage and retrieval units
+- Vacuum gripper robot arms
+- Sensor-equipped conveyors
+- Processing stations (drilling, cutting, etc.)
+
+## Model Description
+
+This example presents a **two-dimensional Smart Factory model** built using AnyLogic's **Material Handling Library**. The simulation models a complete automated production line while evaluating the **communication overhead** of bidirectional data exchange between the **Digital Twin (DT)** and the simulation environment.
 
 <p align="center">
   <img src="../../../images/smart_factory_4.0_video.gif" alt="Smart Factory Animation" width="80%">
@@ -16,7 +30,27 @@ The model simulates a complete automated production line and evaluates the **com
   Smart Factory 4.0&nbsp;&nbsp;|&nbsp;&nbsp; Working Smart Factory 4.0
 </p>
 
-## Overview
+**Results from the simulation can be achieved in real-time through the AnyLogic Agent and the [Simulation Bridge](https://github.com/INTO-CPS-Association/simulation-bridge):**
+
+<p align="center">
+  <img src="../../../images/anylogic_agent_smart_factory_results.gif" alt="AnyLogic Agent Example" width="80%">
+</p>
+
+<p align="center">
+  AnyLogic Agent & Simulation Bridge | Working Smart Factory 4.0
+</p>
+
+## Execution Modes
+
+The simulation supports two distinct operating modes:
+
+**Streaming Mode**  
+The model runs continuously and transmits real-time production data (sensor readings, machine states, throughput metrics) to external systems, mimicking how a live digital twin feeds information to monitoring dashboards or analytics platforms.
+
+**Interactive Mode**  
+Users can actively control and modify simulation parameters during runtime, such as adjusting robotic arm speeds, toggling conveyor operations, or changing processing times at workstations.
+
+## Production Line Overview
 
 The Smart Factory model replicates a realistic industrial production flow, including:
 
