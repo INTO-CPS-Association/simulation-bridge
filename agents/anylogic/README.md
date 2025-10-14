@@ -6,6 +6,12 @@ The AnyLogic Agent is a Python-based connector designed to interface with AnyLog
   <img src="anylogic_agent/images/structure.png" alt="AnyLogic Agent Structure" width="100%"/><br>
 </p>
 
+> Explore the **[Smart Factory 4.0 example](anylogic_agent/docs/examples/smart_factory_4.0/README.md)** to see the AnyLogic Agent in action 🔥
+>
+> <p align="center">
+>   <img src="anylogic_agent/images/smart_factory_4.0_video.gif" alt="Smart Factory Animation" width="80%">
+> </p>
+
 ## Table of Contents
 
 - [AnyLogic Agent](#anylogic-agent)
@@ -199,6 +205,7 @@ Refer to the example client scripts in the `client/` directory for guidance on i
 
 - [**Anylogic Template** ↗](anylogic_agent/resources/TEMPLATE.md): Explanation of the Anylogic agent functionality and configuration.
 - [**Anylogic Simulation Constraints** ↗](anylogic_agent/docs/README.md): A breakdown of the constraints and requirements for Anylogic-driven simulations.
+- [**Smart Factory 4.0 Example** ↗](anylogic_agent/docs/examples/smart_factory_4.0/README.md): A comprehensive example of a Smart Factory simulation model using the AnyLogic Agent.
 
 ## Package Development
 
