@@ -107,7 +107,7 @@ def generate_default_project():
 
     # Descriptions for each file
     file_descriptions = {
-        'config.yaml': "Configuration file for the MATLAB agent",
+        'config.yaml': "Configuration file for the AnyLogic agent",
         'client/use_anylogic_agent_streaming.py': "Example client script for streaming simulations",
         'client/use_anylogic_agent_interactive.py': "Example client script for interactive simulations",
         'client/use.yaml': "YAML configuration for the example client script",
@@ -170,7 +170,7 @@ def generate_default_project():
             print("\nAll project files already exist. Nothing was created.")
         else:
             print(
-                "\nYou can now customize these files as needed and start using the MATLAB agent.")
+                "\nYou can now customize these files as needed and start using the AnyLogic agent.")
 
     except FileNotFoundError:
         print("❌ Error: One or more template files were not found.")

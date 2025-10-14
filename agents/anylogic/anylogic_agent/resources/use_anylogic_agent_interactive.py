@@ -97,7 +97,7 @@ class InteractiveUsageAnylogicAgent:
         self, payload: Dict[str, Any], request_id: str
     ) -> None:
         """
-        Sends the initial request to the MATLAB simulation. This includes necessary
+        Sends the initial request to the AnyLogic simulation. This includes necessary
         metadata and sets up the simulation environment.
 
         """
