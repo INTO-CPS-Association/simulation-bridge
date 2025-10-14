@@ -126,12 +126,9 @@ class InteractiveUsageAnylogicAgent:
         # YOU WILL NEED TO ADJUST THIS FUNCTION TO ALIGN WITH THE SPECIFIC
         # STRUCTURE OF YOUR INPUT FRAMES.
         print(f"[INPUT STREAM] Publishing frames on '{stream_key}' …")
-        for k in range(
-                100):  # Loop for sending a large number of frames (100 max)
-            if self.stop_event.is_set(
-                # Check if the stop event is set (e.g., when simulation is
-                # complete)
-            ):
+        k = 0
+        while True:
+            if self.stop_event.is_set():
                 print("[INPUT STREAM] Received stop signal, ending input stream.")
                 break
 
@@ -142,16 +139,17 @@ class InteractiveUsageAnylogicAgent:
                     "state": "high" if k % 7 == 0 else "low" if k % 5 == 0 else "medium"
                 }
             }
-            # Publish each input frame to the stream exchange
             await self.ex_stream.publish(
                 Message(
                     body=yaml.dump(frame).encode(),
                     content_type="application/x-yaml",
-                    message_id=str(uuid.uuid4()),  # Unique message ID
+                    message_id=str(uuid.uuid4()),
                 ),
                 routing_key=stream_key,
             )
-            await asyncio.sleep(1)  # Small delay to avoid flooding the queue
+
+            k += 1
+            await asyncio.sleep(1)
 
         print("[INPUT STREAM] Input loop finished.")
 
