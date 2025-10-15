@@ -1195,7 +1195,7 @@ else if (variable.equals("executionTime")) {
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759440017254</Id>
+									<Id>1760363809669</Id>
 									<GenericParameterSubstitute>
 										<GenericParameterSubstituteReference>
 											<PackageName><![CDATA[external_connectivity]]></PackageName>
@@ -1231,7 +1231,7 @@ else if (variable.equals("executionTime")) {
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759440017253</Id>
+										<Id>1760363809668</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -1867,7 +1867,7 @@ else if (variable.equals("executionTime")) {
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759440017263</Id>
+									<Id>1760363809677</Id>
 									<ActiveObjectClass>
 										<PackageName><![CDATA[external_connectivity]]></PackageName>
 										<ClassName><![CDATA[Worker]]></ClassName>
@@ -1898,7 +1898,7 @@ else if (variable.equals("executionTime")) {
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759440017262</Id>
+										<Id>1760363809676</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -4374,7 +4374,7 @@ conveyor6.stop();]]></Code>
 							<Value Class="EntityCodeValue">
 								<IsAgentEntity>true</IsAgentEntity>
 								<EntityEmbeddedObject>
-									<Id>1759440017310</Id>
+									<Id>1760363809685</Id>
 									<ActiveObjectClass>
 										<PackageName><![CDATA[external_connectivity]]></PackageName>
 										<ClassName><![CDATA[AGV]]></ClassName>
@@ -4405,7 +4405,7 @@ conveyor6.stop();]]></Code>
 									</LocationNameCode>
 									<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 									<InitializationDatabaseTableQuery>
-										<Id>1759440017309</Id>
+										<Id>1760363809684</Id>
 										<TableReference>
 										</TableReference>
 									</InitializationDatabaseTableQuery>
@@ -7127,7 +7127,7 @@ connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "sy
 								<Value Class="EntityCodeValue">
 									<IsAgentEntity>false</IsAgentEntity>
 									<EntityEmbeddedObject>
-										<Id>1759440017354</Id>
+										<Id>1760363809693</Id>
 										<GenericParameterSubstitute>
 											<GenericParameterSubstituteReference>
 												<PackageName><![CDATA[external_connectivity]]></PackageName>
@@ -7154,7 +7154,7 @@ connections.send(Map.of("simulation_info", Map.of("simulation_time", time(), "sy
 										</LocationNameCode>
 										<InitializationType>LOAD_FROM_DATABASE</InitializationType>
 										<InitializationDatabaseTableQuery>
-											<Id>1759440017353</Id>
+											<Id>1760363809692</Id>
 											<TableReference>
 											</TableReference>
 										</InitializationDatabaseTableQuery>
@@ -10123,7 +10123,7 @@ catch (SocketException e) {
 		.filter(a -> a.getClass().getSimpleName().equals(type))
 		.forEach(a -> agentLink.send(message, a));
 	connections.send(message, main);
-	//System.out.println("The message just received says: " + message);
+	System.out.println("The message just received says: " + message);
 }]]></Body>
 				</Function>
 				<Function AccessType="public" StaticFunction="false">

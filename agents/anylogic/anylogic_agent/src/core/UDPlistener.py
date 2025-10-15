@@ -1,6 +1,5 @@
 import json
 import socket
-import time
 import threading
 from typing import Any, Callable, Dict, Optional
 
@@ -21,14 +20,15 @@ class Listener:
         bridge_meta: Optional[Any] = None,
         *,
         host: Optional[str] = None,
-        port: Optional[int] = None,
+        output_port: Optional[int] = None,
         sim_type: str = 'streaming',
         on_complete: Optional[Callable[[str], None]] = None,
     ) -> None:
         udp_cfg = (config.get('udp', {}) or {})
         self.host = host if host is not None else udp_cfg.get(
             'host', 'localhost')
-        self.port = port if port is not None else int(udp_cfg.get('port', 9876))
+        self.output_port = output_port if output_port is not None else int(
+            udp_cfg.get('output_port', 9876))
         self._stop_event = threading.Event()
         self._ready_event = threading.Event()
         self._sock: Optional[socket.socket] = None
@@ -52,12 +52,12 @@ class Listener:
             with self._lock:
                 self._sock = sock
             try:
-                sock.bind((self.host, self.port))
+                sock.bind((self.host, self.output_port))
             except OSError as exc:
                 logger.error(
                     "UDP listener failed to bind %s:%s for %s: %s",
                     self.host,
-                    self.port,
+                    self.output_port,
                     self.sim_file,
                     exc,
                 )
@@ -66,7 +66,7 @@ class Listener:
             logger.info(
                 "UDP listening on %s:%s for %s (request %s)",
                 self.host,
-                self.port,
+                self.output_port,
                 self.sim_file,
                 self.request_id,
             )

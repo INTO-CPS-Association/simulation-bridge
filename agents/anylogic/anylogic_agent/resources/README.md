@@ -6,6 +6,8 @@ This directory contains a Python client for interacting with an AnyLogic Agent v
 
 - **Streaming Client (`use_anylogic_agent_streaming.py`)**  
    Publishes simulation requests and listens asynchronously for results until the simulation completes.
+- **Interactive Client (`use_anylogic_agent_interactive.py`)**  
+   Publishes simulation requests and asynchronously sends messages until the input loop ends or the simulation completes.
 
 ## Getting Started
 
@@ -17,6 +19,7 @@ This directory contains a Python client for interacting with an AnyLogic Agent v
 
    ```bash
    python use_anylogic_agent_streaming.py --config use.yaml --payload request.yaml
+   python use_anylogic_agent_interactive.py --config use.yaml --payload request.yaml
    ```
 
    By default, if command-line options are not provided, the client searches for these files in the current directory.

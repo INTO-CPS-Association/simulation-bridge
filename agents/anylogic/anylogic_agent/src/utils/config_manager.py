@@ -27,7 +27,7 @@ class Config(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
     # Agent configuration
-    agent_id: str = Field(default="matlab")
+    agent_id: str = Field(default="anylogic")
 
     # RabbitMQ configuration
     rabbitmq_host: str = Field(default="localhost")
@@ -55,7 +55,8 @@ class Config(BaseModel):
 
     # UDP configuration
     udp_host: str = Field(default="localhost")
-    udp_port: int = Field(default=9876)
+    udp_output_port: int = Field(default=9876)
+    udp_input_port: int = Field(default=9877)
 
     # Response templates
     # Success template
@@ -64,7 +65,7 @@ class Config(BaseModel):
     success_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
     success_include_metadata: bool = Field(default=True)
     success_metadata_fields: list[str] = Field(
-        default=["execution_time", "memory_usage", "matlab_version"]
+        default=["execution_time", "memory_usage", "anylogic_version"]
     )
 
     # Error template
@@ -74,7 +75,7 @@ class Config(BaseModel):
     error_codes: Dict[str, int] = Field(
         default={
             "invalid_config": 400,
-            "matlab_start_failure": 500,
+            "anylogic_start_failure": 500,
             "execution_error": 500,
             "timeout": 504,
             "missing_file": 404
@@ -119,7 +120,8 @@ class Config(BaseModel):
             },
             "udp": {
                 "host": self.udp_host,
-                "port": self.udp_port
+                "output_port": self.udp_output_port,
+                "input_port": self.udp_input_port
             },
             "response_templates": {
                 "success": {
@@ -154,7 +156,7 @@ class Config(BaseModel):
 
         # Extract agent section if present
         if agent := config_dict.get("agent", {}):
-            flat_config["agent_id"] = agent.get("agent_id", "matlab")
+            flat_config["agent_id"] = agent.get("agent_id", "anylogic")
 
         # Extract rabbitmq section if present
         if rabbitmq := config_dict.get("rabbitmq", {}):
@@ -195,7 +197,8 @@ class Config(BaseModel):
         # Extract udp section if present
         if udp := config_dict.get("udp", {}):
             flat_config["udp_host"] = udp.get("host", "localhost")
-            flat_config["udp_port"] = udp.get("port", 9876)
+            flat_config["udp_output_port"] = udp.get("output_port", 9876)
+            flat_config["udp_input_port"] = udp.get("input_port", 9877)
 
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
@@ -213,7 +216,7 @@ class Config(BaseModel):
                 flat_config["success_metadata_fields"] = success.get("metadata_fields",
                                                                      ["execution_time",
                                                                       "memory_usage",
-                                                                      "matlab_version"])
+                                                                      "anylogic_version"])
 
             # Error template
             if error := templates.get("error", {}):
@@ -224,7 +227,7 @@ class Config(BaseModel):
                     "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
                 flat_config["error_codes"] = error.get("error_codes", {
                     "invalid_config": 400,
-                    "matlab_start_failure": 500,
+                    "anylogic_start_failure": 500,
                     "execution_error": 500,
                     "timeout": 504,
                     "missing_file": 404

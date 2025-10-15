@@ -28,7 +28,8 @@ logging:
 
 udp:
   host: localhost
-  port: 9876
+  output_port: 9876
+  input_port: 9877
 
 response_templates:
   success:
@@ -40,14 +41,14 @@ response_templates:
     metadata_fields:
       - execution_time
       - memory_usage
-      - matlab_version
+      - anylogic_version
 
   error:
     status: error
     include_stacktrace: false # For security, don't include full stack traces in production
     error_codes:
       invalid_config: 400
-      matlab_start_failure: 500
+      anylogic_start_failure: 500
       execution_error: 500
       timeout: 504
       missing_file: 404

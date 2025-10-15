@@ -1,8 +1,13 @@
 # AnyLogic Simulation – Guidelines and Best Practices
 
-## Streaming Simulation
+## Batch & Streaming Simulation
+
+> The difference between **Batch** and **Streaming** simulation lies only in the output mode:  
+> Batch simulations produce a single result at the end, while Streaming simulations emit results continuously.  
+> The development and integration process is otherwise identical for both.
 
 A Streaming simulation is designed to receive a predefined input configuration at startup and continuously produce real-time outputs during execution. These outputs reflect the internal state of the simulation at each step and are made available to external systems (e.g., The Simulation Bridge) without halting the simulation.
+N.B. For AnyLogic there is no difference between Batch and Streaming simulation .
 
 > ⚠️ Detailed information about the project template lives [here](agents/anylogic/anylogic_agent/resources/template/README.md)
 
@@ -73,7 +78,7 @@ This creates a `template/` folder containing `template.alp`, `shared.jar`, and a
 Refer to the example files in the `examples/` folder:
 
 - `smart_factory/simulation.alp`
-- `smart_factory_4.0/simulation.alp`
+- `robot_golem_manufacturing/golem_simulation.alp`
   These files provide reference implementations to help you structure your simulation logic.
 
 ### Existing Simulations integration
@@ -83,6 +88,48 @@ To integrate an existing AnyLogic simulation with the AnyLogic Agent, follow the
 1. **Open Your Existing Simulation**: Launch AnyLogic and open your existing simulation project.
 2. **Add the BridgeConnection Component**: In the Main agent of your simulation, add the `BridgeConnection` component from the template. This component will handle UDP communication with the AnyLogic Agent.
 3. **Configure the BridgeConnection**: Set the necessary parameters in the `BridgeConnection` component, such as UDP ports and host settings, to match those configured in the AnyLogic Agent.
-4. **Implement Message Handling**: If your simulation needs to send data to or receive data from the AnyLogic Agent, implement the `onMessageFromBridge` method in the `BridgeConnection` component to handle incoming messages. Use the `connections.send()` method to send messages from your simulation.
+4. **Implement Message Handling**: If your simulation needs to send data to or receive data from the AnyLogic Agent, implement the `onMessageFromBridge` function in the `BridgeConnection` component to handle incoming messages. Use the `connections.send()` method to send messages from your simulation.
 5. **Test the Integration**: Start the AnyLogic Agent and run your simulation to ensure that data is being correctly sent and received.
 6. **Adjust Simulation Logic as Needed**: Depending on your simulation's requirements, you may need to adjust the logic to accommodate real-time data exchange.
+
+## Interactive Simulation
+
+An interactive simulation exchanges messages with the AnyLogic Agent while the model is running. This bidirectional flow lets you react to user input or external systems in real time and push updated state back through the bridge.
+
+### Implement Your Simulation Logic
+
+1. **Handle incoming messages in `BridgeConnection`:**
+   Implement the hook provided in the template so that every message from the Agent is captured.
+
+   ```java
+   void onMessageFromBridge(Map<String, Object> message)
+   ```
+
+2. **Forward messages to `Main`:**
+   Inside `onMessageFromBridge`, pass the payload to the `connections` element so the rest of the model can react.
+
+   ```java
+   connections.send(message, main);
+   ```
+
+3. **Process the message inside `Main`:**
+   In the `connections` element of `Main`, read the fields you expect and update the model state accordingly. The snippet below shows how to branch on a custom `variable` field and adjust model parameters.
+
+   ```java
+   Map<String, Object> data = (Map<String, Object>) msg.get("data");
+   String variable = (String) data.get("variable");
+
+   // Custom logic
+   if ("executionTime".equals(variable)) {
+     String velocity = (String) data.get("state");
+     if ("low".equals(velocity)) {
+       this.executionTime = 6;
+     } else if ("medium".equals(velocity)) {
+       this.executionTime = 4;
+     } else if ("high".equals(velocity)) {
+       this.executionTime = 2;
+     }
+   }
+   ```
+
+Use this structure to fan out to additional variables, trigger events, or drive agents based on the messages you receive.
