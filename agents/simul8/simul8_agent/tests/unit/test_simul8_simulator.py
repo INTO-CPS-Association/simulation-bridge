@@ -1,8 +1,11 @@
 """Unit tests for the Simul8 simulator module."""
 
 import pytest
+from pytest import approx
+
 from unittest.mock import Mock, patch, MagicMock
 from pathlib import Path
+
 
 from src.core.simul8_simulator import Simul8Simulator, Simul8SimulationError
 
@@ -85,5 +88,5 @@ class TestSimul8SimulatorMetadata:
             mock_memory_info.rss = 120 * 1024 * 1024  # 120 MB
             mock_process.return_value.memory_info.return_value = mock_memory_info
             metadata = simulator.get_metadata()
-        assert metadata['execution_time'] == 10.0
-        assert metadata['memory_usage'] == 120
+        assert metadata['execution_time'] ==  approx(10.0, rel=1e-9, abs=1e-9)
+        assert metadata['memory_usage'] == approx(120, rel=1e-9, abs=1e-9)
