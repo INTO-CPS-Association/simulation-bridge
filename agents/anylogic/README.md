@@ -284,4 +284,20 @@ autopep8 --in-place --aggressive --recursive anylogic_agent
       </div>
     </div>
   </div>
+    <!-- Matteo Martinelli -->
+  <div style="display: flex; align-items: center; gap: 15px;">
+    <img src="anylogic_agent/images/martinelli.png" width="60" style="border-radius: 50%; border: 2px solid #eee;"/>
+    <div>
+      <h3 style="margin: 0;">Matteo Martinelli</h3>
+      <p style="margin: 4px 0;">Postdoctoral Researcher<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p>
+      <div>
+        <a href="https://www.linkedin.com/in/matteo-martinelli/">
+          <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/>
+        </a>
+        <a href="https://github.com/matteo-martinelli" style="margin-left: 8px;">
+          <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/>
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
