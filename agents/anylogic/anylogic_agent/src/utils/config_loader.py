@@ -15,8 +15,10 @@ from ..utils.logger import get_logger
 # Configure logger
 logger = get_logger()
 
+ANYLOGIC_CONFIG_FILE_TEMPLATE = 'config.yaml.template'
+
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / \
-    "config" / "config.yaml.template"
+    "config" / ANYLOGIC_CONFIG_FILE_TEMPLATE
 
 
 def get_base_dir() -> Path:
@@ -43,7 +45,7 @@ def get_base_dir() -> Path:
     test_dir: Path = Path(__file__).resolve().parent
     while test_dir.parent != test_dir:
         if (test_dir / "config").is_dir() and (test_dir /
-                                               "config" / "config.yaml.template").exists():
+                                               "config" / ANYLOGIC_CONFIG_FILE_TEMPLATE).exists():
             return test_dir
         test_dir = test_dir.parent
 
@@ -68,7 +70,7 @@ def load_config(
     if config_path is None:
         try:
             logger.debug("Loading default configuration file")
-            with resources.open_text("anylogic_agent.config", "config.yaml.template") as f:
+            with resources.open_text("anylogic_agent.config", ANYLOGIC_CONFIG_FILE_TEMPLATE) as f:
                 config = yaml.safe_load(f)
         except FileNotFoundError as exc:
             raise FileNotFoundError(

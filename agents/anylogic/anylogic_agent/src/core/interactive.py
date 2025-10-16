@@ -57,18 +57,12 @@ def handle_interactive_simulation(
     response_templates: Dict[str, Any],
 ) -> None:
     """Start writer and listener to interactively send and receive messages with AnyLogic simulation."""
-
     data = msg_dict.get('simulation', {}) or {}
     request_id = data.get('request_id')
     sim_file = data.get('file')
     bridge_meta = data.get('bridge_meta', 'unknown')
     sim_type = data.get('type', 'interactive')
-    stream_key = data.get('inputs', {}).get('stream_key')
-
-    if not stream_key:
-        stream_source = data.get('inputs', {}).get('stream_source')
-        if stream_source:
-            stream_key = stream_source.replace("rabbitmq://", "")
+    stream_key = _extract_stream_key(data)
 
     if not request_id or not sim_file:
         error_response = create_response(
@@ -150,25 +144,9 @@ def handle_interactive_simulation(
     listener_thread.start()
 
     # Wait for both to be ready
-    if not writer.wait_until_ready(
-            timeout=5.0) or not listener.wait_until_ready(timeout=5.0):
-        writer.stop()
-        listener.stop()
-        writer_thread.join(timeout=2)
-        listener_thread.join(timeout=2)
-        error_response = create_response(
-            template_type='error',
-            sim_file=sim_file,
-            sim_type=sim_type,
-            response_templates=response_templates,
-            bridge_meta=bridge_meta,
-            request_id=request_id,
-            error={
-                'message': 'Interactive writer or listener failed to start',
-                'type': 'start_failure',
-            },
-        )
-        rabbitmq_manager.send_result(source, error_response)
+    if not _wait_for_ready(writer, listener, writer_thread, listener_thread,
+                           source, rabbitmq_manager, sim_file, sim_type,
+                           response_templates, bridge_meta, request_id):
         return
 
     with _SESSIONS_LOCK:
@@ -209,6 +187,53 @@ def handle_interactive_simulation(
         listener.host,
         listener.output_port,
     )
+
+
+def _extract_stream_key(data: Dict[str, Any]) -> Optional[str]:
+    """Extract stream_key from data, checking multiple locations."""
+    stream_key = data.get('inputs', {}).get('stream_key')
+    if not stream_key:
+        stream_source = data.get('inputs', {}).get('stream_source')
+        if stream_source:
+            stream_key = stream_source.replace("rabbitmq://", "")
+    return stream_key
+
+
+def _wait_for_ready(
+    writer: Writer,
+    listener: Listener,
+    writer_thread: threading.Thread,
+    listener_thread: threading.Thread,
+    source: str,
+    rabbitmq_manager: RabbitMQManager,
+    sim_file: str,
+    sim_type: str,
+    response_templates: Dict[str, Any],
+    bridge_meta: str,
+    request_id: str,
+) -> bool:
+    """Wait for writer and listener to be ready. Returns True if successful."""
+    if not writer.wait_until_ready(
+            timeout=5.0) or not listener.wait_until_ready(timeout=5.0):
+        writer.stop()
+        listener.stop()
+        writer_thread.join(timeout=2)
+        listener_thread.join(timeout=2)
+        error_response = create_response(
+            template_type='error',
+            sim_file=sim_file,
+            sim_type=sim_type,
+            response_templates=response_templates,
+            bridge_meta=bridge_meta,
+            request_id=request_id,
+            error={
+                'message': 'Interactive writer or listener failed to start',
+                'type': 'start_failure',
+            },
+        )
+        rabbitmq_manager.send_result(source, error_response)
+        return False
+    return True
 
 
 def _build_completion_callback(request_id: str):

@@ -12,6 +12,8 @@ from .config_loader import load_config
 
 logger = get_logger()
 
+ISO_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
 
 class LogLevel(str, Enum):
     """Supported logging levels."""
@@ -62,7 +64,7 @@ class Config(BaseModel):
     # Success template
     success_status: Literal["success"] = Field(default="success")
     simulation_type: Literal["batch", "streaming"] = Field(default="batch")
-    success_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
+    success_timestamp_format: str = Field(default=ISO_DATETIME_FORMAT)
     success_include_metadata: bool = Field(default=True)
     success_metadata_fields: list[str] = Field(
         default=["execution_time", "memory_usage", "anylogic_version"]
@@ -71,7 +73,7 @@ class Config(BaseModel):
     # Error template
     error_status: Literal["error"] = Field(default="error")
     error_include_stacktrace: bool = Field(default=False)
-    error_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
+    error_timestamp_format: str = Field(default=ISO_DATETIME_FORMAT)
     error_codes: Dict[str, int] = Field(
         default={
             "invalid_config": 400,
@@ -86,7 +88,7 @@ class Config(BaseModel):
     progress_status: Literal["in_progress"] = Field(default="in_progress")
     progress_include_percentage: bool = Field(default=True)
     progress_update_interval: int = Field(default=5)
-    progress_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
+    progress_timestamp_format: str = Field(default=ISO_DATETIME_FORMAT)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the model to a dictionary with nested structure."""
@@ -210,7 +212,7 @@ class Config(BaseModel):
                     flat_config["simulation_type"] = simulation.get(
                         "type", "batch")
                 flat_config["success_timestamp_format"] = success.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
+                    "timestamp_format", ISO_DATETIME_FORMAT)
                 flat_config["success_include_metadata"] = success.get(
                     "include_metadata", True)
                 flat_config["success_metadata_fields"] = success.get("metadata_fields",
@@ -224,7 +226,7 @@ class Config(BaseModel):
                 flat_config["error_include_stacktrace"] = error.get(
                     "include_stacktrace", False)
                 flat_config["error_timestamp_format"] = error.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
+                    "timestamp_format", ISO_DATETIME_FORMAT)
                 flat_config["error_codes"] = error.get("error_codes", {
                     "invalid_config": 400,
                     "anylogic_start_failure": 500,
@@ -242,7 +244,7 @@ class Config(BaseModel):
                 flat_config["progress_update_interval"] = progress.get(
                     "update_interval", 5)
                 flat_config["progress_timestamp_format"] = progress.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
+                    "timestamp_format", ISO_DATETIME_FORMAT)
 
         return cls(**flat_config)
 

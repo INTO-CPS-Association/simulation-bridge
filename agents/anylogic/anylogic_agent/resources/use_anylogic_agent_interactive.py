@@ -119,12 +119,12 @@ class InteractiveUsageAnylogicAgent:
         print(
             f"[INIT] Sent interactive request (rk='{routing_key}') request_id={request_id}")
 
-    async def stream_inputs(self, request_id: str, stream_key: str) -> None:
+    async def stream_inputs(self, stream_key: str) -> None:
         """
         Continuously sends input frames to AnyLogic simulation until completion.
         """
         # YOU WILL NEED TO ADJUST THIS FUNCTION TO ALIGN WITH THE SPECIFIC
-        # STRUCTURE OF YOUR INPUT FRAMES.
+        # STRUCTURE OF YOUR INPUT FRAMES. BELOW IS A SIMPLIFIED EXAMPLE.
         print(f"[INPUT STREAM] Publishing frames on '{stream_key}' …")
         k = 0
         while True:
@@ -132,11 +132,19 @@ class InteractiveUsageAnylogicAgent:
                 print("[INPUT STREAM] Received stop signal, ending input stream.")
                 break
 
+            # Example input frame structure; modify as needed
+            if k % 7 == 0:
+                state = "high"
+            elif k % 5 == 0:
+                state = "low"
+            else:
+                state = "medium"
+
             frame = {
                 "type": "command to be executed",
                 "data": {
                     "variable": "executionTime",
-                    "state": "high" if k % 7 == 0 else "low" if k % 5 == 0 else "medium"
+                    "state": state
                 }
             }
             await self.ex_stream.publish(

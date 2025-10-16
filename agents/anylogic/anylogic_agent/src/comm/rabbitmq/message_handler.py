@@ -116,7 +116,6 @@ class MessageHandler(IRabbitMQMessageHandler):
     ) -> None:
         """
         Process incoming messages from RabbitMQ with Pydantic validation.
-
         Args:
             ch (BlockingChannel): Channel object
             method (Basic.Deliver): Delivery method
@@ -127,154 +126,40 @@ class MessageHandler(IRabbitMQMessageHandler):
         logger.debug("Received message %s", message_id)
         logger.debug("Message routing key: %s", method.routing_key)
 
-        # Extract the message source
         source: str = method.routing_key.split('.')[0]
 
         try:
-            # Load the message body as YAML
-            try:
-                # Initialize msg_dict to avoid reference issues in case of
-                # parsing error
-                msg_dict = {}
-                msg_dict = yaml.safe_load(body)
-                logger.debug("Parsed message: %s", msg_dict)
-            except yaml.YAMLError as e:
-                logger.error("YAML parsing error: %s", e)
-                error_response = create_response(
-                    template_type='error',
-                    sim_file=msg_dict.get('simulation', {}).get(
-                        'file', '') if isinstance(msg_dict, dict) else '',
-                    sim_type=msg_dict.get('simulation', {}).get(
-                        'type', '') if isinstance(msg_dict, dict) else '',
-                    response_templates={},
-                    bridge_meta=msg_dict.get('simulation', {}).get(
-                        'bridge_meta', 'unknown') if isinstance(msg_dict, dict)
-                    else 'unknown',
-                    request_id=msg_dict.get('simulation', {}).get(
-                        'request_id', 'unknown') if isinstance(msg_dict, dict)
-                    else 'unknown',
-                    error={'message': 'YAML parsing error',
-                           'details': str(e), 'type': 'yaml_parse_error'}
-                )
-                self.rabbitmq_manager.send_result(source, error_response)
-                ch.basic_nack(delivery_tag=method.delivery_tag,
-                              requeue=False)  # Don't requeue the message
+            msg_dict = self._parse_yaml_body(body, source, ch, method)
+            if msg_dict is None:
                 return
-            # Validate the message structure using Pydantic
-            try:
-                # Validate the message against our expected schema
-                payload = MessagePayload(**msg_dict)
-                logger.debug("Message validation successful")
-                # Access the validated data
-                simulation_data = payload.simulation
-                sim_type = simulation_data.type
-                sim_file = simulation_data.file
-                bridge_meta = simulation_data.bridge_meta or 'unknown'
-                request_id = simulation_data.request_id
 
-            except Exception as e:
-                logger.error("Message validation failed: %s", e)
-                sim_file = ''
-                sim_type = ''
-                bridge_meta = 'unknown'
-                request_id = 'unknown'
-                if isinstance(msg_dict, dict) and 'simulation' in msg_dict:
-                    sim_data = msg_dict['simulation']
-                    sim_file = sim_data.get('file', '')
-                    sim_type = sim_data.get('type', '')
-                    bridge_meta = sim_data.get('bridge_meta', 'unknown')
-                    request_id = sim_data.get('request_id', 'unknown')
-
-                # Create an error response
-                error_response = create_response(
-                    template_type='error',
-                    sim_file=sim_file,
-                    sim_type=sim_type,
-                    response_templates={},
-                    bridge_meta=bridge_meta,
-                    request_id=request_id,
-                    error={
-                        'message': 'Message validation failed',
-                        'details': str(e),
-                        'type': 'validation_error'
-                    }
-                )
-                # Send the error response back to the source
-                self.rabbitmq_manager.send_result(source, error_response)
-                # Acknowledge the message so it's not requeued
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            validated_data = self._validate_message(
+                msg_dict, source, ch, method)
+            if validated_data is None:
                 return
-            logger.info("Received simulation type: %s", sim_type)
-            logger.debug(
-                (
-                    """Simulation requested: %s of type %s from %s
-                    with request ID %s and bridge meta %s
-                    inputs=%s outputs=%s\nSimulation path:
-                    %s\nResponse templates: %s
-                    \nConfiguration: %s\nRabbitMQ Manager:
-                    %s\nChannel: %s\nMethod: %s\nProperties: %s"""
-                ),
-                sim_file,
-                sim_type,
-                source,
-                request_id,
-                bridge_meta,
-                simulation_data.inputs,
-                simulation_data.outputs,
-                self.path_simulation,
-                self.response_templates,
-                self.config,
-                self.rabbitmq_manager,
-                ch,
-                method,
-                properties,
-            )
 
-            # Open the communication and send results only when a message request is received.
-            # Currently, every time we get a result from the simulator we forward it to the client;
-            # instead, it should be modified so that results are sent only if a message request is present,
-            # while all other simulator outputs must be ignored.
-            # Process based on simulation type
-            if sim_type == 'batch':
-                # TODO: to implement in a separate batch.py file, to manage
-                # batch simulations, HAVE A LOOK TO MATLAB AGENT
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-            elif sim_type == 'streaming':
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                handle_streaming_simulation(
-                    msg_dict,
-                    source,
-                    self.rabbitmq_manager,
-                    self.config,
-                    self.response_templates,
-                )
-            elif sim_type == 'interactive':
-                ch.basic_ack(delivery_tag=method.delivery_tag)
-                handle_interactive_simulation(
-                    msg_dict,
-                    source,
-                    self.rabbitmq_manager,
-                    self.config,
-                    self.response_templates,
-                )
-            else:
-                logger.error("Unknown simulation type: %s", sim_type)
-                error_response = create_response(
-                    template_type='error',
-                    sim_file=sim_file,
-                    sim_type=sim_type,
-                    response_templates={},
-                    bridge_meta=bridge_meta,
-                    request_id=request_id,
-                    error={
-                        'message': f'Unknown simulation type: {sim_type}',
-                        'type': 'invalid_simulation_type'
-                    }
-                )
-                self.rabbitmq_manager.send_result(source, error_response)
-                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            self._process_simulation(
+                validated_data, msg_dict, source, ch, method)
+
         except Exception as e:
             logger.error("Error processing message %s: %s", message_id, e)
+            self._send_error_and_nack(source, ch, method, 'execution_error',
+                                      'Error processing message', str(e))
+
+    def _parse_yaml_body(
+        self,
+        body: bytes,
+        source: str,
+        ch: BlockingChannel,
+        method: Basic.Deliver
+    ) -> dict | None:
+        """Parse YAML body and handle parsing errors."""
+        try:
+            msg_dict = yaml.safe_load(body)
+            logger.debug("Parsed message: %s", msg_dict)
+            return msg_dict
+        except yaml.YAMLError as e:
+            logger.error("YAML parsing error: %s", e)
             error_response = create_response(
                 template_type='error',
                 sim_file='',
@@ -282,15 +167,142 @@ class MessageHandler(IRabbitMQMessageHandler):
                 response_templates={},
                 bridge_meta='unknown',
                 request_id='unknown',
-                error={
-                    'message': 'Error processing message',
-                    'details': str(e),
-                    'type': 'execution_error'
-                }
+                error={'message': 'YAML parsing error',
+                       'details': str(e), 'type': 'yaml_parse_error'}
             )
-            try:
-                self.rabbitmq_manager.send_result(source, error_response)
-            except Exception as send_error:
-                logger.error("Failed to send error response: %s", send_error)
-
+            self.rabbitmq_manager.send_result(source, error_response)
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+            return None
+
+    def _validate_message(
+        self,
+        msg_dict: dict,
+        source: str,
+        ch: BlockingChannel,
+        method: Basic.Deliver
+    ) -> dict | None:
+        """Validate message structure and extract simulation data."""
+        try:
+            payload = MessagePayload(**msg_dict)
+            logger.debug("Message validation successful")
+
+            simulation_data = payload.simulation
+            return {
+                'sim_type': simulation_data.type,
+                'sim_file': simulation_data.file,
+                'bridge_meta': simulation_data.bridge_meta or 'unknown',
+                'request_id': simulation_data.request_id
+            }
+        except Exception as e:
+            logger.error("Message validation failed: %s", e)
+            validated_data = self._extract_simulation_data_fallback(msg_dict)
+            # Still return the data for error reporting
+            return validated_data
+
+    def _extract_simulation_data_fallback(self, msg_dict: dict) -> dict:
+        """Extract simulation data from dict when validation fails."""
+        defaults = {
+            'sim_file': '',
+            'sim_type': '',
+            'bridge_meta': 'unknown',
+            'request_id': 'unknown'
+        }
+
+        if isinstance(msg_dict, dict) and 'simulation' in msg_dict:
+            sim_data = msg_dict['simulation']
+            return {
+                'sim_file': sim_data.get('file', ''),
+                'sim_type': sim_data.get('type', ''),
+                'bridge_meta': sim_data.get('bridge_meta', 'unknown'),
+                'request_id': sim_data.get('request_id', 'unknown')
+            }
+        return defaults
+
+    def _process_simulation(
+        self,
+        validated_data: dict,
+        msg_dict: dict,
+        source: str,
+        ch: BlockingChannel,
+        method: Basic.Deliver
+    ) -> None:
+        """Process simulation based on type."""
+        sim_type = validated_data['sim_type']
+
+        if sim_type == 'batch':
+            # Batch simulations are handled the same way as streaming
+            handle_streaming_simulation(
+                msg_dict, source, self.rabbitmq_manager,
+                self.config, self.response_templates
+            )
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+        elif sim_type == 'streaming':
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            handle_streaming_simulation(
+                msg_dict, source, self.rabbitmq_manager,
+                self.config, self.response_templates
+            )
+        elif sim_type == 'interactive':
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+            handle_interactive_simulation(
+                msg_dict, source, self.rabbitmq_manager,
+                self.config, self.response_templates
+            )
+        else:
+            self._handle_unknown_simulation_type(
+                validated_data, source, ch, method)
+
+    def _handle_unknown_simulation_type(
+        self,
+        validated_data: dict,
+        source: str,
+        ch: BlockingChannel,
+        method: Basic.Deliver
+    ) -> None:
+        """Handle unknown simulation type error."""
+        sim_type = validated_data['sim_type']
+        logger.error("Unknown simulation type: %s", sim_type)
+
+        error_response = create_response(
+            template_type='error',
+            sim_file=validated_data['sim_file'],
+            sim_type=sim_type,
+            response_templates={},
+            bridge_meta=validated_data['bridge_meta'],
+            request_id=validated_data['request_id'],
+            error={
+                'message': f'Unknown simulation type: {sim_type}',
+                'type': 'invalid_simulation_type'
+            }
+        )
+        self.rabbitmq_manager.send_result(source, error_response)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+    def _send_error_and_nack(
+        self,
+        source: str,
+        ch: BlockingChannel,
+        method: Basic.Deliver,
+        error_type: str,
+        error_message: str,
+        error_details: str
+    ) -> None:
+        """Send error response and nack the message."""
+        error_response = create_response(
+            template_type='error',
+            sim_file='',
+            sim_type='',
+            response_templates={},
+            bridge_meta='unknown',
+            request_id='unknown',
+            error={
+                'message': error_message,
+                'details': error_details,
+                'type': error_type
+            }
+        )
+        try:
+            self.rabbitmq_manager.send_result(source, error_response)
+        except Exception as send_error:
+            logger.error("Failed to send error response: %s", send_error)
+        ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
