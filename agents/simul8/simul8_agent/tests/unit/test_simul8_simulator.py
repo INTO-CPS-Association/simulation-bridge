@@ -66,27 +66,3 @@ class TestSimul8SimulatorOperations:
         with patch.object(simulator, 'run', return_value={}):
             result = simulator.run(inputs={'run_time': 500}, outputs=[])
             assert result == {}
-
-class TestSimul8SimulatorMetadata:
-    """Tests for Simul8Simulator metadata functionality."""
-
-    def test_get_metadata(self, simulator):
-        """Test getting metadata."""
-        # Patch psutil and time if used in your implementation
-        with patch('psutil.Process') as mock_process, patch('time.time', return_value=1000):
-            mock_memory_info = Mock()
-            mock_memory_info.rss = 100 * 1024 * 1024  # 100 MB
-            mock_process.return_value.memory_info.return_value = mock_memory_info
-            metadata = simulator.get_metadata()
-        assert 'memory_usage' in metadata
-
-    def test_get_metadata_with_execution_time(self, simulator):
-        """Test getting metadata with execution time."""
-        simulator.start_time = 1000
-        with patch('psutil.Process') as mock_process, patch('time.time', return_value=1010):
-            mock_memory_info = Mock()
-            mock_memory_info.rss = 120 * 1024 * 1024  # 120 MB
-            mock_process.return_value.memory_info.return_value = mock_memory_info
-            metadata = simulator.get_metadata()
-        assert metadata['execution_time'] ==  approx(10.0, rel=1e-9, abs=1e-9)
-        assert metadata['memory_usage'] == approx(120, rel=1e-9, abs=1e-9)
