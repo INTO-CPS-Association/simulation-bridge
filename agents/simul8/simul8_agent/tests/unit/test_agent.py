@@ -1,5 +1,5 @@
 """
-Tests for the MatlabAgent class that interfaces with MATLAB simulations.
+Tests for the simul8Agent class that interfaces with simul8 simulations.
 """
 
 from unittest import mock
@@ -58,7 +58,7 @@ def mock_logger():
 
 
 @pytest.fixture
-def matlab_agent(mock_config_manager, mock_connect):  # pylint: disable=redefined-outer-name,unused-argument
+def simul8_agent(mock_config_manager, mock_connect):  # pylint: disable=redefined-outer-name,unused-argument
     """Create a Simul8Agent instance with mocked dependencies."""
     return Simul8Agent(agent_id="test-agent")
 
