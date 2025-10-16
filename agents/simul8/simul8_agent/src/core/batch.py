@@ -109,7 +109,8 @@ def _handle_simulation(
         
         # Create full file path
         file_path = os.path.join(path_simulation, sim_file) if path_simulation else sim_file
-        
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"Simulation file '{file_path}' not found")
         # Run the simulation
         results = sim.run(file_path=file_path, inputs=inputs)
         
