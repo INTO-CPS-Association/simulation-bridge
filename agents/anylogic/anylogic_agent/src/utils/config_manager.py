@@ -155,98 +155,93 @@ class Config(BaseModel):
         """Create a Config instance from a nested dictionary."""
         # Extract values from nested structure
         flat_config = {}
-
+        
         # Extract agent section if present
         if agent := config_dict.get("agent", {}):
             flat_config["agent_id"] = agent.get("agent_id", "anylogic")
-
+        
         # Extract rabbitmq section if present
         if rabbitmq := config_dict.get("rabbitmq", {}):
             flat_config["rabbitmq_host"] = rabbitmq.get("host", "localhost")
             flat_config["rabbitmq_port"] = rabbitmq.get("port", 5672)
-            flat_config["rabbitmq_username"] = rabbitmq.get(
-                "username", "guest")
-            flat_config["rabbitmq_password"] = rabbitmq.get(
-                "password", "guest")
+            flat_config["rabbitmq_username"] = rabbitmq.get("username", "guest")
+            flat_config["rabbitmq_password"] = rabbitmq.get("password", "guest")
             flat_config["rabbitmq_heartbeat"] = rabbitmq.get("heartbeat", 600)
-            flat_config["rabbitmq_virtual_host"] = rabbitmq.get(
-                "vhost", "/")
+            flat_config["rabbitmq_virtual_host"] = rabbitmq.get("vhost", "/")
             flat_config["rabbitmq_tls"] = rabbitmq.get("tls", False)
-
+        
         if simulation := config_dict.get("simulation", {}):
-            flat_config["simulation_path"] = simulation.get(
-                "path", ".")
-
+            flat_config["simulation_path"] = simulation.get("path", ".")
+        
         # Extract exchanges section if present
         if exchanges := config_dict.get("exchanges", {}):
-            flat_config["input_exchange"] = exchanges.get(
-                "input", "ex.bridge.output")
-            flat_config["output_exchange"] = exchanges.get(
-                "output", "ex.sim.result")
-
+            flat_config["input_exchange"] = exchanges.get("input", "ex.bridge.output")
+            flat_config["output_exchange"] = exchanges.get("output", "ex.sim.result")
+        
         # Extract queue section if present
         if queue := config_dict.get("queue", {}):
             flat_config["queue_durable"] = queue.get("durable", True)
-            flat_config["queue_prefetch_count"] = queue.get(
-                "prefetch_count", 1)
-
+            flat_config["queue_prefetch_count"] = queue.get("prefetch_count", 1)
+        
         # Extract logging section if present
         if logging := config_dict.get("logging", {}):
             flat_config["log_level"] = logging.get("level", LogLevel.INFO)
-            flat_config["log_file"] = logging.get(
-                "file", "logs/anylogic_agent.log")
-
+            flat_config["log_file"] = logging.get("file", "logs/anylogic_agent.log")
+        
         # Extract udp section if present
         if udp := config_dict.get("udp", {}):
             flat_config["udp_host"] = udp.get("host", "localhost")
             flat_config["udp_output_port"] = udp.get("output_port", 9876)
             flat_config["udp_input_port"] = udp.get("input_port", 9877)
-
+        
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
-            # Success template
-            if success := templates.get("success", {}):
-                flat_config["success_status"] = success.get(
-                    "status", "success")
-                if simulation := success.get("simulation", {}):
-                    flat_config["simulation_type"] = simulation.get(
-                        "type", "batch")
-                flat_config["success_timestamp_format"] = success.get(
-                    "timestamp_format", ISO_DATETIME_FORMAT)
-                flat_config["success_include_metadata"] = success.get(
-                    "include_metadata", True)
-                flat_config["success_metadata_fields"] = success.get("metadata_fields",
-                                                                     ["execution_time",
-                                                                      "memory_usage",
-                                                                      "anylogic_version"])
-
-            # Error template
-            if error := templates.get("error", {}):
-                flat_config["error_status"] = error.get("status", "error")
-                flat_config["error_include_stacktrace"] = error.get(
-                    "include_stacktrace", False)
-                flat_config["error_timestamp_format"] = error.get(
-                    "timestamp_format", ISO_DATETIME_FORMAT)
-                flat_config["error_codes"] = error.get("error_codes", {
-                    "invalid_config": 400,
-                    "anylogic_start_failure": 500,
-                    "execution_error": 500,
-                    "timeout": 504,
-                    "missing_file": 404
-                })
-
-            # Progress template
-            if progress := templates.get("progress", {}):
-                flat_config["progress_status"] = progress.get(
-                    "status", "in_progress")
-                flat_config["progress_include_percentage"] = progress.get(
-                    "include_percentage", True)
-                flat_config["progress_update_interval"] = progress.get(
-                    "update_interval", 5)
-                flat_config["progress_timestamp_format"] = progress.get(
-                    "timestamp_format", ISO_DATETIME_FORMAT)
-
+            cls._extract_success_template(templates, flat_config)
+            cls._extract_error_template(templates, flat_config)
+            cls._extract_progress_template(templates, flat_config)
+        
         return cls(**flat_config)
+
+    @classmethod
+    def _extract_success_template(cls, templates: Dict[str, Any], flat_config: Dict[str, Any]) -> None:
+        """Extract success template configuration."""
+        if success := templates.get("success", {}):
+            flat_config["success_status"] = success.get("status", "success")
+            if simulation := success.get("simulation", {}):
+                flat_config["simulation_type"] = simulation.get("type", "batch")
+            flat_config["success_timestamp_format"] = success.get(
+                "timestamp_format", ISO_DATETIME_FORMAT)
+            flat_config["success_include_metadata"] = success.get("include_metadata", True)
+            flat_config["success_metadata_fields"] = success.get("metadata_fields",
+                                                                ["execution_time",
+                                                                "memory_usage",
+                                                                "anylogic_version"])
+
+    @classmethod
+    def _extract_error_template(cls, templates: Dict[str, Any], flat_config: Dict[str, Any]) -> None:
+        """Extract error template configuration."""
+        if error := templates.get("error", {}):
+            flat_config["error_status"] = error.get("status", "error")
+            flat_config["error_include_stacktrace"] = error.get("include_stacktrace", False)
+            flat_config["error_timestamp_format"] = error.get(
+                "timestamp_format", ISO_DATETIME_FORMAT)
+            flat_config["error_codes"] = error.get("error_codes", {
+                "invalid_config": 400,
+                "anylogic_start_failure": 500,
+                "execution_error": 500,
+                "timeout": 504,
+                "missing_file": 404
+            })
+
+    @classmethod
+    def _extract_progress_template(cls, templates: Dict[str, Any], flat_config: Dict[str, Any]) -> None:
+        """Extract progress template configuration."""
+        if progress := templates.get("progress", {}):
+            flat_config["progress_status"] = progress.get("status", "in_progress")
+            flat_config["progress_include_percentage"] = progress.get("include_percentage", True)
+            flat_config["progress_update_interval"] = progress.get("update_interval", 5)
+            flat_config["progress_timestamp_format"] = progress.get(
+                "timestamp_format", ISO_DATETIME_FORMAT)
 
 
 class ConfigManager:

@@ -234,7 +234,7 @@ async def main() -> None:
     # Run both result handler and input stream publisher concurrently
     await asyncio.gather(
         client.handle_results(),
-        client.stream_inputs(request_id, stream_key),
+        client.stream_inputs(stream_key),
     )
 
     print("Simulation client finished.")
