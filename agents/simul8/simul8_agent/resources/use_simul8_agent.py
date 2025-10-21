@@ -209,7 +209,8 @@ if __name__ == "__main__":
 
     try:
         # Determine the simulation payload file to load.
-        # Use CLI-specified payload path if provided, otherwise use default from config.
+        # Use CLI-specified payload path if provided, otherwise use default from
+        # config.
         simulation_file_path = (
             args.api_payload
             if args.api_payload

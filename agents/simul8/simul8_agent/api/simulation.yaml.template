@@ -9,8 +9,7 @@ simulation:
   # Specifies the target system for the simulation.
   # Use 'simul8' to route the request to the Simul8 simulator.
 
-  type: batch
-  # The only simulation type available
+  type: batch # The only simulation type available
 
   file: simulation_batch.s8
   # The name of the Simul8  file to execute for this simulation.
@@ -19,13 +18,12 @@ simulation:
     # Input variables to be passed to the simulation.
     # Customize these key-value pairs as needed for your specific simulation.
     run_time: ..
-    columns: [co2 , energy]
-    r1: [22 , 100]
-    r2: [23 , 200]
+    columns: [..]
+    r1: [..]
 
   outputs:
     # Expected output variables from the simulation.
     # Customize these keys based on what outputs your simulation provides.
-    o1: Total Co2
-    o2: Total Energy
+    o1: ..
+    o2: ..
    
