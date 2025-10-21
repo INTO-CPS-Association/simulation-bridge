@@ -9,6 +9,7 @@ import os
 import sys
 import time
 from typing import Dict, List, Any, Tuple, Optional
+from pathlib import Path
 
 import yaml
 
@@ -116,11 +117,10 @@ def _handle_simulation(
         _send_progress(message_broker, source, sim_file, 0, response_templates)
 
         # Create full file path
-        file_path = os.path.join(path_simulation,
-                                 sim_file) if path_simulation else sim_file
-        if not os.path.isfile(file_path):
+        file_path = Path(path_simulation) 
+        if not file_path.exists ():
             raise FileNotFoundError(f"Simulation file '{file_path}' not found")
-        # Run the simulation
+
         results = sim.run(file_path=file_path, inputs=inputs)
 
         # Get metadata if needed
