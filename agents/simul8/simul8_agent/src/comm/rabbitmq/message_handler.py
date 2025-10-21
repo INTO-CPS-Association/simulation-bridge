@@ -142,7 +142,7 @@ class MessageHandler(IRabbitMQMessageHandler):
                 return
             # Validate the message structure using Pydantic
             try:
-                
+
                 # Validate the message against our expected schema
                 payload = MessagePayload(**msg_dict)
                 logger.debug("Message validation successful")

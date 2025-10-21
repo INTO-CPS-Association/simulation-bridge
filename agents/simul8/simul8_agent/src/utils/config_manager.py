@@ -123,7 +123,7 @@ class Config(BaseModel):
                 "log_dir": self.performance_log_dir,
                 "log_filename": self.performance_log_filename
             },
-            
+
             "response_templates": {
                 "success": {
                     "status": self.success_status,
@@ -204,7 +204,6 @@ class Config(BaseModel):
             flat_config["performance_log_filename"] = performance.get(
                 "log_filename", "performance_metrics.csv")
 
-        
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
             # Success template
