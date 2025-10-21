@@ -86,7 +86,7 @@ def generate_default_project():
     files_to_generate = {
         'config.yaml': ('simul8_agent.config', 'config.yaml.template'),
         'simulation_batch.s8': ('simul8_agent.resources', 'simulation_batch.s8'),
-        'client/use_simul8_agent.py': ('simul8_agent.resources', 'use_simul8_agent.py'),
+        'client/use_simul8_agent_batch.py': ('simul8_agent.resources', 'use_simul8_agent.py'),
         'client/use.yaml': ('simul8_agent.resources', 'use.yaml.template'),
         'client/simulation.yaml': ('simul8_agent.api', 'simulation.yaml.template'),
         'client/README.md': ('simul8_agent.resources', 'README.md'),
@@ -95,7 +95,7 @@ def generate_default_project():
     # Descriptions for each file
     file_descriptions = {
         'config.yaml': "Configuration file for the simul8 agent",
-        'simulation_batch.s8':  "A simulation file for simul8",
+        'simulation_batch.s8': "A simulation file for simul8",
         'client/use_simul8_agent.py': "Python script to use the simul8 agent",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
         'client/simulation.yaml': "Example API payload to communicate with the simul8 agent",
