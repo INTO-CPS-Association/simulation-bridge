@@ -23,6 +23,7 @@ The order of parameters in the YAML file must align **precisely** with the order
 In this example:
 ```
 - Inputs: 
+run_time: 500
 columns: [co2, energy]
     r1: [25, 100]
     r2: [25, 200]
@@ -36,16 +37,18 @@ Below is an example of the "On Simulation Open" Visual Logic  :
 File to Sheet "input.csv" , inputSheet[1,1]
 ``` 
 <br>
-
+You need to create visual logic, which will use the "input.csv".
 Below is an example of visual logic in the "End Run Logic" :
 ##### Visual Logic
-```py
+```python
 SET outputSheet[1,1]  =  "Total CO2"
 SET outputSheet[2,1]  =  "Total Energy"
 SET outputSheet[1,2]  =  inputSheet[1,2]+inputSheet[1,3]
 SET outputSheet[2,2]  =  inputSheet[2,2]+inputSheet[2,3]
 Sheet to File    "output.csv" ,  outputSheet[1,1]
 ```
+*IMPORTANT* The Headers, here seen by the SET outputSheet[1,1]  =  "Total CO2" and  SET outputSheet[2,1]  =  "Total Energy" needs to match the simulation request output text i.e total_co2: Total CO2. If the two do not match, the value in the output defaults to 0.
+
 
 
 
