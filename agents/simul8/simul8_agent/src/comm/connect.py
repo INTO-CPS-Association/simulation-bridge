@@ -12,6 +12,8 @@ from .rabbitmq.message_handler import MessageHandler
 
 logger = get_logger()
 
+BROKER_NOT_INITIALIZED_ERROR = "Broker not initialized"
+
 
 class Connect:
     """
@@ -61,7 +63,7 @@ class Connect:
         if self.broker:
             self.broker.connect()
         else:
-            raise RuntimeError("Broker not initialized")
+            raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
     def setup(self) -> None:
         """
@@ -70,7 +72,7 @@ class Connect:
         if self.broker:
             self.broker.setup_infrastructure()
         else:
-            raise RuntimeError("Broker not initialized")
+            raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
     def register_message_handler(
         self, custom_handler: Optional[Callable] = None
@@ -97,7 +99,7 @@ class Connect:
         Start consuming messages from the input channel.
         """
         if not self.broker:
-            raise RuntimeError("Broker not initialized")
+            raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
         if not self.broker.channel or not self.broker.channel.is_open:
             logger.debug(
@@ -141,7 +143,7 @@ class Connect:
                     exchange, routing_key, message, properties)
             # Handle other broker types here in the future
             return False
-        raise RuntimeError("Broker not initialized")
+        raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
@@ -156,7 +158,7 @@ class Connect:
         """
         if self.broker:
             return self.broker.send_result(destination, result)
-        raise RuntimeError("Broker not initialized")
+        raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
     def close(self) -> None:
         """
