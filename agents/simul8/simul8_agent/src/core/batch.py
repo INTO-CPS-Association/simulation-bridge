@@ -33,14 +33,13 @@ def handle_batch_simulation(
     """Handle a batch simulation request."""
     sim_file: Optional[str] = None  # Initialize this first!
 
-
     # Initialize performance monitor
     operation_id = msg_dict.get('simulation', {}).get('request_id', 'unknown')
 
     performance_monitor = PerformanceMonitor()
     performance_monitor.start_operation(operation_id)
     try:
-        performance_monitor.record_matlab_start()
+        performance_monitor.record_simul8_start()
 
         data: Dict[str, Any] = msg_dict.get('simulation', {})
 
@@ -50,25 +49,33 @@ def handle_batch_simulation(
 
         inputs, outputs, run_time = _extract_io_specs(data)
 
-        sim: Optional[Simul8Simulator] = None
         try:
             logger.info("Starting Simul8 simulation '%s'", sim_file)
             sim = Simul8Simulator(run_time=run_time)
-            performance_monitor.record_matlab_startup_complete()
+            performance_monitor.record_simul8_startup_complete()
 
             # Set expected outputs for the simulator instance
             sim.expected_outputs = outputs
 
-            _send_progress(rabbitmq_manager, source, sim_file, 0, response_templates)
+            _send_progress(
+                rabbitmq_manager,
+                source,
+                sim_file,
+                0,
+                response_templates)
 
             sim_path = Path(path_simulation)
             sim_file_path = sim_path / sim_file
-        
-            results = sim.run(file_path=sim_file_path, inputs=inputs, outputs=outputs)
 
-            metadata = sim.get_metadata() if response_templates.get('success', {}).get('include_metadata', False) else None
+            results = sim.run(
+                file_path=sim_file_path,
+                inputs=inputs,
+                outputs=outputs)
+
+            metadata = sim.get_metadata() if response_templates.get(
+                'success', {}).get('include_metadata', False) else None
             performance_monitor.record_simulation_complete()
-            performance_monitor.record_matlab_stop()
+            performance_monitor.record_simul8_stop()
 
             success_response = create_response(
                 'success', sim_file, 'batch', response_templates,
@@ -78,7 +85,9 @@ def handle_batch_simulation(
             if rabbitmq_manager.send_result(source, success_response):
                 performance_monitor.record_result_sent()
             _send_response(rabbitmq_manager, source, success_response)
-            logger.info("Simul8 simulation '%s' completed successfully", sim_file)
+            logger.info(
+                "Simul8 simulation '%s' completed successfully",
+                sim_file)
         finally:
             performance_monitor.complete_operation()
 
@@ -93,13 +102,11 @@ def handle_batch_simulation(
             f"Exception caught in handle_batch_simulation: {
                 type(e).__name__}: {
                 str(e)}"
-                )
+        )
         logger.error(f"sim_file value at exception: {sim_file}")
         logger.error(f"Exception traceback:", exc_info=True)
 
         _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
-        
-
 
 
 def _validate_simulation_data(
@@ -108,7 +115,7 @@ def _validate_simulation_data(
     sim_file = data.get('file')
     if not sim_file:
         raise ValueError("Missing 'file' in simulation config")
-   
+
     sim_path = Path(path_simulation)
     sim_file_path = sim_path / sim_file
     if not sim_file_path.exists():
@@ -127,7 +134,6 @@ def _extract_io_specs(data: Dict[str, Any]
         raise ValueError("No outputs specified in simulation config")
 
     return inputs, outputs, run_time
-
 
 
 def _send_progress(
@@ -195,8 +201,10 @@ def _determine_error_type(error: Exception) -> str:
     if isinstance(error, FileNotFoundError):
         return 'missing_file'
     if isinstance(error, Simul8SimulationError):
-        return 'simul8_start_failure' if 'simul8 engine' in str(
-            error) else 'execution_error'
+        error_msg = str(error)
+        if 'clsidtoclassmap' in error_msg or 'simul8 engine' in error_msg:
+            return 'com_cache_error'  # Specific for win32com CLSIDToClassMap issues
+        return 'simul8_start_failure' if 'simul8 engine' in error_msg else 'execution_error'
     if isinstance(error, TimeoutError):
         return 'timeout'
     if isinstance(error, ValueError):

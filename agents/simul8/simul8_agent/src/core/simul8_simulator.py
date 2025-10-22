@@ -102,7 +102,7 @@ class Simul8Simulator:
             raise Simul8SimulationError(
                 f"Failed to start Simul8 engine: {
                     str(e)}"
-                    ) from e
+            ) from e
 
     def _create_event_handler(self):
         """Create an event handler class for this simulation instance."""
@@ -136,7 +136,7 @@ class Simul8Simulator:
         original_cwd = os.getcwd()
         try:
             os.chdir(sim_dir)
-           
+
             self.s8.Open(self.actual_file_path)
 
             # Run message loop
@@ -181,7 +181,8 @@ class Simul8Simulator:
             validate_csv_structure(inputs)
 
             # Determine where the S8 file is located (strict: no fallback)
-            if hasattr(self, 'actual_file_path') and getattr(self, 'actual_file_path', None):
+            if hasattr(self, 'actual_file_path') and getattr(
+                    self, 'actual_file_path', None):
                 sim_directory = os.path.dirname(self.actual_file_path)
             elif self.sim_path and self.sim_file:
                 sim_directory = str(self.sim_path)
@@ -192,7 +193,8 @@ class Simul8Simulator:
                 )
 
             if not os.path.isdir(sim_directory):
-                raise FileNotFoundError(f"Simulation directory not found: {sim_directory}")
+                raise FileNotFoundError(
+                    f"Simulation directory not found: {sim_directory}")
 
             input_file_path = os.path.join(sim_directory, "input.csv")
 
@@ -217,71 +219,73 @@ class Simul8Simulator:
                 f"Failed to create input file: {str(e)}", exc_info=True
             )
             raise Simul8SimulationError(f"Error creating input file: {str(e)}")
-        
 
     def _prepare_inputs_to_csv(self, inputs: Optional[Dict[str, Any]]) -> Path:
-            """Prepare inputs and write input.csv next to the simulation file.
-    
-            This function does NOT fall back to any example or CWD paths.
-            It requires valid inputs and a determinable simulation directory
-            (either self.actual_file_path or self.sim_path/self.sim_file).
-            """
-            if not inputs:
-                raise Simul8SimulationError(
-                    "No inputs provided. Simul8 requires structured inputs to generate input.csv."
-                )
-    
-            validate_csv_structure(inputs)
-    
-            if hasattr(self, 'actual_file_path') and getattr(self, 'actual_file_path', None):
-                sim_dir = Path(self.actual_file_path).parent
-            elif self.sim_path and self.sim_file:
-                sim_dir = Path(self.sim_path)
-            else:
-                raise Simul8SimulationError(
-                    "Could not determine directory for input.csv creation. "
-                    "Provide 'path' and 'file' when instantiating Simul8Simulator or set 'actual_file_path'."
-                )
-    
-            if not sim_dir.exists() or not sim_dir.is_dir():
-                raise FileNotFoundError(f"Simulation directory not found: {sim_dir}")
-    
-            input_path = sim_dir / "input.csv"
-    
-            # Write CSV using utility
-            yaml_csv_to_file(inputs, file_path=str(input_path))
-    
-            if not input_path.exists():
-                raise Simul8SimulationError(f"Failed to create input.csv at: {input_path}")
-    
-            return input_path
+        """Prepare inputs and write input.csv next to the simulation file.
+
+        This function does NOT fall back to any example or CWD paths.
+        It requires valid inputs and a determinable simulation directory
+        (either self.actual_file_path or self.sim_path/self.sim_file).
+        """
+        if not inputs:
+            raise Simul8SimulationError(
+                "No inputs provided. Simul8 requires structured inputs to generate input.csv."
+            )
+
+        validate_csv_structure(inputs)
+
+        if hasattr(self, 'actual_file_path') and getattr(
+                self, 'actual_file_path', None):
+            sim_dir = Path(self.actual_file_path).parent
+        elif self.sim_path and self.sim_file:
+            sim_dir = Path(self.sim_path)
+        else:
+            raise Simul8SimulationError(
+                "Could not determine directory for input.csv creation. "
+                "Provide 'path' and 'file' when instantiating Simul8Simulator or set 'actual_file_path'."
+            )
+
+        if not sim_dir.exists() or not sim_dir.is_dir():
+            raise FileNotFoundError(
+                f"Simulation directory not found: {sim_dir}")
+
+        input_path = sim_dir / "input.csv"
+
+        # Write CSV using utility
+        yaml_csv_to_file(inputs, file_path=str(input_path))
+
+        if not input_path.exists():
+            raise Simul8SimulationError(
+                f"Failed to create input.csv at: {input_path}")
+
+        return input_path
 
     def _parse_output_csv(self, output_csv, outputs=None):
         output_path = Path(output_csv)
         if not output_path.exists():
             raise FileNotFoundError(f"Output CSV not found: {output_path}")
-        
+
         # Determine expected output keys
         desired_outputs = outputs if isinstance(outputs, dict) else {}
-        
+
         # Read CSV with headers
         with output_path.open('r', newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
-            
+
             # Read headers
             try:
                 headers = next(reader)
                 headers = [h.strip() for h in headers]
             except StopIteration:
                 raise ValueError(f"CSV file is empty: {output_path}")
-            
+
             # Read first data row
             try:
                 values = next(reader, [])
                 values = [v.strip() if v.strip() else "0" for v in values]
             except StopIteration:
                 values = []
-        
+
         # Create header to value mapping
         csv_data = {}
         for i, header in enumerate(headers):
@@ -289,15 +293,14 @@ class Simul8Simulator:
                 csv_data[header] = values[i] if values[i] else "0"
             else:
                 csv_data[header] = "0"
-        
-        # Map outputs to CSV data by matching header names to output descriptions
+
+        # Map outputs to CSV data by matching header names to output
+        # descriptions
         results = {}
         for key, header_name in desired_outputs.items():
             results[key] = csv_data.get(header_name, "0")
-        
+
         return results
-
-
 
     def run(self, file_path: Optional[Union[str, Path]] = None,
             inputs: Optional[Dict[str, Any]] = None,
@@ -396,7 +399,7 @@ class Simul8Simulator:
                         logger.debug(
                             f"Error closing simulation: {
                                 str(close_error)}"
-                                )
+                        )
 
                     time.sleep(0.5)
 
@@ -432,21 +435,21 @@ class Simul8Simulator:
         except Exception as e:
             logger.warning("Error uninitializing COM: %s", str(e))
 
-        # As a last resort, if cleanup seems to have failed, try force killing processes
+        # As a last resort, if cleanup seems to have failed, try force killing
+        # processes
         try:
             self.force_kill_simul8_processes()
         except Exception as config_error:
             logger.debug(
                 f"Could not check force cleanup config: {
                     str(config_error)}"
-                    )
+            )
             # Optionally, you can uncomment the next line for development/testing:
             # self.force_kill_simul8_processes()
 
     def force_kill_simul8_processes(self) -> None:
         """Force kill any remaining Simul8 processes as a last resort."""
         try:
-            
 
             # Find and terminate Simul8 processes
             killed_processes = []
@@ -462,7 +465,7 @@ class Simul8Simulator:
                             f"Terminated Simul8 process: {
                                 proc.info['name']} (PID: {
                                 proc.info['pid']})"
-                                )
+                        )
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
 
@@ -478,7 +481,7 @@ class Simul8Simulator:
                                 logger.warning(
                                     f"Force killed Simul8 process PID: {
                                         proc.info['pid']}"
-                                        )
+                                )
                     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                         pass
 
