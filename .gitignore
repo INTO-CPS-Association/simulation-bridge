@@ -206,7 +206,7 @@ interactive.py
 # SIMUL8 agent
 agents/simul8/client
 agents/simul8/logs
-
+*.bk8 
 #SIMULATION BRIDGE 
 /logs
 /certs
