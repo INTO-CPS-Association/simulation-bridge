@@ -21,10 +21,10 @@ class PerformanceMetrics:
     operation_id: str
     timestamp: float
     request_received_time: float
-    matlab_start_time: float
-    matlab_startup_duration: float
+    simul8_start_time: float
+    simul8_startup_duration: float
     simulation_duration: float
-    matlab_stop_time: float
+    simul8_stop_time: float
     result_send_time: float
     cpu_percent: float
     memory_rss_mb: float
@@ -135,10 +135,10 @@ class PerformanceMonitor:
             operation_id=operation_id,
             timestamp=time.time(),
             request_received_time=time.time(),
-            matlab_start_time=0.0,
-            matlab_startup_duration=0.0,
+            simul8_start_time=0.0,
+            simul8_startup_duration=0.0,
             simulation_duration=0.0,
-            matlab_stop_time=0.0,
+            simul8_stop_time=0.0,
             result_send_time=0.0,
             cpu_percent=self.process.cpu_percent(),
             memory_rss_mb=self.process.memory_info().rss / (1024 * 1024),
@@ -146,21 +146,21 @@ class PerformanceMonitor:
         )
         logger.debug("Started monitoring operation %s", operation_id)
 
-    def record_matlab_start(self):
+    def record_simul8_start(self):
         """Record the start of MATLAB engine initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
-        self.current_metrics.matlab_start_time = time.time()
+        self.current_metrics.simul8_start_time = time.time()
         self._update_system_metrics()
 
-    def record_matlab_startup_complete(self):
+    def record_simul8_startup_complete(self):
         """Record the completion of MATLAB engine initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
-        startup_duration = time.time() - self.current_metrics.matlab_start_time
-        self.current_metrics.matlab_startup_duration = startup_duration
+        startup_duration = time.time() - self.current_metrics.simul8_start_time
+        self.current_metrics.simul8_startup_duration = startup_duration
         self._update_system_metrics()
         logger.debug("MATLAB startup duration: %.2fs", startup_duration)
 
@@ -170,17 +170,17 @@ class PerformanceMonitor:
             return
 
         self.current_metrics.simulation_duration = (
-            time.time() - self.current_metrics.matlab_start_time -
-            self.current_metrics.matlab_startup_duration
+            time.time() - self.current_metrics.simul8_start_time -
+            self.current_metrics.simul8_startup_duration
         )
         self._update_system_metrics()
 
-    def record_matlab_stop(self):
+    def record_simul8_stop(self):
         """Record the stop of MATLAB engine."""
         if not self.enabled or not self.current_metrics:
             return
 
-        self.current_metrics.matlab_stop_time = time.time()
+        self.current_metrics.simul8_stop_time = time.time()
         self._update_system_metrics()
 
     def record_result_sent(self):
@@ -234,10 +234,10 @@ class PerformanceMonitor:
                 metrics.operation_id,
                 metrics.timestamp,
                 metrics.request_received_time,
-                metrics.matlab_start_time,
-                metrics.matlab_startup_duration,
+                metrics.simul8_start_time,
+                metrics.simul8_startup_duration,
                 metrics.simulation_duration,
-                metrics.matlab_stop_time,
+                metrics.simul8_stop_time,
                 metrics.result_send_time,
                 metrics.cpu_percent,
                 metrics.memory_rss_mb,
@@ -255,7 +255,7 @@ class PerformanceMonitor:
             return {}
 
         startup_times = [
-            m.matlab_startup_duration for m in self.metrics_history]
+            m.simul8_startup_duration for m in self.metrics_history]
         simulation_times = [m.simulation_duration for m in self.metrics_history]
         total_times = [m.total_duration for m in self.metrics_history]
 
