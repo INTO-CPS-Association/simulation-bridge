@@ -1,5 +1,5 @@
 """
-Performance monitoring utilities for the MATLAB agent.
+Performance monitoring utilities for the SIMUL8 agent.
 """
 import csv
 import os
@@ -33,7 +33,7 @@ class PerformanceMetrics:
 
 class PerformanceMonitor:
     """
-    A class to monitor and collect performance metrics for the MATLAB agent.
+    A class to monitor and collect performance metrics for the SIMUL8 agent.
     """
     _instance = None
     _initialized = False
@@ -108,10 +108,10 @@ class PerformanceMonitor:
                     'Operation ID',
                     'Timestamp',
                     'Request Received Time',
-                    'MATLAB Start Time',
-                    'MATLAB Startup Duration (s)',
+                    'SIMUL8 Start Time',
+                    'SIMUL8 Startup Duration (s)',
                     'Simulation Duration (s)',
-                    'MATLAB Stop Time',
+                    'SIMUL8 Stop Time',
                     'Result Send Time',
                     'CPU Usage (%)',
                     'Memory RSS (MB)',
@@ -147,7 +147,7 @@ class PerformanceMonitor:
         logger.debug("Started monitoring operation %s", operation_id)
 
     def record_simul8_start(self):
-        """Record the start of MATLAB engine initialization."""
+        """Record the start of SIMUL8 engine initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
@@ -155,14 +155,14 @@ class PerformanceMonitor:
         self._update_system_metrics()
 
     def record_simul8_startup_complete(self):
-        """Record the completion of MATLAB engine initialization."""
+        """Record the completion of SIMUL8 engine initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
         startup_duration = time.time() - self.current_metrics.simul8_start_time
         self.current_metrics.simul8_startup_duration = startup_duration
         self._update_system_metrics()
-        logger.debug("MATLAB startup duration: %.2fs", startup_duration)
+        logger.debug("SIMUL8 startup duration: %.2fs", startup_duration)
 
     def record_simulation_complete(self):
         """Record the completion of the simulation."""
@@ -176,7 +176,7 @@ class PerformanceMonitor:
         self._update_system_metrics()
 
     def record_simul8_stop(self):
-        """Record the stop of MATLAB engine."""
+        """Record the stop of SIMUL8 engine."""
         if not self.enabled or not self.current_metrics:
             return
 
