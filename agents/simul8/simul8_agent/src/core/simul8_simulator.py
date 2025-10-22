@@ -15,6 +15,7 @@ from pathlib import Path
 import pythoncom
 import subprocess
 import psutil
+import csv
 from win32com import client
 from win32com.client import Dispatch
 from typing import Dict, List, Optional, Any, Union, cast
@@ -135,10 +136,7 @@ class Simul8Simulator:
         original_cwd = os.getcwd()
         try:
             os.chdir(sim_dir)
-            # Optionally set any Simul8 settings to point to input.csv if needed
-            # Example: self.s8.SetInputFile(str(input_csv))  # if API supports it
-            # The input CSV should already have been written by the caller via
-            # _prepare_inputs_to_csv
+           
             self.s8.Open(self.actual_file_path)
 
             # Run message loop
@@ -258,90 +256,48 @@ class Simul8Simulator:
     
             return input_path
 
-    def _parse_output_csv(
-            self, output_csv: Union[str, Path], outputs: Optional[Union[List[str], Dict[str, Any]]] = None) -> Dict[str, Any]:
-        """Parse an OUTPUT.csv produced by Simul8 and map columns to requested outputs.
-
-        Returns a dict of {output_name: value} or raises Simul8SimulationError on failure.
-        """
-        from ..utils.csv_parser import read_csv_to_dict
-
+    def _parse_output_csv(self, output_csv, outputs=None):
         output_path = Path(output_csv)
         if not output_path.exists():
             raise FileNotFoundError(f"Output CSV not found: {output_path}")
-
-        # Build output mapping (csv_header -> desired_output_key)
-        output_mapping: Dict[str, str] = {}
-
-        # Read CSV headers first to enable flexible mappings
-        import csv
-        with output_path.open('r', newline='') as f:
+        
+        # Determine expected output keys
+        desired_outputs = outputs if isinstance(outputs, dict) else {}
+        
+        # Read CSV with headers
+        with output_path.open('r', newline='', encoding='utf-8') as f:
             reader = csv.reader(f)
-            csv_headers = next(reader, [])
-            csv_headers = [h.strip() for h in csv_headers if h and h.strip()]
+            
+            # Read headers
+            try:
+                headers = next(reader)
+                headers = [h.strip() for h in headers]
+            except StopIteration:
+                raise ValueError(f"CSV file is empty: {output_path}")
+            
+            # Read first data row
+            try:
+                values = next(reader, [])
+                values = [v.strip() if v.strip() else "0" for v in values]
+            except StopIteration:
+                values = []
+        
+        # Create header to value mapping
+        csv_data = {}
+        for i, header in enumerate(headers):
+            if i < len(values):
+                csv_data[header] = values[i] if values[i] else "0"
+            else:
+                csv_data[header] = "0"
+        
+        # Map outputs to CSV data by matching header names to output descriptions
+        results = {}
+        for key, header_name in desired_outputs.items():
+            results[key] = csv_data.get(header_name, "0")
+        
+        return results
 
-        if outputs:
-            # If outputs is a list, treat it as ordered desired keys; map by position
-            if isinstance(outputs, list):
-                for i, header in enumerate(csv_headers):
-                    if i < len(outputs):
-                        output_mapping[header] = outputs[i]
-                    else:
-                        output_mapping[header] = header
-            elif isinstance(outputs, dict):
-                
-                keys = list(outputs.keys())
-                vals = list(outputs.values())
-                # If keys look like CSV headers, assume mapping is csv_header->desired_name
-                if any(k in csv_headers for k in keys):
-                    # assume caller provided csv_header -> desired_name
-                    for k, v in outputs.items():
-                        output_mapping[str(k)] = str(v)
-                else:
-                    
-                    def _norm(s: str) -> str:
-                        return ''.join(ch for ch in str(s).lower() if ch.isalnum())
 
-                    for yaml_key, csv_label in outputs.items():
-                        matched = False
-                        n_label = _norm(csv_label)
-                        n_yaml = _norm(yaml_key)
-                        for header in csv_headers:
-                            n_header = _norm(header)
-                            # match by exact normalized label, or by yaml_key normalized == header normalized
-                            if n_header == n_label or n_header == n_yaml or n_label in n_header or n_header in n_label:
-                                output_mapping[header] = yaml_key
-                                matched = True
-                                break
-                        if not matched:
-                            logger.debug(f"CSV header for output '{yaml_key}' not found (expected '{csv_label}')")
-
-        try:
-            results = read_csv_to_dict(
-                str(output_path), output_mapping=output_mapping) or {}
-
-            # Ensure expected YAML keys are present; if missing map them to 0
-            expected_keys: List[str] = []
-            if outputs:
-                if isinstance(outputs, list):
-                    expected_keys = outputs
-                elif isinstance(outputs, dict):
-                    
-                    keys = list(outputs.keys())
-                    if any(k in csv_headers for k in keys):
-                        # desired names are the dict values
-                        expected_keys = [str(v) for v in outputs.values()]
-                    else:
-                        expected_keys = [str(k) for k in outputs.keys()]
-
-            for k in expected_keys:
-                if k not in results:
-                    results[k] = 0
-
-            return results
-        except Exception as e:
-            raise Simul8SimulationError(
-                f"Failed to parse output CSV: {e}") from e
 
     def run(self, file_path: Optional[Union[str, Path]] = None,
             inputs: Optional[Dict[str, Any]] = None,
