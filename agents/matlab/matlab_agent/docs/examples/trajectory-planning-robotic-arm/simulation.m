@@ -67,6 +67,7 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
         
         % Evaluate polynomial at each time step
         Qd(i, :) = polyval(A, time);
+        dQd(i, :) = polyval(polyder(A), time);
     end
     
     %% ========== VISUALIZE START AND GOAL POSES ==========
@@ -96,8 +97,8 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
         % Compute tracking error
         e = Qd(:, counter) - q;
         
-        % Proportional control law
-        u = K * e;
+        % Feedforward + Proportional Control law
+        u = dQd(:, counter) + K * e;
         
         % Integrate joint positions (Euler method)
         dq = u;
@@ -124,7 +125,9 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
     
     % Extend desired trajectory to match simulation length
     Qd_extended = [Qd, repmat(Qd(:, end), 1, length(time_sim) - size(Qd, 2))];
-    
+    % Extend desired velocities to match simulation length
+    dQd_extended = [dQd, repmat(dQd(:, end), 1, length(time_sim) - size(dQd, 2))];
+
     % Compute tracking error for each time step
     error_history = zeros(1, length(time_sim));
     for k = 1:length(time_sim)
@@ -139,7 +142,8 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
     outputs.tracking_error = error_history;         % Tracking error norm over time
     outputs.final_error = norm(q - qg);             % Final tracking error [rad]
     outputs.final_position = q;                     % Final joint configuration [rad]
-    
+    outputs.desired_velocities = dQd;               % Desired Velocities
+
     %% ========== RESULTS VISUALIZATION ==========
     
     if showGui
@@ -166,6 +170,19 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
         ylabel('Tracking Error (norm) [rad]');
         title('Tracking Error vs Time');
         grid on;
+
+        % Plot joint velocities: commanded vs desired
+        figure;
+        plot(time_sim, dQhistory, 'LineWidth', 1.5);   % commanded/actual (6 curves)
+        hold on;
+        plot(time_sim, dQd_extended, '--', 'LineWidth', 1.2);  % desired (dashed)
+        xlabel('Time [s]');
+        ylabel('Joint Velocity [rad/s]');
+        title('Joint Velocities: Commanded vs Desired');
+        grid on;
+        legend({'\omega_1','\omega_2','\omega_3','\omega_4','\omega_5','\omega_6', ...
+                '\omega_{1,d}','\omega_{2,d}','\omega_{3,d}','\omega_{4,d}','\omega_{5,d}','\omega_{6,d}'}, ...
+               'Location','bestoutside');
         
         % Animate robot motion
         figure;

@@ -8,6 +8,7 @@ This MATLAB simulation generates smooth trajectories for a Universal Robots UR10
 
 - **Quintic Polynomial Trajectory Generation**: Ensures smooth motion with continuous position, velocity, and acceleration
 - **Proportional Feedback Control**: Tracks the desired trajectory using a simple P-controller
+- **Velocity Feedforward**: The controller adds the desired joint velocity to the command to reduce lag and tracking error during motion
 - **Real-time Visualization**: Displays robot motion, joint trajectories, and tracking errors
 - **Configurable Parameters**: Customize start/goal poses, duration, and time step
 
@@ -69,18 +70,25 @@ Boundary conditions enforce:
 
 ### 2. Control Law
 
-A proportional controller tracks the desired trajectory:
+The controller uses **proportional feedback with velocity feedforward**:
 
 ```
-u = K · (qd - q)
+u = dqd + K · (qd - q)
 ```
 
 Where:
 
-- `K = 100·I₆` is the proportional gain matrix
-- `qd` is the desired position from the trajectory
-- `q` is the current joint position
-- `u` is the control input (commanded velocity)
+- `qd` and `dqd` are the desired joint position and velocity from the quintic trajectory;
+- `q` is the current joint position;
+- `K = 100·I₆` is the proportional gain matrix;
+- `u` is the commanded joint velocity.
+
+**Why feedforward?**  
+The proportional term `K(qd - q)` corrects the error, but introduces delay (lag) when the trajectory is moving. Adding the **feedforward** term `dqd` provides the control chain with the "right" velocity that the trajectory requires at that instant, reducing:
+
+- lag during the tracking phase,
+- transient tracking error,
+- error peaks during accelerations/slope changes.
 
 ### 3. Integration
 
@@ -90,6 +98,7 @@ Joint positions are updated using Euler integration:
 q(t+Δt) = q(t) + u·Δt
 ```
 
+With `u = dqd + K(qd - q)`, the `dqd` part anticipates the movement required by the trajectory, while `K(qd - q)` cancels the residual error.
 The simulation continues until the trajectory time is reached **and** the final error is below threshold (`1e-5` rad).
 
 ## Visualization
