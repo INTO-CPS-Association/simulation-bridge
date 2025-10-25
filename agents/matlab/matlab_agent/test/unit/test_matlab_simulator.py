@@ -123,8 +123,15 @@ class TestMatlabSimulatorOperations:
         """Test simulation run with empty outputs list."""
         # The actual implementation doesn't check for empty outputs
         # This test should instead check if the return value is an empty dict
+        running_simulator.eng.feval.return_value = (7.0, 8.0)
         result = running_simulator.run({'x': 10}, [])
-        assert result == {}
+        assert result == {
+            'out0': approx(7.0, rel=1e-9, abs=1e-9),
+            'out1': approx(8.0, rel=1e-9, abs=1e-9),
+        }
+        running_simulator.eng.feval.assert_called_with(
+            'simulation_batch', 10.0, nargout=0
+        )
 
     def test_run_without_start(self, simulator):
         """Test attempting to run without starting the engine."""
