@@ -106,16 +106,13 @@ class MatlabSimulator:
             logger.error(msg, exc_info=True)
             raise MatlabSimulationError(msg) from e
 
-    def _process_results(self,
-                         result: Union[Any, Tuple[Any, ...]],
-                         outputs: List[str]) -> Dict[str, Any]:
-        """Process MATLAB results into Python types."""
-        if len(outputs) == 1:
-            return {outputs[0]: self._from_matlab(result)}
-        return {
-            name: self._from_matlab(
-                result[i]) for i,
-            name in enumerate(outputs)}
+    def _process_results(self, result, outputs):
+        to_py = self._from_matlab
+        if isinstance(result, dict): return {k: to_py(v) for k, v in result.items()}
+        if len(outputs) == 1 and not isinstance(result, (list, tuple)): return {outputs[0]: to_py(result)}
+        seq = result if isinstance(result, (list, tuple)) else [result]
+        names = outputs or [f"out{i}" for i in range(len(seq))]
+        return {n: to_py(v) for n, v in zip(names, seq)}
 
     def get_metadata(self) -> Dict[str, Any]:
         """Get metadata about the simulation execution."""
