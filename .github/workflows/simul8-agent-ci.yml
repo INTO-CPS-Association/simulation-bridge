@@ -1,0 +1,95 @@
+name: SIMUL8 Agent CI
+
+on:
+  pull_request:
+    paths:
+      - "agents/simul8/**"
+      - ".github/workflows/simul8-agent-ci.yml"
+
+jobs:
+  ci:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    # All commands run inside the agent directory
+    defaults:
+      run:
+        working-directory: agents/simul8
+
+    steps:
+      # ───── 1. Checkout ─────
+      - uses: actions/checkout@v4
+
+      # ───── 2. Python + Poetry ─────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        env:
+          POETRY_HOME: ${{ runner.temp }}/poetry
+        run: |
+          python -m pip install --upgrade pip
+          curl -sSL https://install.python-poetry.org | python -
+
+      - name: Add Poetry to PATH (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
+
+      - name: Add Poetry to PATH (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: echo "${{ runner.temp }}\poetry\bin" |
+          Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
+      # ───── 3. Install dev deps once ─────
+      - name: Install dev dependencies
+        run: poetry install --with dev
+
+      # ───── 4. Format check ─────
+      - name: Check formatting (non-blocking)
+        continue-on-error: true
+        run: poetry run autopep8 --recursive --diff simul8_agent
+
+      # ───── 5. Lint ─────
+      - name: Run pylint (min score 9.0)
+        run: poetry run pylint simul8_agent --fail-under=9
+
+      # ───── 6. Tests ─────
+      - name: Run pytest (with coverage)
+        if: matrix.os == 'ubuntu-latest'
+        run: poetry run pytest --cov=simul8_agent --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      # Windows/macOS → test without coverage
+      - name: Run pytest (no coverage)
+        if: matrix.os != 'ubuntu-latest'
+        run: poetry run pytest -q
+
+      # ───── 7. Build + dist artefacts ─────
+      - name: Install runtime dependencies
+        run: poetry install --only main
+
+      - name: Build wheel and sdist
+        run: |
+          poetry build --format wheel
+          poetry build --format sdist
+
+      - name: Upload dist artefacts
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: simul8-agent-dist
+          path: |
+            agents/simul8/dist/*.whl
+            agents/simul8/dist/*.tar.gz
+          retention-days: 1 # minimum allowed (≈24 h)
