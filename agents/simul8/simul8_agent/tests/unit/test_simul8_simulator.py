@@ -6,7 +6,6 @@ from src.utils.csv_parser import CSVFormatError
 import psutil
 import pytest
 
-
 @pytest.fixture(name="sim_path")
 def _sim_path_fixture():
     """Provide a standard simulation path."""
@@ -131,7 +130,7 @@ class TestSimul8SimulatorInitialization:
                 assert simulator.events == mock_event_handler
                 
                 # Verify start time was set
-                assert simulator.start_time == 1000.0
+                assert simulator.start_time == pytest.approx(1000.0, rel=1e-9)
     
         def test_start_sets_start_time(self, simulator):
             """Test that start() sets the start_time attribute."""
@@ -141,9 +140,9 @@ class TestSimul8SimulatorInitialization:
                     patch('time.time', return_value=12345.67):
                 
                 simulator.start()
-                
-                assert simulator.start_time == 12345.67
-    
+
+                assert simulator.start_time == pytest.approx(12345.67, rel=1e-9)
+
         def test_start_creates_event_handler(self, simulator):
             """Test that start() creates and attaches event handler."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
@@ -704,7 +703,7 @@ class TestSetSimulationInputs:
 
             # Verify path is correct
             assert captured_path == str(Path(sim_dir) / "input.csv")
-            assert "input.csv" in captured_path
+            assert captured_path.endswith("input.csv")
 
 
 class TestEventHandler:
@@ -1062,12 +1061,11 @@ class TestGetMetadata:
     def test_get_metadata_with_execution_time(self, simulator):
         """Test metadata includes execution time when available."""
         simulator.start_time = 1000.0
-
         with patch('time.time', return_value=1010.0):
             metadata = simulator.get_metadata()
 
             assert 'execution_time' in metadata
-            assert metadata['execution_time'] == 10.0
+            assert metadata['execution_time'] == pytest.approx(10.0, rel=1e-5)
 
     def test_get_metadata_without_start_time(self, simulator):
         """Test metadata when start_time not set."""
