@@ -11,14 +11,16 @@ Simul8 computational workloads.
 
 import os
 import time
-from pathlib import Path
-import pythoncom
+
 import subprocess
-import psutil
 import csv
+from pathlib import Path
+import gc
+from typing import Dict, List, Optional, Any, Union, cast
+import pythoncom
 from win32com import client
 from win32com.client import Dispatch
-from typing import Dict, List, Optional, Any, Union, cast
+import psutil
 
 
 from ..utils.csv_parser import validate_csv_structure
@@ -173,11 +175,10 @@ class Simul8Simulator:
                 "{'columns': ['col1', 'col2'], 'r1': ['val1', 'val2'], ...}"
             )
 
-        logger.info(f"Processing {len(inputs)} input parameters")
+        logger.info("Processing %d input parameters", len(inputs))
 
         try:
             # Validate that inputs have the correct CSV structure
-            from ..utils.csv_parser import validate_csv_structure
             validate_csv_structure(inputs)
 
             # Determine where the S8 file is located (strict: no fallback)
@@ -203,22 +204,22 @@ class Simul8Simulator:
 
             yaml_csv_to_file(inputs, file_path=input_file_path)
 
-            logger.debug(f"Created input file at: {input_file_path}")
+            logger.debug("Created input file at: %s", input_file_path)
 
             # Verify the file was created
             if os.path.exists(input_file_path):
                 with open(input_file_path, 'r') as f:
                     content = f.read()
-                    logger.debug(f"File content:\n{content}")
+                    logger.debug("File content:\n%s", content)
             else:
                 raise Simul8SimulationError(
-                    f"Failed to create input.csv at: {input_file_path}")
+                    "Failed to create input.csv at: %s", input_file_path)
 
         except Exception as e:
             logger.error(
-                f"Failed to create input file: {str(e)}", exc_info=True
+                "Failed to create input file: %s", str(e), exc_info=True
             )
-            raise Simul8SimulationError(f"Error creating input file: {str(e)}")
+            raise Simul8SimulationError("Error creating input file: %s", str(e))
 
     def _prepare_inputs_to_csv(self, inputs: Optional[Dict[str, Any]]) -> Path:
         """Prepare inputs and write input.csv next to the simulation file.
@@ -321,12 +322,6 @@ class Simul8Simulator:
         # Remember the actual sim file path so helper methods write next to it
         self.actual_file_path = str(file_path)
         # also set sim_path and sim_file for other helpers
-        try:
-            self.sim_path = Path(self.actual_file_path).parent
-            self.sim_file = Path(self.actual_file_path).name
-        except Exception:
-            # best-effort assignment; continue if something unexpected
-            pass
 
         # 1. write input CSV
         input_csv = self._prepare_inputs_to_csv(inputs)
@@ -341,7 +336,7 @@ class Simul8Simulator:
         try:
             self._cleanup_temp_files()
         except Exception as e:
-            logger.debug(f"Could not remove temp files after run: {e}")
+            logger.debug("Could not remove temp files after run: %s", e)
 
         return results
 
@@ -380,9 +375,9 @@ class Simul8Simulator:
             try:
                 if p.exists():
                     p.unlink()
-                    logger.debug(f"Removed temp file: {p}")
+                    logger.debug("Removed temp file: %s", p)
             except Exception as e:
-                logger.warning(f"Failed to remove temp file {p}: {e}")
+                logger.warning("Failed to remove temp file %s: %s", p, e)
 
     def cleanup(self) -> None:
         """Clean up COM resources and temporary files."""
@@ -397,11 +392,10 @@ class Simul8Simulator:
                         logger.debug("Closed Simul8 simulation")
                     except Exception as close_error:
                         logger.debug(
-                            f"Error closing simulation: {
-                                str(close_error)}"
-                        )
+                            "Error closing simulation: %s",
+                            str(close_error))
 
-                    time.sleep(0.5)
+                    time.sleep(5)
 
                 except Exception as quit_error:
                     logger.warning(
@@ -426,7 +420,7 @@ class Simul8Simulator:
         # Uninitialize COM (this should match the CoInitialize call)
         try:
             # Force garbage collection to release any remaining COM references
-            import gc
+
             gc.collect()
             time.sleep(3)
 
@@ -441,11 +435,8 @@ class Simul8Simulator:
             self.force_kill_simul8_processes()
         except Exception as config_error:
             logger.debug(
-                f"Could not check force cleanup config: {
-                    str(config_error)}"
-            )
-            # Optionally, you can uncomment the next line for development/testing:
-            # self.force_kill_simul8_processes()
+                "Could not check force cleanup config: %s",
+                str(config_error))
 
     def force_kill_simul8_processes(self) -> None:
         """Force kill any remaining Simul8 processes as a last resort."""
@@ -462,10 +453,10 @@ class Simul8Simulator:
                         proc.terminate()
                         killed_processes.append(proc.info['pid'])
                         logger.warning(
-                            f"Terminated Simul8 process: {
-                                proc.info['name']} (PID: {
-                                proc.info['pid']})"
-                        )
+                            "Terminated Simul8 process: %s (PID: %s)",
+                            proc.info['name'],
+                            proc.info['pid'])
+
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
 
@@ -479,9 +470,7 @@ class Simul8Simulator:
                             if proc.is_running():
                                 proc.kill()
                                 logger.warning(
-                                    f"Force killed Simul8 process PID: {
-                                        proc.info['pid']}"
-                                )
+                                    "Force killed Simul8 process PID: %s", proc.info['pid'])
                     except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                         pass
 
@@ -489,4 +478,4 @@ class Simul8Simulator:
             logger.warning(
                 "psutil not available - cannot force kill Simul8 processes")
         except Exception as e:
-            logger.error(f"Error force killing Simul8 processes: {str(e)}")
+            logger.error("Error force killing Simul8 processes: %s", str(e))

@@ -95,16 +95,16 @@ def handle_batch_simulation(
                 try:
                     sim.cleanup()
                 except Exception as cleanup_error:
-                    logger.error(f"Error during cleanup: {cleanup_error}")
+                    logger.error("Error during cleanup %s", cleanup_error)
 
     except Exception as e:
         logger.error(
-            f"Exception caught in handle_batch_simulation: {
-                type(e).__name__}: {
-                str(e)}"
+            "Exception caught in handle_batch_simulation: %s: %s",
+            type(e).__name__,
+            str(e)
         )
-        logger.error(f"sim_file value at exception: {sim_file}")
-        logger.error(f"Exception traceback:", exc_info=True)
+        logger.error("sim_file value at exception: %s", sim_file)
+        logger.error("Exception traceback:", exc_info=True)
 
         _handle_error(e, sim_file, rabbitmq_manager, source, response_templates)
 
@@ -118,8 +118,9 @@ def _validate_simulation_data(
 
     sim_path = Path(path_simulation)
     sim_file_path = sim_path / sim_file
-    if not sim_file_path.exists():
-        raise FileNotFoundError(f"Simulation file '{sim_file_path}' not found")
+    if not sim_file_path.is_file():
+        raise FileNotFoundError(
+            f"Simulation file {sim_file_path} not found or is not a regular file")
     return sim_file
 
 
@@ -203,7 +204,7 @@ def _determine_error_type(error: Exception) -> str:
     if isinstance(error, Simul8SimulationError):
         error_msg = str(error)
         if 'clsidtoclassmap' in error_msg or 'simul8 engine' in error_msg:
-            return 'com_cache_error'  # Specific for win32com CLSIDToClassMap issues
+            return 'com_cache_error'
         return 'simul8_start_failure' if 'simul8 engine' in error_msg else 'execution_error'
     if isinstance(error, TimeoutError):
         return 'timeout'
