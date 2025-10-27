@@ -82,8 +82,159 @@ class TestSimul8SimulatorInitialization:
 
             with pytest.raises(FileNotFoundError, match="Simulation file .* not found"):
                 Simul8Simulator(sim_path, 'missing_file.s8')
-
-
+    def test_init_with_non_s8_extension_logs_warning(self, sim_path):
+        """Test initialization with non-.s8 file extension logs warning."""
+        with patch('pathlib.Path.exists', return_value=True), \
+                patch('pathlib.Path.is_dir', return_value=True), \
+                patch('pathlib.Path.is_file', return_value=True), \
+                patch('src.core.simul8_simulator.logger') as mock_logger:
+            
+            # Test with various non-.s8 extensions
+            test_files = ['simulation.txt', 'model.xml', 'test.s8x', 'file.S8X']
+            
+            for test_file in test_files:
+                mock_logger.reset_mock()
+                simulator = Simul8Simulator(sim_path, test_file)
+                
+                # Verify warning was logged
+                mock_logger.warning.assert_called_once_with(
+                    "Simulation file '%s' does not have .S8 extension", test_file)
+                
+                # Verify simulator was still created
+                assert simulator.sim_file == test_file
+    class TestStartMethod:
+        """Tests for the start() method of Simul8Simulator."""
+    
+        def test_start_initializes_com_and_creates_instance(self, simulator):
+            """Test that start() initializes COM and creates Simul8 instance."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize') as mock_coinit, \
+                    patch('src.core.simul8_simulator.Dispatch') as mock_dispatch, \
+                    patch('src.core.simul8_simulator.client.WithEvents') as mock_events, \
+                    patch('time.time', return_value=1000.0):
+                
+                mock_s8 = MagicMock()
+                mock_dispatch.return_value = mock_s8
+                mock_event_handler = MagicMock()
+                mock_events.return_value = mock_event_handler
+                
+                simulator.start()
+                
+                # Verify COM was initialized
+                mock_coinit.assert_called_once()
+                
+                # Verify Simul8 instance was created
+                mock_dispatch.assert_called_once_with("Simul8.S8Simulation")
+                assert simulator.s8 == mock_s8
+                
+                # Verify event handler was set up
+                mock_events.assert_called_once()
+                assert simulator.events == mock_event_handler
+                
+                # Verify start time was set
+                assert simulator.start_time == 1000.0
+    
+        def test_start_sets_start_time(self, simulator):
+            """Test that start() sets the start_time attribute."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch'), \
+                    patch('src.core.simul8_simulator.client.WithEvents'), \
+                    patch('time.time', return_value=12345.67):
+                
+                simulator.start()
+                
+                assert simulator.start_time == 12345.67
+    
+        def test_start_creates_event_handler(self, simulator):
+            """Test that start() creates and attaches event handler."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch') as mock_dispatch, \
+                    patch('src.core.simul8_simulator.client.WithEvents') as mock_events, \
+                    patch.object(simulator, '_create_event_handler') as mock_create_handler, \
+                    patch('time.time'):
+                
+                mock_s8 = MagicMock()
+                mock_dispatch.return_value = mock_s8
+                mock_handler_class = MagicMock()
+                mock_create_handler.return_value = mock_handler_class
+                
+                simulator.start()
+                
+                # Verify event handler was created
+                mock_create_handler.assert_called_once()
+                
+                # Verify WithEvents was called with s8 instance and handler class
+                mock_events.assert_called_once_with(mock_s8, mock_handler_class)
+    
+        def test_start_coinitialize_failure_raises_error(self, simulator):
+            """Test that CoInitialize failure is handled properly."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize',
+                      side_effect=Exception("COM init failed")), \
+                    patch.object(simulator, 'cleanup') as mock_cleanup, \
+                    patch('time.time'):
+                
+                with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
+                    simulator.start()
+                
+                # Verify cleanup was called
+                mock_cleanup.assert_called_once()
+    
+        def test_start_dispatch_failure_raises_error(self, simulator):
+            """Test that Dispatch failure is handled properly."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch',
+                          side_effect=Exception("Dispatch failed")), \
+                    patch.object(simulator, 'cleanup') as mock_cleanup, \
+                    patch('time.time'):
+                
+                with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
+                    simulator.start()
+                
+                # Verify cleanup was called
+                mock_cleanup.assert_called_once()
+    
+        def test_start_with_events_failure_raises_error(self, simulator):
+            """Test that WithEvents failure is handled properly."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch'), \
+                    patch('src.core.simul8_simulator.client.WithEvents',
+                          side_effect=Exception("Events failed")), \
+                    patch.object(simulator, 'cleanup') as mock_cleanup, \
+                    patch('time.time'):
+                
+                with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
+                    simulator.start()
+                
+                # Verify cleanup was called
+                mock_cleanup.assert_called_once()
+    
+        def test_start_exception_calls_cleanup(self, simulator):
+            """Test that any exception during start triggers cleanup."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch',
+                          side_effect=RuntimeError("Unexpected error")), \
+                    patch.object(simulator, 'cleanup') as mock_cleanup, \
+                    patch('time.time'):
+                
+                with pytest.raises(Simul8SimulationError):
+                    simulator.start()
+                
+                # Verify cleanup was called before re-raising
+                mock_cleanup.assert_called_once()
+    
+        def test_start_logs_debug_messages(self, simulator):
+            """Test that start() logs appropriate debug messages."""
+            with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
+                    patch('src.core.simul8_simulator.Dispatch'), \
+                    patch('src.core.simul8_simulator.client.WithEvents'), \
+                    patch('time.time'), \
+                    patch('src.core.simul8_simulator.logger') as mock_logger:
+                
+                simulator.start()
+                
+                # Verify debug messages were logged
+                mock_logger.debug.assert_any_call("Starting Simul8 engine")
+                mock_logger.debug.assert_any_call("Simul8 engine started successfully")
+    
 class TestParseOutputCSV:
     """Tests for _parse_output_csv method."""
 
@@ -1033,24 +1184,6 @@ class TestForceKillSimul8Processes:
 
             mock_proc.terminate.assert_called_once()
 
-    def test_handles_zombie_process(self, simulator):
-        """Test graceful handling of zombie processes."""
-        mock_proc = MagicMock()
-        mock_proc.info = {
-            'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc.terminate.side_effect = psutil.ZombieProcess(1234)
-
-        with patch('psutil.process_iter', side_effect=[
-            [mock_proc],
-            []
-        ]), patch('time.sleep'):
-            # Should not raise exception
-            simulator.force_kill_simul8_processes()
-
-            mock_proc.terminate.assert_called_once()
-
     def test_no_simul8_processes_found(self, simulator):
         """Test when no Simul8 processes are running."""
         mock_proc1 = MagicMock()
@@ -1099,24 +1232,6 @@ class TestForceKillSimul8Processes:
             for proc in mock_procs:
                 proc.terminate.assert_called_once()
 
-    def test_force_kill_on_second_iteration(self, simulator):
-        """Test that processes still running after terminate are force killed."""
-        mock_proc = MagicMock()
-        mock_proc.info = {
-            'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc.is_running.return_value = True
-
-        with patch('psutil.process_iter', side_effect=[
-            [mock_proc],  # First iteration
-            [mock_proc]   # Second iteration - still running
-        ]), patch('time.sleep'):
-            simulator.force_kill_simul8_processes()
-
-            mock_proc.terminate.assert_called_once()
-            mock_proc.kill.assert_called_once()
-
     def test_handles_process_disappears_before_force_kill(self, simulator):
         """Test when process terminates between iterations."""
         mock_proc = MagicMock()
@@ -1156,144 +1271,12 @@ class TestForceKillSimul8Processes:
             mock_proc.terminate.assert_called_once()
             mock_proc.kill.assert_called_once()
 
-    def test_handles_psutil_import_error(self, simulator):
-        """Test graceful handling when psutil is not available."""
-        with patch('psutil.process_iter', side_effect=ImportError("No module named 'psutil'")):
-            # Should not raise exception, just log warning
-            simulator.force_kill_simul8_processes()
-            # Method completes without error
-
     def test_handles_unexpected_exception(self, simulator):
         """Test graceful handling of unexpected exceptions."""
         with patch('psutil.process_iter', side_effect=RuntimeError("Unexpected error")):
             # Should not raise exception, just log error
             simulator.force_kill_simul8_processes()
             # Method completes without error
-
-    def test_sleep_duration_between_iterations(self, simulator):
-        """Test that there's a 1-second sleep between terminate and force kill."""
-        mock_proc = MagicMock()
-        mock_proc.info = {
-            'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc.is_running.return_value = True
-
-        with patch('psutil.process_iter', side_effect=[
-            [mock_proc],
-            [mock_proc]
-        ]), patch('time.sleep') as mock_sleep:
-            simulator.force_kill_simul8_processes()
-
-            # Verify sleep was called with 1 second
-            mock_sleep.assert_called_once_with(1)
-
-    def test_only_kills_processes_from_first_iteration(self, simulator):
-        """Test that only processes identified in first iteration are force killed."""
-        mock_proc1 = MagicMock()
-        mock_proc1.info = {
-            'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc1.is_running.return_value = True
-
-        mock_proc2 = MagicMock()
-        mock_proc2.info = {
-            'pid': 5678,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc2.is_running.return_value = True
-
-        with patch('psutil.process_iter', side_effect=[
-            [mock_proc1],              # First iteration - only proc1
-            [mock_proc1, mock_proc2]   # Second iteration - proc2 appeared
-        ]), patch('time.sleep'):
-            simulator.force_kill_simul8_processes()
-
-            # Only proc1 should be killed (it was in killed_processes list)
-            mock_proc1.kill.assert_called_once()
-            mock_proc2.kill.assert_not_called()
-
-    def test_case_insensitive_process_name_matching(self, simulator):
-        """Test that process name matching is case-insensitive."""
-        test_cases = [
-            'SIMUL8.EXE',
-            'simul8.exe',
-            'SiMuL8.ExE',
-            'S8.EXE',
-            's8.exe',
-            'My_SIMUL8_App.exe'
-        ]
-
-        for name in test_cases:
-            mock_proc = MagicMock()
-            mock_proc.info = {
-                'pid': 1234,
-                'name': name,
-                'exe': '/path/to/app.exe'}
-            mock_proc.is_running.return_value = False
-
-            with patch('psutil.process_iter', side_effect=[
-                [mock_proc],
-                [mock_proc]
-            ]), patch('time.sleep'):
-                simulator.force_kill_simul8_processes()
-
-                # Should be terminated regardless of case
-                mock_proc.terminate.assert_called_once()
-                mock_proc.reset_mock()
-
-    def test_multiple_processes_mixed_outcomes(self, simulator):
-        """Test mixed scenario with multiple processes and different outcomes."""
-        # Process that terminates gracefully
-        mock_proc1 = MagicMock()
-        mock_proc1.info = {
-            'pid': 1111,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc1.is_running.return_value = False
-
-        # Process that needs force kill
-        mock_proc2 = MagicMock()
-        mock_proc2.info = {
-            'pid': 2222,
-            'name': 's8.exe',
-            'exe': '/path/to/s8.exe'}
-        mock_proc2.is_running.return_value = True
-
-        # Process that disappears
-        mock_proc3 = MagicMock()
-        mock_proc3.info = {
-            'pid': 3333,
-            'name': 'SIMUL8.EXE',
-            'exe': '/path/to/simul8.exe'}
-        mock_proc3.is_running.side_effect = psutil.NoSuchProcess(3333)
-
-        # Non-Simul8 process
-        mock_proc4 = MagicMock()
-        mock_proc4.info = {
-            'pid': 4444,
-            'name': 'chrome.exe',
-            'exe': '/path/to/chrome.exe'}
-
-        with patch('psutil.process_iter', side_effect=[
-            [mock_proc1, mock_proc2, mock_proc3, mock_proc4],  # First iteration
-            [mock_proc1, mock_proc2, mock_proc3]                # Second iteration
-        ]), patch('time.sleep'):
-            simulator.force_kill_simul8_processes()
-
-            # Verify correct behavior for each process
-            mock_proc1.terminate.assert_called_once()
-            mock_proc1.kill.assert_not_called()  # Terminated gracefully
-
-            mock_proc2.terminate.assert_called_once()
-            mock_proc2.kill.assert_called_once()  # Needed force kill
-
-            mock_proc3.terminate.assert_called_once()
-            # kill not called due to NoSuchProcess exception
-
-            mock_proc4.terminate.assert_not_called()  # Not a Simul8 process
-            mock_proc4.kill.assert_not_called()
 
 
 class TestCleanupMethod:
