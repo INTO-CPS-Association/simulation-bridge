@@ -10,7 +10,6 @@ logger = get_logger()
 
 class CSVFormatError(Exception):
     """Exception raised when there's an error in CSV formatting or processing."""
-    pass
 
 
 def validate_csv_structure(csv_data: Dict[str, Any]) -> None:
@@ -54,8 +53,8 @@ def validate_csv_structure(csv_data: Dict[str, Any]) -> None:
         row_data = csv_data[row_key]
         if not isinstance(row_data, list):
             raise CSVFormatError(
-                f"Row '{row_key}' must be a list, got {
-                    type(row_data)}")
+                f"Row '{row_key}' must be a list, got {type(row_data).__name__}"
+            )
 
         if len(row_data) != len(columns):
             raise CSVFormatError(
@@ -63,11 +62,10 @@ def validate_csv_structure(csv_data: Dict[str, Any]) -> None:
                     len(row_data)} values but {
                     len(columns)} columns expected"
             )
-
-    logger.debug(
-        f"CSV structure validation passed: {
-            len(columns)} columns, {
-            len(row_keys)} rows")
+        logger.debug(
+            "CSV structure validation passed: %d columns, %d rows",
+            len(columns), len(row_keys)
+        )
 
 
 def yaml_csv_to_file(
@@ -104,7 +102,7 @@ def yaml_csv_to_file(
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, f"simul8_yaml_csv_{os.getpid()}.csv")
 
-    logger.debug(f"Converting YAML data to file: {file_path}")
+    logger.debug("Converting YAML data to file: %s", file_path)
 
     # Ensure directory exists
     os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
@@ -130,14 +128,14 @@ def yaml_csv_to_file(
                 writer.writerow(row_data)
 
         logger.debug(
-            f"Successfully created CSV file from YAML data at {file_path}")
+            "Successfully created CSV file from YAML data at %s", file_path)
         return file_path
 
     except Exception as e:
-        logger.error(f"Failed to create CSV file from YAML data: {str(e)}")
+        logger.error("Failed to create CSV file from YAML data: %s", str(e))
         raise CSVFormatError(
-            f"Error creating CSV file from YAML data: {
-                str(e)}")
+            "Error creating CSV file from YAML data: %s", str(e)
+        )
 
 
 def read_csv_to_dict(
@@ -159,93 +157,99 @@ def read_csv_to_dict(
         Dictionary containing the CSV data
     """
     if not os.path.exists(file_path):
-        raise FileNotFoundError(f"CSV file not found: {file_path}")
+        raise FileNotFoundError("CSV file not found: %s", file_path)
 
-    logger.debug(f"Reading CSV file: {file_path}")
+    logger.debug("Reading CSV file: %s", file_path)
 
     try:
-        with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
-            # Read all content first to debug
-            csvfile.seek(0)
-            raw_content = csvfile.read().strip()
-            logger.debug(f"Raw CSV content: '{raw_content}'")
-
-            if not raw_content:
-                logger.warning("CSV file is empty")
-                return {}
-
-            # Reset file pointer
-            csvfile.seek(0)
-            reader = csv.reader(csvfile, delimiter=delimiter)
-            rows = list(reader)
-
-            logger.debug(f"All rows: {rows}")
-
-            if not rows:
-                logger.warning("No rows found in CSV")
-                return {}
-
-            # Get the header row (first row)
-            header_row = rows[0]
-            headers = [str(col).strip()
-                       for col in header_row if str(col).strip()]
-
-            logger.debug(f"Headers found: {headers}")
-
-            if not headers:
-                logger.warning("No valid headers found")
-                return {}
-
-            # Find the data row (first non-empty row after header)
-            data_row = None
-            for row in rows[1:]:
-                if any(str(cell).strip() for cell in row):
-                    data_row = row
-                    break
-
-            if not data_row:
-                logger.warning("No data row found")
-                return {header: None for header in headers}
-
-            logger.debug(f"Data row: {data_row}")
-
-            # Create result dictionary
-            results = {}
-
-            for i, header in enumerate(headers):
-                if i < len(data_row):
-                    value_str = str(data_row[i]).strip()
-
-                    if not value_str:
-                        value = None
-                    else:
-                        # Try to convert to number
-                        try:
-                            if '.' in value_str:
-                                value = float(value_str)
-                            elif value_str.isdigit():
-                                value = int(value_str)
-                            else:
-                                value = value_str
-                        except ValueError:
-                            value = value_str
-
-                    # Apply output mapping if provided
-                    final_key = output_mapping.get(
-                        header, header) if output_mapping else header
-                    results[final_key] = value
-                    logger.debug(f"Added to results: {final_key} = {value}")
-                else:
-                    # Header exists but no corresponding data
-                    final_key = output_mapping.get(
-                        header, header) if output_mapping else header
-                    results[final_key] = None
-                    logger.debug(
-                        f"Added to results (no data): {final_key} = None")
-
-            logger.debug(f"Successfully parsed CSV data: {results}")
-            return results
+        rows = _read_csv_rows(file_path, delimiter)
+        headers = _extract_headers(rows)
+        data_row = _find_first_data_row(rows)
+        return _build_result_dict(headers, data_row, output_mapping)
 
     except Exception as e:
-        logger.error(f"Failed to read CSV file: {str(e)}")
-        raise CSVFormatError(f"Error reading CSV file: {str(e)}")
+        logger.error("Failed to read CSV file: %s", str(e))
+        raise CSVFormatError("Error reading CSV file: %s", str(e))
+
+
+def _read_csv_rows(file_path: str, delimiter: str) -> List[List[str]]:
+    """Read and validate CSV file contents."""
+    with open(file_path, 'r', newline='', encoding='utf-8') as csvfile:
+        raw_content = csvfile.read().strip()
+        logger.debug("Raw CSV content: %s", raw_content)
+
+        if not raw_content:
+            logger.warning("CSV file is empty")
+            return []
+
+        csvfile.seek(0)
+        rows = list(csv.reader(csvfile, delimiter=delimiter))
+        logger.debug("All rows: %s", rows)
+
+        return rows
+
+
+def _extract_headers(rows: List[List[str]]) -> List[str]:
+    """Extract and validate header row."""
+    if not rows:
+        logger.warning("No rows found in CSV")
+        return []
+
+    headers = [str(col).strip() for col in rows[0] if str(col).strip()]
+    logger.debug("Headers found: %s", headers)
+
+    if not headers:
+        logger.warning("No valid headers found")
+
+    return headers
+
+
+def _find_first_data_row(rows: List[List[str]]) -> Optional[List[str]]:
+    """Find the first non-empty data row after headers."""
+    for row in rows[1:]:
+        if any(str(cell).strip() for cell in row):
+            logger.debug("Data row: %s", row)
+            return row
+
+    logger.warning("No data row found")
+    return None
+
+
+def _build_result_dict(
+    headers: List[str],
+    data_row: Optional[List[str]],
+    output_mapping: Optional[Dict[str, str]]
+) -> Dict[str, Any]:
+    """Build result dictionary from headers and data."""
+    results = {}
+
+    for i, header in enumerate(headers):
+        value = _parse_cell_value(data_row, i) if data_row else None
+        final_key = output_mapping.get(
+            header, header) if output_mapping else header
+
+        results[final_key] = value
+        logger.debug("Added to results: %s = %s", final_key, value)
+
+    logger.debug("Successfully parsed CSV data: %s", results)
+    return results
+
+
+def _parse_cell_value(data_row: List[str], index: int) -> Any:
+    """Parse a single cell value, converting to appropriate type."""
+    if index >= len(data_row):
+        logger.debug("Added to results (no data): index %d = None", index)
+        return None
+    value_str = str(data_row[index]).strip()
+    if not value_str:
+        return None
+    # Try to convert to number
+    try:
+        if '.' in value_str:
+            return float(value_str)
+        if value_str.isdigit():
+            return int(value_str)
+        return value_str
+    except ValueError:
+        pass
+    return value_str
