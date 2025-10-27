@@ -2,15 +2,16 @@
 Integration test for MessageHandler and SimpleUsageSimul8Agent components.
 Tests the complete message flow between client agent and message handler.
 """
+
 import json
 import os
 import tempfile
 import threading
 import time
-import unittest
 from unittest.mock import Mock, MagicMock, patch, call
 from typing import Dict, Any, List
-
+import unittest
+import shutil
 import pika
 import yaml
 
@@ -272,7 +273,6 @@ class IntegrationTest(unittest.TestCase):
     def tearDown(self):
         """Clean up test fixtures."""
         # Clean up temporary files
-        import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     @patch('resources.use_simul8_agent.pika.BlockingConnection')
@@ -422,7 +422,6 @@ class IntegrationTest(unittest.TestCase):
 
     def test_configuration_validation(self):
         """Test configuration validation and loading."""
-        from agents.simul8.simul8_agent.resources.use_simul8_agent import SimpleUsageSimul8Agent
 
         # Test loading valid configuration
         with open(self.config_file, 'r', encoding='utf-8') as f:
