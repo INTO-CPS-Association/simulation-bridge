@@ -1,12 +1,13 @@
 """Unit tests for the config loader module with improved structure."""
 
-import os
-import pytest
 from pathlib import Path
 from importlib import resources
 from unittest.mock import patch, mock_open
 
+import os
 import yaml
+import pytest
+
 from src.utils.config_loader import (
     DEFAULT_CONFIG_PATH,
     _substitute_env_vars,

@@ -3,9 +3,14 @@ Comprehensive test suite for main.py with 90%+ code coverage.
 Tests all functions including CLI commands, file generation, and error handling.
 Fixed version addressing pkg_resources and assertion issues.
 """
+
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
+
 import logging
 from pathlib import Path
-from unittest.mock import MagicMock, patch, mock_open, call
+from unittest.mock import MagicMock, patch, mock_open
 import pytest
 from click.testing import CliRunner
 
@@ -100,14 +105,15 @@ class TestMainFunction:
     # Test main function with config file
     def test_main_with_config_file(self, cli_runner, mock_dependencies):
         """Test main function with explicitly provided config file."""
-        mock_simul8_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
+        mock_simul8_agent, _, mock_load_config, _ = mock_dependencies
 
         mock_load_config.return_value = {
             'agent': {'agent_id': 'custom_agent'},
             'logging': {'level': 'INFO', 'file': 'agent.log'}
         }
 
-        config_path = Path('simul8_agent/config/config.yaml.template').resolve()
+        config_path = Path(
+            'simul8_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
         mock_load_config.assert_called_once_with(str(config_path))
@@ -123,7 +129,7 @@ class TestMainFunction:
     def test_main_without_config_file_exists(
             self, cli_runner, mock_dependencies, default_config):
         """Test main function when config.yaml exists in current directory."""
-        mock_simul8_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
+        mock_simul8_agent, _, mock_load_config, _ = mock_dependencies
 
         with patch('pathlib.Path.exists', return_value=True):
             mock_load_config.return_value = default_config
@@ -255,7 +261,7 @@ class TestMainFunction:
         with patch('pathlib.Path.cwd', return_value=test_dir), \
                 patch('pathlib.Path.exists', return_value=False), \
                 patch('importlib.resources.files') as mock_files, \
-                patch('builtins.open', mock_open()) as mock_file:
+                patch('builtins.open', mock_open()) as _:
 
             # Mock importlib.resources.files behavior
             mock_resource = MagicMock()
@@ -291,7 +297,7 @@ class TestMainFunction:
                 patch('pathlib.Path.exists', return_value=False), \
                 patch('importlib.resources.files', side_effect=ImportError()), \
                 patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.open', mock_open()) as _, \
                 patch('builtins.print') as mock_print:
 
             generate_default_config()
@@ -362,7 +368,7 @@ class TestMainFunction:
                 patch('pathlib.Path.exists', return_value=False), \
                 patch('importlib.resources.files', side_effect=AttributeError()), \
                 patch.dict('sys.modules', {'pkg_resources': mock_pkg_resources}), \
-                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.open', mock_open()) as _, \
                 patch('builtins.print') as mock_print:
 
             generate_default_config()
@@ -375,7 +381,7 @@ class TestMainFunction:
         """Test successful project generation using importlib.resources."""
         with patch('pathlib.Path.exists', return_value=False), \
                 patch('importlib.resources.files') as mock_files, \
-                patch('builtins.open', mock_open()) as mock_file, \
+                patch('builtins.open', mock_open()) as _, \
                 patch('builtins.print') as mock_print:
 
             # Mock importlib.resources.files behavior
@@ -500,14 +506,15 @@ class TestMainFunction:
 
     def test_cli_short_config_option(self, cli_runner, mock_dependencies):
         """Test short form of config option (-c)."""
-        mock_simul8_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
+        _, _, mock_load_config, _ = mock_dependencies
 
         mock_load_config.return_value = {
             'agent': {'agent_id': 'test_agent'},
             'logging': {'level': 'INFO', 'file': 'test.log'}
         }
 
-        config_path = Path('simul8_agent/config/config.yaml.template').resolve()
+        config_path = Path(
+            'simul8_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
         mock_load_config.assert_called_once_with(str(config_path))
@@ -527,7 +534,7 @@ class TestMainFunction:
 
     def test_broker_type_hardcoded(self, cli_runner, mock_dependencies):
         """Test that broker_type is hardcoded to 'rabbitmq'."""
-        mock_simul8_agent, mock_setup_logger, mock_load_config, mock_logger = mock_dependencies
+        mock_simul8_agent, _, mock_load_config, _ = mock_dependencies
 
         mock_load_config.return_value = {
             'agent': {'agent_id': 'test_agent'},

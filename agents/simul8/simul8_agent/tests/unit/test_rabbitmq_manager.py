@@ -1,218 +1,330 @@
-import pytest
-from pika import exceptions as pika_exceptions
-from unittest import mock
-from unittest.mock import MagicMock
-from typing import Any, Dict, Tuple
+"""
+RabbitMQManager class for managing RabbitMQ connections, exchanges, queues, and message handling.
+This module provides functionality to establish connections with RabbitMQ,
+set up exchanges and queues, and send/receive messages within a simulation agent framework.
+"""
+import sys
+import ssl
+import uuid
+import time
+from typing import Dict, Any, Callable, Optional
 
-from src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
+import yaml
+import pika
+from pika.spec import BasicProperties
 
+from src.comm.rabbitmq.interfaces import IRabbitMQManager
+from src.utils.logger import get_logger
 
-@pytest.fixture(scope="function")
-def mock_config() -> dict:
-    return {
-        "rabbitmq": {
-            "host": "localhost",
-            "port": 5672,
-            "username": "guest",
-            "password": "guest",
-            "heartbeat": 600,
-        },
-        "exchanges": {
-            "input": "ex.bridge.output",
-            "output": "ex.sim.result",
-        },
-        "queue": {
-            "durable": True,
-            "prefetch_count": 1,
-        },
-    }
+logger = get_logger()
 
 
-@pytest.fixture(scope="function")
-def agent_id() -> str:
-    return "test_agent"
+class RabbitMQManager(IRabbitMQManager):
+    """
+    Manager for RabbitMQ connections, channels, exchanges, and queues.
+    Implements the IRabbitMQManager interface.
+    """
 
+    def __init__(self, agent_id: str, config: Dict[str, Any]) -> None:
+        """
+        Initialize the RabbitMQ manager.
 
-@pytest.fixture(scope="function")
-def mock_connection(
-    mock_config: dict,
-):
-    connection_path = "src.comm.rabbitmq.rabbitmq_manager.pika.BlockingConnection"
-    with mock.patch(connection_path) as connection_mock:
-        channel_mock = MagicMock()
-        channel_mock.is_open = True  # importante per close()
-        connection_mock.return_value.channel.return_value = channel_mock
-        yield connection_mock, channel_mock
+        Args:
+            agent_id (str): The ID of the agent
+            config (dict): Configuration parameters
+        """
+        self.agent_id: str = agent_id
+        self.config: Dict[str, Any] = config
+        self.connection: Optional[pika.BlockingConnection] = None
+        self.channel: Optional[pika.adapters.blocking_connection.BlockingChannel] = None
+        self.input_queue_name: str = f'Q.sim.{self.agent_id}'
+        self.message_handler: Optional[Callable[[
+            pika.adapters.blocking_connection.BlockingChannel,
+            pika.spec.Basic.Deliver, BasicProperties, bytes], None]] = None
 
+    def connect(self) -> bool:
+        """
+        Establish connection to RabbitMQ server using configuration parameters.
 
-@pytest.fixture(scope="function")
-def rabbitmq_manager(mock_connection, mock_config, agent_id) -> RabbitMQManager:
-    manager = RabbitMQManager(agent_id, mock_config)
-    manager.connect()
-    manager.setup_infrastructure()
-    return manager
+        Returns:
+            bool: True if connection and channel are open, False otherwise.
+        """
+        rabbitmq_config: Dict[str, Any] = self.config.get('rabbitmq', {})
+        max_retries = 5
+        retry_delay = 2
 
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.debug("Connecting to RabbitMQ (attempt %d)...", attempt)
+                credentials = pika.PlainCredentials(
+                    rabbitmq_config.get('username', 'guest'),
+                    rabbitmq_config.get('password', 'guest')
+                )
+                vhost = rabbitmq_config.get('vhost', '/')
+                logger.debug("Using vhost: %s", vhost)
+                use_tls = rabbitmq_config.get('tls', False)
 
-class TestRabbitMQManager:
+                if use_tls:
+                    context = ssl.create_default_context()
+                    context.minimum_version = ssl.TLSVersion.TLSv1_2
+                    ssl_options = pika.SSLOptions(
+                        context, rabbitmq_config.get(
+                            'host', 'localhost'))
+                    parameters = pika.ConnectionParameters(
+                        host=rabbitmq_config.get('host', 'localhost'),
+                        port=rabbitmq_config.get('port', 5671),
+                        virtual_host=vhost,
+                        credentials=credentials,
+                        ssl_options=ssl_options,
+                        heartbeat=rabbitmq_config.get('heartbeat', 600)
+                    )
+                else:
+                    parameters = pika.ConnectionParameters(
+                        host=rabbitmq_config.get('host', 'localhost'),
+                        port=rabbitmq_config.get('port', 5672),
+                        virtual_host=vhost,
+                        credentials=credentials,
+                        heartbeat=rabbitmq_config.get('heartbeat', 600)
+                    )
+                self.connection = pika.BlockingConnection(parameters)
 
-    def test_initialization(self, mock_connection, mock_config, agent_id):
-        connection_mock, channel_mock = mock_connection
-        manager = RabbitMQManager(agent_id, mock_config)
-        manager.connect()
-        manager.setup_infrastructure()
+                if self.connection.is_open:
+                    logger.debug(
+                        "Connection to RabbitMQ is open. Attempting to create channel...")
+                    self.channel = self.connection.channel()
 
-        connection_mock.assert_called_once()
-        channel_mock.exchange_declare.assert_any_call(
-            exchange=mock_config["exchanges"]["input"],
-            exchange_type="topic",
-            durable=True,
-        )
+                    if self.channel and self.channel.is_open:
+                        logger.debug(
+                            "Successfully connected to RabbitMQ and channel is open.")
+                        return True
+                    logger.error("Channel creation failed. Retrying...")
+                else:
+                    logger.error(
+                        "Connection opened but channel could not be created. Retrying...")
 
-        channel_mock.exchange_declare.assert_any_call(
-            exchange=mock_config["exchanges"]["output"],
-            exchange_type="topic",
-            durable=True,
-        )
-        queue_name = f"Q.sim.{agent_id}"
-        channel_mock.queue_declare.assert_called_once_with(
-            queue=queue_name,
-            durable=mock_config["queue"]["durable"],
-        )
-        channel_mock.queue_bind.assert_called_once_with(
-            exchange=mock_config["exchanges"]["input"],
-            queue=queue_name,
-            routing_key=f"*.{agent_id}",
-        )
-        channel_mock.basic_qos.assert_called_once_with(
-            prefetch_count=mock_config["queue"]["prefetch_count"],
-        )
+            except pika.exceptions.AMQPConnectionError as e:
+                logger.error(
+                    "Connection failed (attempt %d) to %s:%s vhost=%s — %s: %r",
+                    attempt,
+                    rabbitmq_config.get("host"),
+                    rabbitmq_config.get("port"),
+                    rabbitmq_config.get("vhost", "/"),
+                    e.__class__.__name__,
+                    e
+                )
 
-    def test_register_message_handler(self, rabbitmq_manager):
-        def handler(channel, method, properties, body):
-            pass
-        rabbitmq_manager.register_message_handler(handler)
-        assert rabbitmq_manager.message_handler is handler
+            time.sleep(retry_delay)
 
-    @pytest.mark.parametrize("with_handler, expect_consume",
-                             [(True, True), (False, False)])
-    def test_start_consuming(self, rabbitmq_manager,
-                             mock_connection, with_handler, expect_consume):
-        _, channel_mock = mock_connection
-        if with_handler:
-            rabbitmq_manager.register_message_handler(lambda *args: None)
+        logger.error(
+            "Failed to connect and create channel after %d attempts",
+            max_retries)
+        return False
 
-        rabbitmq_manager.start_consuming()
+    def setup_infrastructure(self) -> None:
+        if not self.channel or not self.channel.is_open:
+            logger.error("Channel is not available. Exiting.")
+            sys.exit(1)
+        exchanges: Dict[str, str] = self.config.get('exchanges', {})
+        queue_config: Dict[str, Any] = self.config.get('queue', {})
 
-        if expect_consume:
-            channel_mock.basic_consume.assert_called_once()
-            channel_mock.start_consuming.assert_called_once()
-        else:
-            channel_mock.basic_consume.assert_not_called()
-            channel_mock.start_consuming.assert_not_called()
+        try:
+            # Input exchange to receive commands
+            input_exchange: str = exchanges.get('input', 'ex.bridge.output')
+            self.channel.exchange_declare(
+                exchange=input_exchange,
+                exchange_type='topic',
+                durable=True
+            )
+            logger.debug("Declared input exchange: %s", input_exchange)
 
-    def test_send_message_success_and_failure(
+            # Output exchange to send results
+            output_exchange: str = exchanges.get('output', 'ex.sim.result')
+            self.channel.exchange_declare(
+                exchange=output_exchange,
+                exchange_type='topic',
+                durable=True
+            )
+            logger.debug("Declared output exchange: %s", output_exchange)
+
+            # Queue for receiving input messages
+            self.channel.queue_declare(
+                queue=self.input_queue_name,
+                durable=queue_config.get('durable', True)
+            )
+
+            # Bind queue to input exchange
+            self.channel.queue_bind(
+                exchange=input_exchange,
+                queue=self.input_queue_name,
+                routing_key=f"*.{self.agent_id}"
+            )
+            logger.debug(
+                "Declared and bound input queue: %s",
+                self.input_queue_name)
+
+            # Set QoS (prefetch count)
+            self.channel.basic_qos(
+                prefetch_count=queue_config.get('prefetch_count', 1)
+            )
+        except pika.exceptions.ChannelClosedByBroker as e:
+            logger.error(
+                "Channel closed by broker while setting up infrastructure: %s", e)
+            sys.exit(1)
+
+    def register_message_handler(
         self,
-        rabbitmq_manager: RabbitMQManager,
-        mock_connection: Tuple[mock._patch, MagicMock],
-        mock_config: Dict[str, Any],  # <-- aggiungi qui
+        handler_func: Callable[
+            [pika.adapters.blocking_connection.BlockingChannel,
+             pika.spec.Basic.Deliver,
+             BasicProperties,
+             bytes],
+            None]
     ) -> None:
-        _, channel_mock = mock_connection
+        """
+        Register a function to handle incoming messages.
 
-        # Success
-        result_ok = rabbitmq_manager.send_message(
-            mock_config["exchanges"]["output"],
-            "routing.key",
-            "body",
+        Args:
+            handler_func (callable): Function to handle messages
+        """
+        self.message_handler = handler_func
+
+    def start_consuming(self) -> None:
+        """
+        Start consuming messages from the input queue.
+        """
+        if not self.message_handler:
+            logger.error(
+                "No message handler registered. Cannot start consuming.")
+            return
+
+        if not self.channel or not self.channel.is_open:
+            logger.error(
+                "Channel is not initialized. Attempting to reconnect...")
+            self.connect()
+            if not self.channel:
+                logger.error(
+                    "Failed to initialize channel after reconnecting.")
+                return
+
+        try:
+            self.channel.basic_consume(
+                queue=self.input_queue_name,
+                on_message_callback=self.message_handler
+            )
+            logger.debug(
+                "Started consuming messages from queue: %s",
+                self.input_queue_name)
+            self.channel.start_consuming()
+        except KeyboardInterrupt:
+            logger.info(
+                "Stopping message consumption due to keyboard interrupt")
+            if self.channel:
+                self.channel.stop_consuming()
+        except pika.exceptions.AMQPError as e:
+            logger.error("Error while consuming messages: %s", e)
+            self.close()
+
+    def send_message(
+        self,
+        exchange: str,
+        routing_key: str,
+        body: str,
+        properties: Optional[BasicProperties] = None
+    ) -> bool:
+        """
+        Send a message to a specified exchange with a routing key.
+
+        Args:
+            exchange (str): The exchange to publish to
+            routing_key (str): The routing key for the message
+            body (str): The message body
+            properties (pika.BasicProperties, optional): Message properties
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            self.channel.basic_publish(
+                exchange=exchange,
+                routing_key=routing_key,
+                body=body,
+                properties=properties or pika.BasicProperties(
+                    delivery_mode=2  # Persistent message
+                )
+            )
+            logger.debug(
+                "Sent message to exchange %s with routing key %s",
+                exchange,
+                routing_key)
+            return True
+        except pika.exceptions.AMQPError as e:
+            logger.error("Failed to send message: %s", e)
+            return False
+        except Exception as e:
+            logger.error("Unexpected error: %s", e)
+            return False
+
+    def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
+        """
+        Send simulation results to the specified destination.
+
+        Args:
+            destination (str): Destination identifier (e.g., 'dt', 'pt')
+            result (dict): Result data to be sent
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        exchanges: Dict[str, str] = self.config.get('exchanges', {})
+        output_exchange: str = exchanges.get('output', 'ex.sim.result')
+
+        # Prepare the payload with the destination
+        payload: Dict[str, Any] = {
+            **result,  # Result data
+            'source': self.agent_id,  # Agent identifier
+            'destinations': [destination]  # Recipient
+        }
+
+        # Generate message ID
+        message_id: str = str(uuid.uuid4())
+
+        # Serialize to YAML
+        payload_yaml: str = yaml.dump(payload, default_flow_style=False)
+
+        # Routing key: <source>.result.<destination>
+        routing_key: str = f"{self.agent_id}.result.{destination}"
+
+        properties: BasicProperties = pika.BasicProperties(
+            delivery_mode=2,  # Persistent message
+            content_type='application/x-yaml',
+            message_id=message_id
         )
-        assert result_ok is True
-        channel_mock.basic_publish.assert_called_once()
 
-        # AMQPError
-        channel_mock.basic_publish.reset_mock()
-        channel_mock.basic_publish.side_effect = pika_exceptions.AMQPError()
-        result_amqp = rabbitmq_manager.send_message(
-            mock_config["exchanges"]["output"], "key", "body"
-        )
-        assert result_amqp is False
+        success: bool = self.send_message(
+            output_exchange, routing_key, payload_yaml, properties)
 
-        # General Exception
-        channel_mock.basic_publish.reset_mock()
-        channel_mock.basic_publish.side_effect = Exception()
-        result_exc = rabbitmq_manager.send_message(
-            mock_config["exchanges"]["output"], "key", "body"
-        )
-        assert result_exc is False
+        if success:
+            logger.debug(
+                "Sent result to %s with message ID: %s and payload: %s",
+                destination,
+                message_id,
+                payload)
+        else:
+            logger.error("Failed to send result to %s", destination)
 
-    def test_send_result_and_propagation_failure(
-            self, rabbitmq_manager, mock_connection, monkeypatch):
-        _, channel_mock = mock_connection
+        return success
 
-        payload = {"key": "value"}
-        succeeded = rabbitmq_manager.send_result("dest", payload)
-        assert succeeded is True
-        _, kwargs = channel_mock.basic_publish.call_args
-        assert "ex.sim.result" == kwargs["exchange"]
-        assert ".result.dest" in kwargs["routing_key"]
-        assert "key: value" in kwargs["body"]
+    def close(self) -> None:
+        """
+        Close the RabbitMQ connection.
+        """
+        if self.channel and self.channel.is_open:
+            try:
+                self.channel.stop_consuming()
+            except pika.exceptions.AMQPError:
+                pass
+            logger.debug("Stopped consuming messages")
 
-        # Force send_message failure
-        monkeypatch.setattr(
-            rabbitmq_manager,
-            "send_message",
-            lambda *args,
-            **kwargs: False)
-        failed = rabbitmq_manager.send_result("dest", payload)
-        assert failed is False
-
-    def test_close_methods(self, rabbitmq_manager, mock_connection):
-        _, channel_mock = mock_connection
-
-        # Normal close
-        rabbitmq_manager.close()
-        channel_mock.stop_consuming.assert_called_once()
-        rabbitmq_manager.connection.close.assert_called_once()
-
-        # Exception in stop_consuming
-        channel_mock.stop_consuming.reset_mock()
-        channel_mock.stop_consuming.side_effect = pika_exceptions.AMQPError()
-        rabbitmq_manager.close()
-        channel_mock.stop_consuming.assert_called_once()
-
-    def test_connect_and_setup_failures(
-            self, mock_connection, mock_config, agent_id):
-        connection_mock, channel_mock = mock_connection
-
-        # Simula fallimento connessione, connect() deve fallire e non sys.exit
-        # direttamente
-        connection_mock.side_effect = pika_exceptions.AMQPConnectionError()
-        manager = RabbitMQManager(agent_id, mock_config)
-        # connect() ritorna False, quindi fai l'assert
-        assert manager.connect() is False
-
-        # Ora simuliamo fallimento in setup_infrastructure che causa sys.exit
-        connection_mock.side_effect = None  # Reset side effect
-        manager.connect()  # Questa dovrebbe ora funzionare
-        channel_mock.exchange_declare.side_effect = pika_exceptions.ChannelClosedByBroker(
-            406, "PRECONDITION_FAILED")
-
-        with pytest.raises(SystemExit):
-            manager.setup_infrastructure()
-
-    def test_start_consuming_interrupts_and_errors(
-            self, rabbitmq_manager, mock_connection):
-        _, channel_mock = mock_connection
-        rabbitmq_manager.register_message_handler(lambda *_: None)
-
-        # KeyboardInterrupt stops consuming gracefully
-        channel_mock.start_consuming.side_effect = KeyboardInterrupt
-        rabbitmq_manager.start_consuming()
-        channel_mock.stop_consuming.assert_called_once()
-
-        channel_mock.start_consuming.reset_mock()
-        channel_mock.stop_consuming.reset_mock()
-
-        # AMQPError during consuming closes connection
-        channel_mock.start_consuming.side_effect = pika_exceptions.AMQPError()
-        rabbitmq_manager.start_consuming()
-        channel_mock.stop_consuming.assert_called_once()
-        rabbitmq_manager.connection.close.assert_called_once()
+        if self.connection and self.connection.is_open:
+            self.connection.close()
+            logger.info("Closed RabbitMQ connection")

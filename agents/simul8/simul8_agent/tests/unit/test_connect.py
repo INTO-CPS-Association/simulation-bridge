@@ -5,7 +5,6 @@ This module contains comprehensive tests for the Connect class,
 testing all its methods and error conditions.
 """
 
-import pytest
 from unittest.mock import Mock, patch, MagicMock
 from typing import Dict, Any, Optional, Callable
 
@@ -13,6 +12,8 @@ from typing import Dict, Any, Optional, Callable
 # Assuming the structure: from communication.connect import Connect
 # Adjust the import path according to your project structure
 from src.comm.connect import Connect
+
+import pytest
 
 
 class TestConnect:
@@ -62,38 +63,42 @@ class TestConnect:
         mock_handler.set_simulation_handler = Mock()
         return mock_handler
 
+    @pytest.fixture
+    def test_context(self, agent_id, mock_config,
+                     mock_rabbitmq_manager, mock_message_handler):
+        """Bundle commonly used test values to reduce test parameter count."""
+        return {
+            "agent_id": agent_id,
+            "mock_config": mock_config,
+            "mock_rabbitmq_manager": mock_rabbitmq_manager,
+            "mock_message_handler": mock_message_handler,
+        }
+
     @patch('src.comm.connect.RabbitMQManager')
     @patch('src.comm.connect.MessageHandler')
     def test_init_with_rabbitmq(
         self,
         mock_message_handler_class: Mock,
         mock_rabbitmq_manager_class: Mock,
-        agent_id: str,
-        mock_config: Dict[str, Any],
-        mock_rabbitmq_manager: Mock,
-        mock_message_handler: Mock
+        test_context
     ) -> None:
-        """Test initialization with RabbitMQ broker type."""
-        # Setup mocks
+        # unpack context
+        agent_id = test_context["agent_id"]
+        mock_config = test_context["mock_config"]
+        mock_rabbitmq_manager = test_context["mock_rabbitmq_manager"]
+        mock_message_handler = test_context["mock_message_handler"]
         mock_rabbitmq_manager_class.return_value = mock_rabbitmq_manager
         mock_message_handler_class.return_value = mock_message_handler
-
-        # Create Connect instance
         connect = Connect(agent_id, mock_config, "rabbitmq")
-
-        # Assertions
         assert connect.agent_id == agent_id
         assert connect.config == mock_config
         assert connect.broker_type == "rabbitmq"
         assert connect.broker == mock_rabbitmq_manager
         assert connect.message_handler == mock_message_handler
-
-        # Verify initialization calls
         mock_rabbitmq_manager_class.assert_called_once_with(
             agent_id, mock_config)
         mock_message_handler_class.assert_called_once_with(
-            agent_id, mock_rabbitmq_manager, mock_config
-        )
+            agent_id, mock_rabbitmq_manager, mock_config)
 
     def test_init_with_unsupported_broker(
         self,
@@ -556,8 +561,6 @@ class TestConnect:
         self,
         mock_message_handler_class: Mock,
         mock_rabbitmq_manager_class: Mock,
-        agent_id: str,
-        mock_config: Dict[str, Any],
         mock_rabbitmq_manager: Mock
     ) -> None:
         """Test setting simulation handler when message handler is None."""

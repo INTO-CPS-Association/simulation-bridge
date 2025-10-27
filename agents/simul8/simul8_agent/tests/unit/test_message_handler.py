@@ -1,8 +1,13 @@
 """
 Unit tests for MessageHandler class.
 """
+
+# pylint: disable=missing-module-docstring, missing-class-docstring,
+# missing-function-docstring, too-many-positional-arguments
+
+
 import uuid
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import pytest
 import yaml
 from pika.spec import Basic, BasicProperties
@@ -45,7 +50,6 @@ class TestSimulationModels:
         assert data.type == "batch"
         assert data.request_id == "req123"
 
-    
     def test_simulation_data_invalid_type_raises_error(self):
         """Test SimulationData with invalid simulation type raises error."""
         inputs = SimulationInputs(param="value")
@@ -168,7 +172,6 @@ class TestMessageHandler:
         self.mock_channel.basic_ack.assert_called_once_with(
             delivery_tag="test_tag"
         )
-
 
     @patch('src.comm.rabbitmq.message_handler.yaml.safe_load')
     @patch('src.comm.rabbitmq.message_handler.create_response')
@@ -533,5 +536,3 @@ class TestMessageHandlerIntegration:
         mock_channel.basic_ack.assert_called_once_with(
             delivery_tag="integration_tag"
         )
-
-    
