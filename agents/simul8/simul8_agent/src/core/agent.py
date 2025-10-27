@@ -91,7 +91,7 @@ class Simul8Agent:
         if summary:
             logger.info("Performance Summary:")
             for metric, value in summary.items():
-                logger.info(f"  {metric}: {value:.2f}")
+                logger.info("  %s: %.2f", metric, value)
 
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
