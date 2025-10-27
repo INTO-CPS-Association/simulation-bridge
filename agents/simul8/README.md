@@ -313,6 +313,11 @@ For detailed instructions on how to configure and use the client, refer to the [
 
 For detailed information regarding simulations and constraints, please refer to the [Simulations and Constraints Documentation](simul8_agent/docs/README.md).
 
+## Encountering the error com_cache_error
+If you encounter the error **com_cache_error** you need to contact the owner of the agent hosting the request simulation. 
+The agent-owner needs to go to  "%USERPROFILE%\AppData\Local\Temp\gen_py" and delete the gen_py folder, then restart the agent.
+The gen_py cache can become corrupted and manual deletion is needed.
+
 ## Package Development
 
 The developer-specific commands are
