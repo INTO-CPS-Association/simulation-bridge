@@ -1,71 +1,79 @@
 """
-use_simul8_agent.py
+use_simul8_agent_batch.py
 
-A simple RabbitMQ client to send simulation requests to a Simul8 agent,
-and listen asynchronously for the simulation results.
+RabbitMQ client to send batch simulation requests to a simul8 agent
+and receive results asynchronously.  When the agent returns
+{"status": "completed"} the program terminates automatically.
 """
 
 import argparse
+import os
+import ssl
+import sys
 import threading
+import time
 import uuid
-from typing import Any, Dict, NoReturn
+from typing import Any, Dict
+
 import pika
 import yaml
 
 
-class SimpleUsageSimul8Agent:
-    """
-    Simple client class to interact with Simul8 simulation agent via RabbitMQ.
-
-    It loads configuration from YAML, connects to RabbitMQ, sends simulation
-    payload requests, and listens for results asynchronously.
-    """
+class BatchUsageSimul8Agent:
+    """Client for interacting with the simul8 simulation agent via RabbitMQ."""
 
     def __init__(
         self,
         agent_identifier: str = "dt",
         destination_identifier: str = "simul8",
-        config_path: str = "use.yaml"
+        config_path: str = "use.yaml",
     ) -> None:
-        """
-        Initialize the agent with identifiers and load configuration.
-
-        Args:
-            agent_identifier (str): Identifier for this client agent.
-            destination_identifier (str): Identifier for the target agent.
-            config_path (str): Path to the YAML config file.
-        """
         self.agent_id: str = agent_identifier
         self.destination_id: str = destination_identifier
 
-        self.config = self.load_yaml(config_path)
-        self.simulation_request_path = self.config.get(
+        # --- Load configuration
+        self.config = self._load_yaml(config_path)
+        self.simulation_request_path: str = self.config.get(
             "simulation_request", "simulation.yaml"
         )
-        rabbitmq_cfg = self.config.get("rabbitmq", {})
+        rabbitmq_cfg: Dict[str, Any] = self.config.get("rabbitmq", {})
 
+        # --- Credentials
         credentials = pika.PlainCredentials(
             rabbitmq_cfg.get("username", "guest"),
             rabbitmq_cfg.get("password", "guest"),
         )
 
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(
-                host=rabbitmq_cfg.get("host", "localhost"),
-                port=rabbitmq_cfg.get("port", 5672),
-                virtual_host=rabbitmq_cfg.get("vhost", "/"),
-                credentials=credentials,
-                heartbeat=rabbitmq_cfg.get("heartbeat", 600),
-            )
-        )
-        self.channel = self.connection.channel()
-        self.result_queue: str = ""
-        self.setup_channels()
+        # --- TLS / non-TLS parameters
+        tls_enabled: bool = bool(rabbitmq_cfg.get("tls", False))
+        ssl_options = None
+        port = rabbitmq_cfg.get("port", 5671 if tls_enabled else 5672)
 
-    def setup_channels(self) -> None:
-        """
-        Declare exchanges and queues, and bind them for message routing.
-        """
+        if tls_enabled:
+            context = ssl.create_default_context()
+            context.minimum_version = ssl.TLSVersion.TLSv1_2
+            ssl_options = pika.SSLOptions(
+                context, rabbitmq_cfg.get(
+                    "host", "localhost"))
+
+        connection_params = pika.ConnectionParameters(
+            host=rabbitmq_cfg.get("host", "localhost"),
+            port=port,
+            virtual_host=rabbitmq_cfg.get("vhost", "/"),
+            credentials=credentials,
+            heartbeat=rabbitmq_cfg.get("heartbeat", 600),
+            ssl_options=ssl_options,
+        )
+
+        # --- Establish connection / channel
+        self.connection = pika.BlockingConnection(connection_params)
+        self.channel = self.connection.channel()
+
+        # --- Infrastructure
+        self.result_queue: str = ""
+        self._setup_channels()
+
+    def _setup_channels(self) -> None:
         self.channel.exchange_declare(
             exchange="ex.bridge.output", exchange_type="topic", durable=True
         )
@@ -75,161 +83,133 @@ class SimpleUsageSimul8Agent:
 
         self.result_queue = f"Q.{self.agent_id}.simul8.result"
         self.channel.queue_declare(queue=self.result_queue, durable=True)
-
         self.channel.queue_bind(
             exchange="ex.sim.result",
             queue=self.result_queue,
             routing_key=f"{self.destination_id}.result.{self.agent_id}",
         )
-
-        print(f"[{self.agent_id.upper()}] Infrastructure configured successfully.")
+        print(f"[{self.agent_id.upper()}] Infrastructure ready.")
 
     def send_request(self, payload_data: Dict[str, Any]) -> None:
-        """
-        Send a simulation request message with the given payload.
-
-        Args:
-            payload_data (Dict[str, Any]): Simulation payload to send.
-        """
-        payload: Dict[str, Any] = {
-            **payload_data,
-            "request_id": str(uuid.uuid4()),
-        }
-
-        payload.setdefault("simulation", {})["bridge_meta"] = {
-            "protocol": "rabbitmq"
-        }
-        payload_yaml: str = yaml.dump(payload, default_flow_style=False)
-        routing_key: str = f"{self.agent_id}.{self.destination_id}"
+        payload = {**payload_data, "request_id": str(uuid.uuid4())}
+        payload.setdefault(
+            "simulation", {})["bridge_meta"] = {
+            "protocol": "rabbitmq"}
 
         self.channel.basic_publish(
             exchange="ex.bridge.output",
-            routing_key=routing_key,
-            body=payload_yaml,
+            routing_key=f"{self.agent_id}.{self.destination_id}",
+            body=yaml.dump(payload, default_flow_style=False),
             properties=pika.BasicProperties(
-                delivery_mode=2,  # Make message persistent
+                delivery_mode=2,
                 content_type="application/x-yaml",
                 message_id=str(uuid.uuid4()),
             ),
         )
-        print(f"[{self.agent_id.upper()}] Message sent to simul8: {payload}")
+        print(f"[{self.agent_id.upper()}] Request sent → simul8 "
+              f"(routing key {self.agent_id}.{self.destination_id}).")
 
-    def handle_result(
-        self, ch, method, _properties, body
-    ) -> None:
-        """
-        Callback to process incoming results from Simul8.
-
-        Args:
-            ch: Channel object.
-            method: Delivery method.
-            _properties: Message properties (unused).
-            body: Message body.
-        """
+    def _handle_result(self, ch, method, _props, body):  # noqa: N802
+        """Handle incoming simulation messages."""
         try:
-            result: Dict[str, Any] = yaml.safe_load(body)
-            print(f"\n[{self.agent_id.upper()}] Result received from Simul8:")
-            print(f"Result: {result}")
+            result = yaml.safe_load(body)
+            print(f"\n[{self.agent_id.upper()}] Result received:")
+            print(result)
             print("-" * 40)
+
             ch.basic_ack(method.delivery_tag)
+
+            # Terminate on completed status
+            if result.get("status") == "completed":
+                print(
+                    f"[{self.agent_id.upper()}] Simulation completed successfully.")
+                self._shutdown()
+
         except Exception as exc:  # pylint: disable=broad-except
             print(f"Error processing result: {exc}")
+            ch.basic_nack(method.delivery_tag)
 
     def start_listening(self) -> None:
-        """
-        Start consuming messages from the result queue indefinitely.
-        """
         self.channel.basic_consume(
-            queue=self.result_queue, on_message_callback=self.handle_result
+            queue=self.result_queue, on_message_callback=self._handle_result
         )
-        print(
-            f"[{self.agent_id.upper()}] Listening for results on routing key "
-            f"'simul8.result.{self.agent_id}'..."
-        )
+        print(f"[{self.agent_id.upper()}] Waiting for results "
+              f"(binding key '{self.destination_id}.result.{self.agent_id}')…")
         self.channel.start_consuming()
 
-    def load_yaml(self, file_path: str) -> Dict[str, Any]:
-        """
-        Load YAML file and return its content as a dictionary.
+    def _shutdown(self) -> None:
+        """Gracefully stop consuming, close the connection and exit."""
+        try:
+            # Stop RabbitMQ consumer loop
+            self.channel.stop_consuming()
+        except Exception:  # channel might already be closing
+            pass
 
-        Args:
-            file_path (str): Path to the YAML file.
+        try:
+            self.connection.close()
+        except Exception:
+            pass
 
-        Returns:
-            Dict[str, Any]: Parsed YAML content.
-        """
-        with open(file_path, "r", encoding="utf-8") as file:
-            return yaml.safe_load(file)
+        print(f"[{self.agent_id.upper()}] Connection closed. Exiting…")
+        # Ensure all threads exit – use os._exit to terminate the whole process
+        os._exit(0)
+
+    @staticmethod
+    def _load_yaml(file_path: str) -> Dict[str, Any]:
+        with open(file_path, "r", encoding="utf-8") as fp:
+            return yaml.safe_load(fp)
 
 
-def start_listener(agent_identifier: str) -> None:
-    """
-    Initialize and start the Simul8 agent listener in a separate thread.
-
-    Args:
-        agent_identifier (str): Agent identifier for the listener.
-    """
-    simul8_agent = SimpleUsageSimul8Agent(agent_identifier)
-    simul8_agent.start_listening()
+def _listener_thread(agent_identifier: str, config_path: str) -> None:
+    BatchUsageSimul8Agent(agent_identifier,
+                          config_path=config_path).start_listening()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Simple Simul8 Agent Client"
+        description="simul8 Simulation RabbitMQ Client")
+    parser.add_argument(
+        "--config",
+        default="use.yaml",
+        help="YAML configuration file (default: use.yaml)",
     )
     parser.add_argument(
-        "--api-payload",
-        type=str,
+        "--payload",
         default=None,
-        help=(
-            "Path to the YAML file containing the simulation payload "
-            "(simulation.yaml). If omitted, the default path from the "
-            "configuration file will be used."
-        ),
+        help="YAML payload to send (overrides 'simulation_request' in config)",
     )
     args = parser.parse_args()
 
     AGENT_ID = "dt"
     DESTINATION = "simul8"
 
-    # Start the listener thread to receive simulation results asynchronously.
-    listener_thread = threading.Thread(
-        target=start_listener,
-        args=(AGENT_ID,),
-    )
-    listener_thread.daemon = True
-    listener_thread.start()
+    # ---- Listener thread
+    threading.Thread(
+        target=_listener_thread,
+        args=(AGENT_ID, args.config),
+        daemon=True,
+    ).start()
 
-    # Instantiate the client with the default configuration file.
-    client = SimpleUsageSimul8Agent(
+    # ---- Sender
+    client = BatchUsageSimul8Agent(
         AGENT_ID,
         DESTINATION,
-        config_path="use.yaml",
+        config_path=args.config,
     )
 
     try:
-        # Determine the simulation payload file to load.
-        # Use CLI-specified payload path if provided, otherwise use default from
-        # config.
-        simulation_file_path = (
-            args.api_payload
-            if args.api_payload
-            else client.simulation_request_path
-        )
+        payload_path = args.payload or client.simulation_request_path
+        simulation_payload = client._load_yaml(payload_path)
+        client.send_request(simulation_payload)
 
-        # Load the simulation request data from the specified YAML file.
-        simulation_data = client.load_yaml(simulation_file_path)
-
-        # Send the simulation request to the Simul8 agent via RabbitMQ.
-        client.send_request(simulation_data)
-
-        # Keep the main thread alive to continue receiving asynchronous results.
-        print("\nPress Ctrl+C to terminate the program...")
+        print("\nPress Ctrl+C to exit manually…")
         while True:
-            pass
+            time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\nProgram terminated by user.")
+        print("\nTerminated by user.")
+        sys.exit(0)
 
     except Exception as exc:  # pylint: disable=broad-except
         print(f"Unexpected error: {exc}")
+        sys.exit(1)
