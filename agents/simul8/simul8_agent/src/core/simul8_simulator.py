@@ -447,8 +447,7 @@ class Simul8Simulator:
                 try:
                     # Check for Simul8 executable names (common variations)
                     proc_name = proc.info['name'].lower()
-                    if any(s8_name in proc_name for s8_name in [
-                           'simul8', 's8.exe', 'simul8.exe']):
+                    if any(s8_name in proc_name for s8_name in ['s8.exe']):
                         proc.terminate()
                         killed_processes.append(proc.info['pid'])
                         logger.warning(
