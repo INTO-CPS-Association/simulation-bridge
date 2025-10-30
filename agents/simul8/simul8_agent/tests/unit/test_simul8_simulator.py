@@ -6,6 +6,7 @@ from src.utils.csv_parser import CSVFormatError
 import psutil
 import pytest
 
+
 @pytest.fixture(name="sim_path")
 def _sim_path_fixture():
     """Provide a standard simulation path."""
@@ -81,64 +82,66 @@ class TestSimul8SimulatorInitialization:
 
             with pytest.raises(FileNotFoundError, match="Simulation file .* not found"):
                 Simul8Simulator(sim_path, 'missing_file.s8')
+
     def test_init_with_non_s8_extension_logs_warning(self, sim_path):
         """Test initialization with non-.s8 file extension logs warning."""
         with patch('pathlib.Path.exists', return_value=True), \
                 patch('pathlib.Path.is_dir', return_value=True), \
                 patch('pathlib.Path.is_file', return_value=True), \
                 patch('src.core.simul8_simulator.logger') as mock_logger:
-            
+
             # Test with various non-.s8 extensions
             test_files = ['simulation.txt', 'model.xml', 'test.s8x', 'file.S8X']
-            
+
             for test_file in test_files:
                 mock_logger.reset_mock()
                 simulator = Simul8Simulator(sim_path, test_file)
-                
+
                 # Verify warning was logged
                 mock_logger.warning.assert_called_once_with(
                     "Simulation file '%s' does not have .S8 extension", test_file)
-                
+
                 # Verify simulator was still created
                 assert simulator.sim_file == test_file
+
     class TestStartMethod:
         """Tests for the start() method of Simul8Simulator."""
-    
+
         def test_start_initializes_com_and_creates_instance(self, simulator):
             """Test that start() initializes COM and creates Simul8 instance."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize') as mock_coinit, \
                     patch('src.core.simul8_simulator.Dispatch') as mock_dispatch, \
                     patch('src.core.simul8_simulator.client.WithEvents') as mock_events, \
                     patch('time.time', return_value=1000.0):
-                
+
                 mock_s8 = MagicMock()
                 mock_dispatch.return_value = mock_s8
                 mock_event_handler = MagicMock()
                 mock_events.return_value = mock_event_handler
-                
+
                 simulator.start()
-                
+
                 # Verify COM was initialized
                 mock_coinit.assert_called_once()
-                
+
                 # Verify Simul8 instance was created
                 mock_dispatch.assert_called_once_with("Simul8.S8Simulation")
                 assert simulator.s8 == mock_s8
-                
+
                 # Verify event handler was set up
                 mock_events.assert_called_once()
                 assert simulator.events == mock_event_handler
-                
+
                 # Verify start time was set
                 assert simulator.start_time == pytest.approx(1000.0, rel=1e-9)
-    
+
         def test_start_sets_start_time(self, simulator):
             """Test that start() sets the start_time attribute."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
                     patch('src.core.simul8_simulator.Dispatch'), \
                     patch('src.core.simul8_simulator.client.WithEvents'), \
                     patch('time.time', return_value=12345.67):
-                
+
                 simulator.start()
 
                 assert simulator.start_time == pytest.approx(12345.67, rel=1e-9)
@@ -150,33 +153,34 @@ class TestSimul8SimulatorInitialization:
                     patch('src.core.simul8_simulator.client.WithEvents') as mock_events, \
                     patch.object(simulator, '_create_event_handler') as mock_create_handler, \
                     patch('time.time'):
-                
+
                 mock_s8 = MagicMock()
                 mock_dispatch.return_value = mock_s8
                 mock_handler_class = MagicMock()
                 mock_create_handler.return_value = mock_handler_class
-                
+
                 simulator.start()
-                
+
                 # Verify event handler was created
                 mock_create_handler.assert_called_once()
-                
-                # Verify WithEvents was called with s8 instance and handler class
+
+                # Verify WithEvents was called with s8 instance and handler
+                # class
                 mock_events.assert_called_once_with(mock_s8, mock_handler_class)
-    
+
         def test_start_coinitialize_failure_raises_error(self, simulator):
             """Test that CoInitialize failure is handled properly."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize',
-                      side_effect=Exception("COM init failed")), \
+                       side_effect=Exception("COM init failed")), \
                     patch.object(simulator, 'cleanup') as mock_cleanup, \
                     patch('time.time'):
-                
+
                 with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
                     simulator.start()
-                
+
                 # Verify cleanup was called
                 mock_cleanup.assert_called_once()
-    
+
         def test_start_dispatch_failure_raises_error(self, simulator):
             """Test that Dispatch failure is handled properly."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
@@ -184,13 +188,13 @@ class TestSimul8SimulatorInitialization:
                           side_effect=Exception("Dispatch failed")), \
                     patch.object(simulator, 'cleanup') as mock_cleanup, \
                     patch('time.time'):
-                
+
                 with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
                     simulator.start()
-                
+
                 # Verify cleanup was called
                 mock_cleanup.assert_called_once()
-    
+
         def test_start_with_events_failure_raises_error(self, simulator):
             """Test that WithEvents failure is handled properly."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
@@ -199,13 +203,13 @@ class TestSimul8SimulatorInitialization:
                           side_effect=Exception("Events failed")), \
                     patch.object(simulator, 'cleanup') as mock_cleanup, \
                     patch('time.time'):
-                
+
                 with pytest.raises(Simul8SimulationError, match="Failed to start Simul8 engine"):
                     simulator.start()
-                
+
                 # Verify cleanup was called
                 mock_cleanup.assert_called_once()
-    
+
         def test_start_exception_calls_cleanup(self, simulator):
             """Test that any exception during start triggers cleanup."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
@@ -213,13 +217,13 @@ class TestSimul8SimulatorInitialization:
                           side_effect=RuntimeError("Unexpected error")), \
                     patch.object(simulator, 'cleanup') as mock_cleanup, \
                     patch('time.time'):
-                
+
                 with pytest.raises(Simul8SimulationError):
                     simulator.start()
-                
+
                 # Verify cleanup was called before re-raising
                 mock_cleanup.assert_called_once()
-    
+
         def test_start_logs_debug_messages(self, simulator):
             """Test that start() logs appropriate debug messages."""
             with patch('src.core.simul8_simulator.pythoncom.CoInitialize'), \
@@ -227,13 +231,15 @@ class TestSimul8SimulatorInitialization:
                     patch('src.core.simul8_simulator.client.WithEvents'), \
                     patch('time.time'), \
                     patch('src.core.simul8_simulator.logger') as mock_logger:
-                
+
                 simulator.start()
-                
+
                 # Verify debug messages were logged
                 mock_logger.debug.assert_any_call("Starting Simul8 engine")
-                mock_logger.debug.assert_any_call("Simul8 engine started successfully")
-    
+                mock_logger.debug.assert_any_call(
+                    "Simul8 engine started successfully")
+
+
 class TestParseOutputCSV:
     """Tests for _parse_output_csv method."""
 
