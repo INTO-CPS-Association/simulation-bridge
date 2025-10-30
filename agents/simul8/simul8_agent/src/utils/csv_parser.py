@@ -58,7 +58,9 @@ def validate_csv_structure(csv_data: Dict[str, Any]) -> None:
 
         if len(row_data) != len(columns):
             raise CSVFormatError(
-                f"Row '{row_key}' has {len(row_data)} values but {len(columns)} columns expected"
+                f"Row '{row_key}' has {
+                    len(row_data)} values but {
+                    len(columns)} columns expected"
             )
         logger.debug(
             "CSV structure validation passed: %d columns, %d rows",

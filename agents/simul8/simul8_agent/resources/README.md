@@ -8,14 +8,14 @@ YAML format over RabbitMQ messaging queues.
 ## Table of Contents
 
 - [Use Simul8 Agent](#use-simul8-agent)
-    - [Table of Contents](#table-of-contents)
-    - [Installation](#installation)
-    - [Configuration](#configuration)
-    - [Usage](#usage)
-    - [Example](#example)
-        - [Steps to run an example](#steps-to-run-an-example)
-        - [Where to find the API payload files](#where-to-find-the-api-payload-files)
-        - [Example usage](#example-usage)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Configuration](#configuration)
+  - [Usage](#usage)
+  - [Example](#example)
+    - [Steps to run an example](#steps-to-run-an-example)
+    - [Where to find the API payload files](#where-to-find-the-api-payload-files)
+    - [Example usage](#example-usage)
 
 ## Installation
 
@@ -109,7 +109,8 @@ It is a good practice to place the path in single quotes.
 ### Where to find the API payload files
 <!-- markdownlint-disable -->
 Each example folder contains an `api/` subfolder with example simulation
-payload YAML files. Use these as the `--api-payload` argument when running the Python client.
+payload YAML files. Use these as the `--api-payload` argument when
+running the Python client.
 <!-- markdownlint-enable -->
 For instance:
 

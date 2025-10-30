@@ -1,16 +1,15 @@
 # Simul8 Agent
-<!-- markdownlint-disable -->
 
-The Simul8 Agent is a Python-based connector designed to interface with Simul8 simulations through a singular method.
+The Simul8 Agent is a Python-based connector designed to interface with
+Simul8 simulations through a singular method.
 
-- **Batch Simulation**: Executes predefined Simul8 Simulation with specified input parameters,
- collecting the final results upon completion.
+>**Batch Simulation**: Executes predefined Simul8 Simulation with
+> specified input parameters, collecting the final results upon completion.
 
-The Simul8Agent
 The Simul8 Agent is primarily built to integrate with the Simulation Bridge,
 how it can also be utilized by external systems via RabbitMQ exchange methods.
-Communication parameters and other settings must be defined in the YAML-based configuration file.
-<!-- markdownlint-enable -->
+Communication parameters and other settings must be defined in
+the YAML-based configuration file.
 
 <div align="center">
   <img src="simul8_agent/images/image.png"
@@ -24,25 +23,26 @@ Communication parameters and other settings must be defined in the YAML-based co
 ## Table of Contents
 
 - [Simul8 Agent](#simul8-agent)
-    - [Table of Contents](#table-of-contents)
-    - [Demo Video](#demo-video)
-    - [Requirements](#requirements)
+  - [Table of Contents](#table-of-contents)
+  - [Demo Video](#demo-video)
+  - [Requirements](#requirements)
     - [Installation](#installation)
-        - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
-        - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
-        - [3. Install Project Dependencies](#3-install-project-dependencies)
+      - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
+      - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
+      - [3. Install Project Dependencies](#3-install-project-dependencies)
     - [Configuration](#configuration)
-    - [Usage](#usage)
+  - [Usage](#usage)
     - [Getting Started](#getting-started)
     - [Running the Agent](#running-the-agent)
-    - [Distributing the Package as a PIP Package with Poetry](#distributing-the-package-as-a-pip-package-with-poetry)
+  - [Distributing the Package as a PIP Package with Poetry](#distributing-the-package-as-a-pip-package-with-poetry)
     - [Verifying the Package (Optional but Recommended)](#verifying-the-package-optional-but-recommended)
     - [Releasing a New Version](#releasing-a-new-version)
-    - [Demonstration](#demonstration)
-    - [Quick Start: Interacting with the Simul8 Agent](#quick-start-interacting-with-the-simul8-agent)
-    - [Workflow](#workflow)
-    - [Package Development](#package-development)
-    - [Author](#author)
+  - [Demonstration](#demonstration)
+  - [Quick Start: Interacting with the Simul8 Agent](#quick-start-interacting-with-the-simul8-agent)
+  - [Workflow](#workflow)
+  - [Encountering the error com\_cache\_error](#encountering-the-error-com_cache_error)
+  - [Package Development](#package-development)
+  - [Contributors](#contributors)
 
 ## Demo Video
 
@@ -93,12 +93,13 @@ Activate the virtual environment:
 ```bash
 poetry env activate
 ```
-<!-- markdownlint-disable -->
 
 > **Important:**  
-> The command `poetry env activate` does not automatically activate the virtual environment; instead, it prints the command you need to run to activate it.  
+> The command `poetry env activate` does not automatically activate
+> the virtual environment; instead, it prints the command you
+> need to run to activate it.
 > You must copy and paste the displayed command, for example:
-<!-- markdownlint-enable -->
+
 ```bash
 source /path/to/virtualenv/bin/activate
 ```
@@ -142,7 +143,6 @@ rabbitmq:
 simulation:
   path: /Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples 
   # The file path to the folder containing simul8 simulation files.
-<!-- markdownlint-disable -->
 
 exchanges:
   input: ex.bridge.output # The RabbitMQ exchange from which the agent receives commands.
@@ -159,7 +159,6 @@ logging:
 tcp:
   host: localhost # The hostname or IP address for TCP communication.
   port: 5678 # The port number for TCP communication.
-<!-- markdownlint-enable -->
 response_templates:
   success:
     status: success # Indicates a successful simulation response.
@@ -186,7 +185,6 @@ response_templates:
 
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" 
     # The timestamp format in ISO 8601 with a Z suffix for UTC.
-<!-- markdownlint-disable -->
 
   progress:
     status: in_progress # Indicates that the simulation is currently in progress.
@@ -195,7 +193,7 @@ response_templates:
     timestamp_format: "%Y-%m-%dT%H:%M:%SZ" 
     # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
-<!-- markdownlint-enable -->
+
 ## Usage
 
 The agent requires a configuration file to run.
@@ -289,10 +287,9 @@ simul8-agent
 ```
 
 ### Releasing a New Version
-<!-- markdownlint-disable -->
 
-When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
-<!-- markdownlint-enable -->
+When you modify the code and want to release a new version, increment
+the version number in `pyproject.toml`:
 
 ```toml
 version = "0.1.0"
@@ -340,19 +337,23 @@ For detailed instructions on how to configure and use the client, refer to the [
 1. The agent connects to RabbitMQ and sets up the required queues and exchanges.
 2. It listens for incoming messages on its dedicated queue.
 3. Upon receiving a message:
+   - It analyzes and processes the simulation request.
+   - Executes the simulation.
+   - Sends the results to the output exchange.
+<!-- markdownlint-enable -->
 
-- It analyzes and processes the simulation request.
-- Executes the simulation.
-- Sends the results to the output exchange.
-
-For detailed information regarding simulations and constraints, please refer to the [Simulations and Constraints Documentation](simul8_agent/docs/README.md).
+For detailed information regarding simulations and constraints,
+please refer to the [Simulations and Constraints Documentation](simul8_agent/docs/README.md).
 
 ## Encountering the error com_cache_error
 
-If you encounter the error **com_cache_error** you need to contact the owner of the agent hosting the request simulation.
-The agent-owner needs to go to  "%USERPROFILE%\AppData\Local\Temp\gen_py" and delete the gen_py folder, then restart the agent.
-The gen_py cache can become corrupted and manual deletion is needed.
+If you encounter the error **com_cache_error** you need to contact
+the owner of the agent hosting the request simulation.
+The agent-owner needs to go to  `%USERPROFILE%\AppData\Local\Temp\gen_py` and
+delete the `gen_py` folder, then restart the agent.
+The `gen_py` cache can become corrupted and manual deletion is needed.
 <!-- markdownlint-enable -->
+
 ## Package Development
 
 The developer-specific commands are
@@ -363,9 +364,12 @@ pylint simul8_agent
 autopep8 --in-place --aggressive --recursive 'simul8_agent'
 ```
 
-## Author
-<!-- markdownlint-disable -->
+## Contributors
 
-<div style="display: flex; flex-direction: column; gap: 25px;"> <!-- Marco Melloni --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/melloni.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Marco Melloni</h3> <p style="margin: 4px 0;">Digital Automation Engineering Student<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-melloni/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/marcomelloni" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Marco Picone --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/picone.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Prof. Marco Picone</h3> <p style="margin: 4px 0;">Associate Professor<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-picone-8a6a4612/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/piconem" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Prasad Talasila --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/talasila.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Dr. Prasad Talasila</h3> <p style="margin: 4px 0;">Postdoctoral Researcher<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/prasad-talasila/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/prasadtalasila" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> </div>
-<!-- Rasmus Carlsen --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/carlsen.png" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Rasmus Carlsen</h3> <p style="margin: 4px 0;">Computer Engineering Student<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/rasmusmcarlsen/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/Rasmus-M-C" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> </div>
+<!-- markdownlint-disable -->
+<div style="display: flex; flex-direction: column; gap: 25px;"> 
+<!-- Rasmus Carlsen --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/carlsen.png" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Rasmus Carlsen</h3> <p style="margin: 4px 0;">Computer Engineering Student<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/rasmusmcarlsen/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/Rasmus-M-C" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div>
+<!-- Marco Melloni --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/melloni.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Marco Melloni</h3> <p style="margin: 4px 0;">Digital Automation Engineering Student<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-melloni/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/marcomelloni" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div>
+<!-- Marco Picone --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/picone.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Prof. Marco Picone</h3> <p style="margin: 4px 0;">Associate Professor<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-picone-8a6a4612/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/piconem" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Prasad Talasila --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/talasila.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Dr. Prasad Talasila</h3> <p style="margin: 4px 0;">Postdoctoral Researcher<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/prasad-talasila/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/prasadtalasila" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div>
+</div>
 <!-- markdownlint-enable -->
