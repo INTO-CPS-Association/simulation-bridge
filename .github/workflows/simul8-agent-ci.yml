@@ -34,10 +34,6 @@ jobs:
           python -m pip install --upgrade pip
           curl -sSL https://install.python-poetry.org | python -
 
-      - name: Add Poetry to PATH (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: echo "${{ runner.temp }}/poetry/bin" >> $GITHUB_PATH
-
       - name: Add Poetry to PATH (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -59,21 +55,14 @@ jobs:
 
       # ───── 6. Tests ─────
       - name: Run pytest (with coverage)
-        if: matrix.os == 'ubuntu-latest'
         run: poetry run pytest --cov=simul8_agent --cov-report=xml
 
       - name: Upload coverage to Codecov
-        if: matrix.os == 'ubuntu-latest'
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      # Windows/macOS → test without coverage
-      - name: Run pytest (no coverage)
-        if: matrix.os != 'ubuntu-latest'
-        run: poetry run pytest -q
 
       # ───── 7. Build + dist artefacts ─────
       - name: Install runtime dependencies
@@ -85,7 +74,6 @@ jobs:
           poetry build --format sdist
 
       - name: Upload dist artefacts
-        if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v4
         with:
           name: simul8-agent-dist
