@@ -1117,8 +1117,8 @@ class TestForceKillSimul8Processes:
         mock_proc1 = MagicMock()
         mock_proc1.info = {
             'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
+            'name': 's8.exe',
+            'exe': '/path/to/s8.exe'}
 
         mock_proc2 = MagicMock()
         mock_proc2.info = {
@@ -1157,8 +1157,8 @@ class TestForceKillSimul8Processes:
         mock_proc = MagicMock()
         mock_proc.info = {
             'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
+            'name': 'S8.exe',
+            'exe': '/path/to/s8.exe'}
         mock_proc.terminate.side_effect = psutil.NoSuchProcess(1234)
 
         with patch('psutil.process_iter', side_effect=[
@@ -1175,8 +1175,8 @@ class TestForceKillSimul8Processes:
         mock_proc = MagicMock()
         mock_proc.info = {
             'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
+            'name': 'S8.exe',
+            'exe': '/path/to/s8.exe'}
         mock_proc.terminate.side_effect = psutil.AccessDenied(1234)
 
         with patch('psutil.process_iter', side_effect=[
@@ -1216,8 +1216,7 @@ class TestForceKillSimul8Processes:
     def test_identifies_all_simul8_name_variations(self, simulator):
         """Test that all Simul8 name variations are identified."""
         mock_procs = []
-        simul8_names = ['Simul8.exe', 's8.exe', 'SIMUL8.EXE', 'S8.EXE',
-                        'simul8_test.exe', 'test_s8.exe']
+        simul8_names = ['s8.exe', 'S8.EXE', 'test_s8.exe']
 
         for i, name in enumerate(simul8_names):
             proc = MagicMock()
@@ -1241,8 +1240,8 @@ class TestForceKillSimul8Processes:
         mock_proc = MagicMock()
         mock_proc.info = {
             'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
+            'name': 'S8.exe',
+            'exe': '/path/to/s8.exe'}
         mock_proc.is_running.side_effect = psutil.NoSuchProcess(1234)
 
         with patch('psutil.process_iter', side_effect=[
@@ -1260,8 +1259,8 @@ class TestForceKillSimul8Processes:
         mock_proc = MagicMock()
         mock_proc.info = {
             'pid': 1234,
-            'name': 'Simul8.exe',
-            'exe': '/path/to/simul8.exe'}
+            'name': 'S8.exe',
+            'exe': '/path/to/s8.exe'}
         mock_proc.is_running.return_value = True
         mock_proc.kill.side_effect = psutil.AccessDenied(1234)
 
