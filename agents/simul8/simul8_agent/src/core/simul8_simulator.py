@@ -102,8 +102,7 @@ class Simul8Simulator:
             logger.error("Failed to start Simul8 engine: %s", str(e))
             self.cleanup()
             raise Simul8SimulationError(
-                f"Failed to start Simul8 engine: {str(e)}"
-            ) from e
+                f"Failed to start Simul8 engine: {str(e)}") from e
 
     def _create_event_handler(self):
         """Create an event handler class for this simulation instance."""
