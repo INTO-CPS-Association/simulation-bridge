@@ -83,10 +83,11 @@ def generate_default_project():
     created_files = []
 
     # Mapping from output filename to importlib resource location
+    # Mapping from output filename to importlib resource location
     files_to_generate = {
         'config.yaml': ('simul8_agent.config', 'config.yaml.template'),
-        'simulation_batch.s8': ('simul8_agent.resources', 'simulation_batch.s8'),
-        'client/use_simul8_agent_batch.py': ('simul8_agent.resources', 'use_simul8_agent.py'),
+        'simulation_batch.s8': ('simul8_agent.docs.examples.batch_simulation', 'simulation_batch.s8'),
+        'client/use_simul8_agent_batch.py': ('simul8_agent.resources', 'use_simul8_agent_batch.py'),
         'client/use.yaml': ('simul8_agent.resources', 'use.yaml.template'),
         'client/simulation.yaml': ('simul8_agent.api', 'simulation.yaml.template'),
         'client/README.md': ('simul8_agent.resources', 'README.md'),
@@ -94,11 +95,11 @@ def generate_default_project():
 
     # Descriptions for each file
     file_descriptions = {
-        'config.yaml': "Configuration file for the simul8 agent",
-        'simulation_batch.s8': "A simulation file for simul8",
-        'client/use_simul8_agent.py': "Python script to use the simul8 agent",
+        'config.yaml': "Configuration file for the Simul8 agent",
+        'simulation_batch.s8': "Example Simul8 simulation file for batch mode",
+        'client/use_simul8_agent_batch.py': "Python script to use the Simul8 agent in batch mode",
         'client/use.yaml': "Client-side usage configuration (use.yaml)",
-        'client/simulation.yaml': "Example API payload to communicate with the simul8 agent",
+        'client/simulation.yaml': "Example API payload to communicate with the Simul8 agent",
         'client/README.md': "README file for the client directory",
     }
 
