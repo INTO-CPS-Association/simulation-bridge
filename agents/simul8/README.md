@@ -1,49 +1,61 @@
 # Simul8 Agent
+<!-- markdownlint-disable -->
 
 The Simul8 Agent is a Python-based connector designed to interface with Simul8 simulations through a singular method.
 
-- **Batch Simulation**: Executes predefined Simul8 Simulation with specified input parameters, collecting the final results upon completion.
+- **Batch Simulation**: Executes predefined Simul8 Simulation with specified input parameters,
+ collecting the final results upon completion.
 
-The Simul8Agent 
-The Simul8 Agent is primarily built to integrate with the Simulation Bridge but can also be utilized by external systems via RabbitMQ exchange methods. Communication parameters and other settings must be defined in the YAML-based configuration file.
+The Simul8Agent
+The Simul8 Agent is primarily built to integrate with the Simulation Bridge,
+how it can also be utilized by external systems via RabbitMQ exchange methods.
+Communication parameters and other settings must be defined in the YAML-based configuration file.
+<!-- markdownlint-enable -->
 
 <div align="center">
-  <img src="simul8_agent/images/image.png" alt="Simul8 Agent Structure" width="600" style="border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+  <img src="simul8_agent/images/image.png"
+  alt="Simul8 Agent Structure"
+  width="600"
+  style="border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px;">
 </div>
 
 ## Table of Contents
 
 - [Simul8 Agent](#simul8-agent)
-  - [Table of Contents](#table-of-contents)
-  - [Demo Video](#demo-video)
-  - [Requirements](#requirements)
+    - [Table of Contents](#table-of-contents)
+    - [Demo Video](#demo-video)
+    - [Requirements](#requirements)
     - [Installation](#installation)
-      - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
-      - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
-      - [3. Install Project Dependencies](#3-install-project-dependencies)
+        - [1. Clone the Repository and Navigate to the Working Directory](#1-clone-the-repository-and-navigate-to-the-working-directory)
+        - [2. Install Poetry and Create Virtual Environment](#2-install-poetry-and-create-virtual-environment)
+        - [3. Install Project Dependencies](#3-install-project-dependencies)
     - [Configuration](#configuration)
-  - [Usage](#usage)
+    - [Usage](#usage)
     - [Getting Started](#getting-started)
     - [Running the Agent](#running-the-agent)
-  - [Distributing the Package as a PIP Package with Poetry](#distributing-the-package-as-a-pip-package-with-poetry)
+    - [Distributing the Package as a PIP Package with Poetry](#distributing-the-package-as-a-pip-package-with-poetry)
     - [Verifying the Package (Optional but Recommended)](#verifying-the-package-optional-but-recommended)
     - [Releasing a New Version](#releasing-a-new-version)
-  - [Demonstration](#demonstration)
-  - [Quick Start: Interacting with the Simul8 Agent](#quick-start-interacting-with-the-simul8-agent)
-  - [Workflow](#workflow)
-  - [Package Development](#package-development)
-  - [Author](#author)
+    - [Demonstration](#demonstration)
+    - [Quick Start: Interacting with the Simul8 Agent](#quick-start-interacting-with-the-simul8-agent)
+    - [Workflow](#workflow)
+    - [Package Development](#package-development)
+    - [Author](#author)
 
 ## Demo Video
 
 For a comprehensive demonstration of the Simul8 Agent in action, you can:
 
-- [Watch the full video (MP4 format)](simul8_agent/images/demo-simul8-edited.mp4) 
+- [Watch the full video (MP4 format)](simul8_agent/images/demo-simul8-edited.mp4)
 
 Or view a quick preview below:
 
 <p align="center">
-  <img src="simul8_agent/images/demo-simul8-edited.gif" alt="Simul8 Agent Demo Preview" width="800">
+  <img src="simul8_agent/images/demo-simul8-edited.gif"
+  alt="Simul8 Agent Demo Preview"
+  width="800">
 </p>
 
 <p align="center"><i>A video demonstration of the Simul8 Agent in action</i></p>
@@ -61,7 +73,8 @@ cd simulation-bridge
 
 #### 2. Install Poetry and Create Virtual Environment
 
-Ensure that Poetry is installed on your system. If it is not already installed, execute the following commands:
+Ensure that Poetry is installed on your system.
+If it is not already installed, execute the following commands:
 
 ```bash
 python3 -m pip install --user pipx
@@ -80,11 +93,12 @@ Activate the virtual environment:
 ```bash
 poetry env activate
 ```
+<!-- markdownlint-disable -->
 
 > **Important:**  
 > The command `poetry env activate` does not automatically activate the virtual environment; instead, it prints the command you need to run to activate it.  
 > You must copy and paste the displayed command, for example:
-
+<!-- markdownlint-enable -->
 ```bash
 source /path/to/virtualenv/bin/activate
 ```
@@ -105,13 +119,16 @@ poetry install
 
 ### Configuration
 
-The configuration is specified in yaml format. A template file (`simul8_agent/config/config.yaml.template`) has been provided. It can be customized further.
+The configuration is specified in yaml format.
+A template file (`simul8_agent/config/config.yaml.template`) has been provided.
+It can be customized further.
 
 Explanation on different fields of the yaml template is given below.
 
 ```yaml
 agent:
-  agent_id: simul8 # Specifies the unique identifier for the agent. This ID is used to distinguish the agent in the system.
+  agent_id: simul8 # Specifies the unique identifier for the agent. 
+                   # This ID is used to distinguish the agent in the system.
   simulator: simul8 # Specifies the name of the simulator
 
 rabbitmq:
@@ -123,7 +140,9 @@ rabbitmq:
   vhost: / # The virtual host to use for RabbitMQ connections.
 
 simulation:
-  path: /Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples # The file path to the folder containing simul8 simulation files.
+  path: /Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples 
+  # The file path to the folder containing simul8 simulation files.
+<!-- markdownlint-disable -->
 
 exchanges:
   input: ex.bridge.output # The RabbitMQ exchange from which the agent receives commands.
@@ -140,13 +159,14 @@ logging:
 tcp:
   host: localhost # The hostname or IP address for TCP communication.
   port: 5678 # The port number for TCP communication.
-
+<!-- markdownlint-enable -->
 response_templates:
   success:
     status: success # Indicates a successful simulation response.
     simulation:
       type: batch # Specifies the type of simulation (e.g., batch or streaming).
-    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ"
+    # The timestamp format in ISO 8601 with a Z suffix for UTC.
     include_metadata: true # Determines whether metadata is included in the response.
     metadata_fields: # Specifies the metadata fields to include in the response.
       - execution_time
@@ -155,7 +175,8 @@ response_templates:
 
   error:
     status: error # Indicates an error response.
-    include_stacktrace: false # For security, stack traces are excluded in production environments.
+    include_stacktrace: false 
+    # For security, stack traces are excluded in production environments.
     error_codes: # Maps specific error scenarios to HTTP-like status codes.
       invalid_config: 400 # Error code for invalid configuration.
       simul8_start_failure: 500 # Error code for simul8 startup failure.
@@ -163,18 +184,22 @@ response_templates:
       timeout: 504 # Error code for simulation timeout.
       missing_file: 404 # Error code for missing files.
 
-    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" 
+    # The timestamp format in ISO 8601 with a Z suffix for UTC.
+<!-- markdownlint-disable -->
 
   progress:
     status: in_progress # Indicates that the simulation is currently in progress.
     include_percentage: true # Includes the percentage of completion in progress updates.
     update_interval: 5 # Specifies the interval (in seconds) for sending progress updates.
-    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" # The timestamp format in ISO 8601 with a Z suffix for UTC.
+    timestamp_format: "%Y-%m-%dT%H:%M:%SZ" 
+    # The timestamp format in ISO 8601 with a Z suffix for UTC.
 ```
-
+<!-- markdownlint-enable -->
 ## Usage
 
-The agent requires a configuration file to run. You can start by copying the provided template and customizing it as needed.
+The agent requires a configuration file to run.
+You can start by copying the provided template and customizing it as needed.
 
 ### Getting Started
 
@@ -184,7 +209,8 @@ The agent requires a configuration file to run. You can start by copying the pro
 poetry run simul8-agent --generate-config
 ```
 
-This command creates a `config.yaml` file in your current directory. If the file already exists, it will not be overwritten.
+This command creates a `config.yaml` file in your current directory.
+If the file already exists, it will not be overwritten.
 
 **Generate Project Files:**
 
@@ -194,15 +220,17 @@ To create a complete set of template files for your Simul8 agent project:
 poetry run simul8-agent --generate-project
 ```
 
-This command creates the following structure in your current directory (existing files won't be overwritten):
+This command creates the following structure in your current directory:
+(existing files won't be overwritten):
 
-```
+```tree
 .
 ├── config.yaml                 # Agent configuration settings
 ├── SimulationBatch.ms8          # Template for batch simulations
 ```
 
-Each template file contains documentation and can be customized for your specific simulation requirements.
+Each template file contains documentation.
+It can be customized for your specific simulation requirements.
 
 ### Running the Agent
 
@@ -226,7 +254,8 @@ poetry run simul8-agent -c <path_to_config.yaml>
 
 ## Distributing the Package as a PIP Package with Poetry
 
-To create the package, run the following command in the project's root directory (where `pyproject.toml` is located):
+To create the package, run the following command in the project's root directory
+(where `pyproject.toml` is located):
 
 ```bash
 poetry build
@@ -260,8 +289,10 @@ simul8-agent
 ```
 
 ### Releasing a New Version
+<!-- markdownlint-disable -->
 
 When you modify the code and want to release a new version, increment the version number in `pyproject.toml`:
+<!-- markdownlint-enable -->
 
 ```toml
 version = "0.1.0"
@@ -275,7 +306,8 @@ poetry build
 
 ## Demonstration
 
-For instructions on running tests created with `pytest` and `unittest.mock`, please refer to the [Tests Documentation](simul8_agent/tests/README.md).
+For instructions on running tests created with `pytest` and `unittest.mock`
+please refer to the [Tests Documentation](simul8_agent/tests/README.md).
 
 ## Quick Start: Interacting with the Simul8 Agent
 
@@ -285,7 +317,8 @@ To quickly get started, generate the default project structure by running:
 poetry run simul8-agent --generate-project
 ```
 
-This will create a `client/` directory in the root of your project containing all necessary files for interaction.
+This will create a `client/` directory in the root of your project
+containing all necessary files for interaction.
 
 Next, move into the client directory:
 
@@ -294,6 +327,7 @@ cd client
 ```
 
 Inside this folder, you'll find:
+<!-- markdownlint-disable -->
 
 - `use.yaml` — Configuration file for the communication protocol (e.g., RabbitMQ settings)
 - `simulation.yaml` — The simulation request payload that will be sent to the Simul8 Agent
@@ -314,10 +348,11 @@ For detailed instructions on how to configure and use the client, refer to the [
 For detailed information regarding simulations and constraints, please refer to the [Simulations and Constraints Documentation](simul8_agent/docs/README.md).
 
 ## Encountering the error com_cache_error
-If you encounter the error **com_cache_error** you need to contact the owner of the agent hosting the request simulation. 
+
+If you encounter the error **com_cache_error** you need to contact the owner of the agent hosting the request simulation.
 The agent-owner needs to go to  "%USERPROFILE%\AppData\Local\Temp\gen_py" and delete the gen_py folder, then restart the agent.
 The gen_py cache can become corrupted and manual deletion is needed.
-
+<!-- markdownlint-enable -->
 ## Package Development
 
 The developer-specific commands are
@@ -329,6 +364,8 @@ autopep8 --in-place --aggressive --recursive 'simul8_agent'
 ```
 
 ## Author
+<!-- markdownlint-disable -->
 
 <div style="display: flex; flex-direction: column; gap: 25px;"> <!-- Marco Melloni --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/melloni.jpg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Marco Melloni</h3> <p style="margin: 4px 0;">Digital Automation Engineering Student<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-melloni/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/marcomelloni" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Marco Picone --> <div style="display: flex; align-items: center; gap: 15px;"> <img src="simul8_agent/images/picone.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Prof. Marco Picone</h3> <p style="margin: 4px 0;">Associate Professor<br> University of Modena and Reggio Emilia, Department of Sciences and Methods for Engineering (DISMI)</p> <div> <a href="https://www.linkedin.com/in/marco-picone-8a6a4612/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/piconem" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> <!-- Prasad Talasila --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/talasila.jpeg" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Dr. Prasad Talasila</h3> <p style="margin: 4px 0;">Postdoctoral Researcher<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/prasad-talasila/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/prasadtalasila" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> </div>
 <!-- Rasmus Carlsen --> <div style="display: flex; align-items: center; gap: 15px;"> <!-- Placeholder image --> <img src="simul8_agent/images/carlsen.png" width="60" style="border-radius: 50%; border: 2px solid #eee;"/> <div> <h3 style="margin: 0;">Rasmus Carlsen</h3> <p style="margin: 4px 0;">Computer Engineering Student<br> Aarhus University</p> <div> <a href="https://www.linkedin.com/in/rasmusmcarlsen/"> <img src="https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat-square&logo=linkedin"/> </a> <a href="https://github.com/Rasmus-M-C" style="margin-left: 8px;"> <img src="https://img.shields.io/badge/GitHub-Profile-black?style=flat-square&logo=github"/> </a> </div> </div> </div> </div>
+<!-- markdownlint-enable -->

@@ -1,18 +1,21 @@
 # Use Simul8 Agent
 
-This Python module provides a simple RabbitMQ client to send simulation requests to a Simul8 agent and asynchronously listen for simulation results. It uses YAML configuration files for setup and supports sending payloads in YAML format over RabbitMQ messaging queues.
+This Python module provides a simple RabbitMQ client to send simulation requests
+to a Simul8 agent and asynchronously listen for simulation results.
+It uses YAML configuration files for setup and supports sending payloads in
+YAML format over RabbitMQ messaging queues.
 
 ## Table of Contents
 
 - [Use Simul8 Agent](#use-simul8-agent)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Configuration](#configuration)
-  - [Usage](#usage)
-  - [Example](#example)
-    - [Steps to run an example](#steps-to-run-an-example)
-    - [Where to find the API payload files](#where-to-find-the-api-payload-files)
-    - [Example usage](#example-usage)
+    - [Table of Contents](#table-of-contents)
+    - [Installation](#installation)
+    - [Configuration](#configuration)
+    - [Usage](#usage)
+    - [Example](#example)
+        - [Steps to run an example](#steps-to-run-an-example)
+        - [Where to find the API payload files](#where-to-find-the-api-payload-files)
+        - [Example usage](#example-usage)
 
 ## Installation
 
@@ -24,7 +27,9 @@ pip install pika pyyaml
 
 ## Configuration
 
-The agent requires a configuration file (`use.yaml`) to set up RabbitMQ connection parameters and specify the path to the simulation request payload.
+The agent requires a configuration file (`use.yaml`)
+to set up RabbitMQ connection parameters and specify
+the path to the simulation request payload.
 
 Example `use.yaml` content:
 
@@ -42,42 +47,53 @@ simulation_request: ../api/simulation.yaml # Default path to the simulation YAML
 
 ## Usage
 
-Run the module as a standalone script to send simulation requests to the Simul8 agent and listen asynchronously for the results.
+Run the module as a standalone script to send simulation requests to the Simul8
+agent and listen asynchronously for the results.
 Command-Line Options:
 
 - `--api-payload` (optional):  
   Specify the path to the YAML file containing the simulation request payload.
 
-If this option is omitted, the script will look for a file named `simulation.yaml` in the default location as configured in `use.yaml` (by default in the same directory or as specified in the `simulation_request` field).
+If this option is omitted, the script will look for a file named `simulation.yaml`
+in the default location as configured in `use.yaml`
+(by default in the same directory or as specified in the `simulation_request` field).
 
 - **Without CLI option:**  
-  The script loads the simulation payload from the default path specified in `use.yaml`. This is by default a `simulation.yaml` file located in the working directory or as configured.
-
+  The script loads the simulation payload from the default path specified in
+  `use.yaml`.
+  <!-- markdownlint-disable -->
+  This is by default a `simulation.yaml` file located in the working directory or as configured.
+<!-- markdownlint-enable -->
 - **With CLI option:**  
-  You can override the default by specifying a custom path to the simulation payload YAML file using the `--api-payload` option.
+  You can override the default by specifying a custom path to the simulation
+  payload YAML file using the `--api-payload` option.
 
+The the simulation file used must be configured for this type of invocation.
 
-The the simulation file used must be configured for this type of invocation. 
 - ``inputSheet``and `outputSheet` must be created manually in the simulation.
-- A "On Simulation Open" visual logic block must be created, which contains: `File to Sheet    "input.csv" ,  inputSheet[1,1]`
+- A "On Simulation Open" visual logic block must be created, which contains:
+`File to Sheet    "input.csv" ,  inputSheet[1,1]`
 - The data which the simulation manipulates should be put into `outputSheet`
-- A "End Run Logic" Visual Logic Block must be created containing the wanted logic for creating the data which you want exported. Hence it needs to contain `Sheet to File    "output.csv" ,  outputSheet[1,1]
+- A "End Run Logic" Visual Logic Block must be created
+containing the wanted logic for creating the data which you want exported.
+Hence it needs to contain `Sheet to File    "output.csv" ,  outputSheet[1,1]
 `
-
 
 ## Example
 
 In the directory  
 `/Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples`  
-you will a folder containing a practical example. Each example folder includes a `README.md` with detailed instructions:
+you will a folder containing a practical example.
+Each example folder includes a `README.md` with detailed instructions:
 
 - [Batch Simulation](../docs/examples/batch-simulation/README.md)
-
 
 ### Steps to run an example
 
 1. **Configure the simulation request path**  
-   Edit the `config.yaml` file inside the Simul8 agent folder to set the path to the simulation request folder you want to use. This path should point to the example you want to run.
+   Edit the `config.yaml` file inside the Simul8 agent folder to set the path
+   to the simulation request folder you want to use.
+   This path should point to the example you want to run.
 
 2. **Run the Simul8 agent**  
    Start the Simul8 agent so it is ready to receive simulation requests.
@@ -86,18 +102,24 @@ you will a folder containing a practical example. Each example folder includes a
     Execute the Python client with the appropriate API payload file:  
    python use_simul8_agent.py --api-payload "path_to_api_payload"
 
-> **Note:** It is recommended to use absolute paths when specifying the `--api-payload` argument to avoid path resolution issues. It is a good practice to place the path in single quotes.
+> **Note:** It is recommended to use absolute paths when specifying the
+`--api-payload` argument to avoid path resolution issues.
+It is a good practice to place the path in single quotes.
 
 ### Where to find the API payload files
-
-Each example folder contains an `api/` subfolder with example simulation payload YAML files. Use these as the `--api-payload` argument when running the Python client. For instance:
+<!-- markdownlint-disable -->
+Each example folder contains an `api/` subfolder with example simulation
+payload YAML files. Use these as the `--api-payload` argument when running the Python client.
+<!-- markdownlint-enable -->
+For instance:
 
 - Batch Simulation:  
   `docs/examples/batch-simulation/api/simulation_batch.yaml.example`
 
 ### Example usage
 
-To run the batch simulation example, specify the full absolute path to the payload file when invoking the Python client:
+To run the batch simulation example, specify the full absolute path
+to the payload file when invoking the Python client:
 
 ```bash
 python use_simul8_agent.py --api-payload "/Users/foo/simulation-bridge/agents/simul8/simul8_agent/docs/examples/batch-simulation/api/simulation_batch.yaml.example"
