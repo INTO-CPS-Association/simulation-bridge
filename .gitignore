@@ -195,16 +195,26 @@ agents/matlab/dist/
 **/resources/*.yml
 **/matlab/*.yaml
 **/matlab/*.yml
+**/simul8/*.yml
+**/simul8/*.yaml
 config*.yaml
 simulation*.yaml
 *.csv
+interactive.py
+*_interactive.py
+**/examples/interactive-simulation/*
+# SIMUL8 agent
+agents/simul8/client
+agents/simul8/logs
+*.bk8 
+# Ignore any .s8 files in agents/simul8 (including subdirectories)
+agents/simul8/*.s8
 #SIMULATION BRIDGE 
 /logs
 /certs
 *.pem
 *_use.yaml
 client/
-dist/
 /certs
 *.pem
 *_use.yaml
