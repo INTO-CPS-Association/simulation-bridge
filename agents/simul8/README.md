@@ -12,7 +12,7 @@ Communication parameters and other settings must be defined in
 the YAML-based configuration file.
 
 <div align="center">
-  <img src="simul8_agent/images/image.png"
+  <img src="simul8_agent/images/structure.png"
   alt="Simul8 Agent Structure"
   width="600"
   style="border: 1px solid #ddd;
