@@ -19,9 +19,9 @@ _sim-bridge_ exposes a unified interface that enables seamless data exchange and
 - [Simulation Bridge](#simulation-bridge)
   - [Table of Contents](#table-of-contents)
   - [Key Features](#key-features)
-      - [Agents](#agents)
-      - [Modes of Simulation](#modes-of-simulation)
-      - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
+    - [Agents](#agents)
+    - [Modes of Simulation](#modes-of-simulation)
+    - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
   - [Documentation](#documentation)
     - [Simulation Bridge](#simulation-bridge-1)
     - [Matlab Agent](#matlab-agent)
@@ -76,6 +76,11 @@ Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AM
 
 - [**Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
 - [**Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
+
+### Simul8 Agent
+
+- [**Simul8 Agent** ↗](agents/simul8/README.md): Explanation of the Simul8 agent functionality and configuration.
+- [**Simul8 Simulation Constraints** ↗](agents/simul8/simul8_agent/docs/README.md): A breakdown of the constraints and requirements for Simul8-driven simulations.
 
 ## Package Development
 
