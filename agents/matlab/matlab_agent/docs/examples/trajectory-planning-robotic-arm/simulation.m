@@ -22,21 +22,21 @@ function [outputs] = simulation(qs, qg, tf, showGui, ts)
     if nargin < 4 || isempty(ts), ts = 0.005; end
     if nargin < 5 || isempty(showGui), showGui = true; end
 
-    % Forza vettori colonna
+    % Force column vectors
     qs = qs(:);  qg = qg(:);
 
-    % Controlla dimensione
-    assert(numel(qs)==6 && numel(qg)==6, 'qs e qg devono avere 6 elementi.');
+    % Check size
+    assert(numel(qs)==6 && numel(qg)==6, 'qs and qg must have 6 elements.');
 
-    % Se i valori suggeriscono gradi, converti in radianti
+    % If values suggest degrees, convert to radians
     if max(abs(qs)) > 2*pi, qs = deg2rad(qs); end
     if max(abs(qg)) > 2*pi, qg = deg2rad(qg); end
 
-    % Valida tempi
+    % Validate time variables
     validateattributes(tf, {'numeric'}, {'scalar','real','finite','>',0}, mfilename, 'tf');
     validateattributes(ts, {'numeric'}, {'scalar','real','finite','>',0}, mfilename, 'ts');
 
-    % Converte showGui in logico
+    % Convert showGui to logical
     showGui = logical(showGui);
 
     % Proportional gain for trajectory tracking
