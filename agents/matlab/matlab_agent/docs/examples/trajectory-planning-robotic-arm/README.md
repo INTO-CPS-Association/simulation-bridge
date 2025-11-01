@@ -1,6 +1,6 @@
 # Joint Space Control with Quintic Trajectory Tracking
 
-This MATLAB simulation generates smooth trajectories for a Universal Robots UR10e robotic arm using quintic (5th-order) polynomials in joint space. The robot smoothly moves from a starting joint configuration to a target configuration, following an optimally timed trajectory with continuous position, velocity, and acceleration profiles.
+This MATLAB simulation is a **batch simulation** that generates smooth trajectories for a Universal Robots UR10e robotic arm using quintic (5th-order) polynomials in joint space. The robot smoothly moves from a starting joint configuration to a target configuration, following an optimally timed trajectory with continuous position, velocity, and acceleration profiles.
 
 ![Starting and Goal Position](../../../images/demo_traj_planning.png)
 
@@ -35,6 +35,29 @@ This MATLAB simulation generates smooth trajectories for a Universal Robots UR10
 - Joint angles can be provided in **radians** or **degrees** (auto-detected)
 - All input vectors are automatically converted to column format
 - If values exceed 2π, they are assumed to be in degrees and converted to radians
+
+### Running the Simulation
+
+Run this simulation with a Python client using the specified API payload.
+
+```yaml
+simulation:
+  request_id: abcdef12345
+  client_id: dt
+  simulator: matlab
+  type: batch
+  file: simulation.m
+  timestamp: "2024-01-01T00:00:00Z"
+  timeout: 60
+  inputs:
+    qs: [1.5708, -1.2000, 1.2000, 0.0000, 0.0010, 0.0000]
+    qg: [-1.5708, -1.2500, 1.2500, 3.1000, -0.0010, -3.1000]
+    tf: 5
+    showGui: true
+    ts: 0.005
+  outputs:
+    outputs: outputs
+```
 
 ### Output Structure
 

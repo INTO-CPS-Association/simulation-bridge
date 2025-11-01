@@ -191,6 +191,35 @@ class TestMatlabDataConversion:
         assert simulator._from_matlab(None) is None
 
 
+class TestMatlabInputOrdering:
+    """Tests for mapping dictionary inputs to MATLAB positional arguments."""
+
+    def test_order_input_values_follows_signature(self, simulator):
+        """Ensure inputs are ordered according to MATLAB signature."""
+        simulator.function_inputs = ['qs', 'qg', 'tf', 'showGui', 'ts']
+        inputs = {
+            'qs': [1, 2],
+            'qg': [3, 4],
+            'showGui': True,
+            'tf': 5,
+            'ts': 0.01
+        }
+        ordered = simulator._order_input_values(inputs)
+        assert ordered == [
+            inputs['qs'],
+            inputs['qg'],
+            inputs['tf'],
+            inputs['showGui'],
+            inputs['ts']
+        ]
+
+    def test_order_input_values_fallback(self, simulator):
+        """Fallback to dictionary ordering when signature is unavailable."""
+        simulator.function_inputs = []
+        inputs = {'a': 1, 'b': 2}
+        assert simulator._order_input_values(inputs) == [1, 2]
+
+
 class TestMatlabSimulatorMetadata:
     """Tests for MatlabSimulator metadata functionality."""
 
