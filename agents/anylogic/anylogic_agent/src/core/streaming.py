@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional
 
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 from .UDPlistener import Listener
 
 logger = get_logger()
@@ -67,6 +68,9 @@ def handle_streaming_simulation(
     The function only starts a new session when the request identifier is not
     already associated with an active listener.
     """
+    perf_monitor = PerformanceMonitor()
+    operation_started = False
+
     data = msg_dict.get('simulation', {}) or {}
     request_id = data.get('request_id')
     sim_file = data.get('file')
@@ -86,7 +90,9 @@ def handle_streaming_simulation(
                 'type': 'invalid_request',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
         return
 
     with _SESSIONS_LOCK:
@@ -114,8 +120,13 @@ def handle_streaming_simulation(
                 'type': 'missing_file',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
         return
+
+    perf_monitor.start_operation(request_id)
+    operation_started = True
 
     listener = Listener(
         config=config,
@@ -148,7 +159,11 @@ def handle_streaming_simulation(
                 'type': 'listener_start_failure',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
+        if operation_started:
+            perf_monitor.complete_operation()
         return
 
     with _SESSIONS_LOCK:
@@ -159,6 +174,8 @@ def handle_streaming_simulation(
             sim_file=sim_file,
             file_path=expected_file,
         )
+
+    perf_monitor.record_matlab_start()
 
     status_response = create_response(
         template_type='progress',
@@ -175,7 +192,9 @@ def handle_streaming_simulation(
             'output_port': listener.output_port,
         },
     )
-    rabbitmq_manager.send_result(source, status_response)
+    success = rabbitmq_manager.send_result(source, status_response)
+    if success:
+        perf_monitor.record_result_sent()
     logger.info(
         "Started streaming listener for %s (request %s) on %s:%s",
         sim_file,
@@ -189,6 +208,10 @@ def _build_completion_callback(request_id: str):
     """Return a callback that marks the session identified by *request_id* done."""
 
     def _callback(_: str) -> None:
+        perf_monitor = PerformanceMonitor()
+        perf_monitor.record_simulation_complete()
+        perf_monitor.record_matlab_stop()
+        perf_monitor.complete_operation()
         _complete_streaming_session(request_id)
 
     return _callback
@@ -200,6 +223,7 @@ def stop_streaming_session(request_id: str) -> None:
         session = _ACTIVE_SESSIONS.pop(request_id, None)
     if session:
         session.stop()
+    PerformanceMonitor().complete_operation()
 
 
 def stop_all_streaming_sessions() -> None:
@@ -209,6 +233,7 @@ def stop_all_streaming_sessions() -> None:
         _ACTIVE_SESSIONS.clear()
     for session in sessions:
         session.stop()
+    PerformanceMonitor().complete_operation()
 
 
 def _complete_streaming_session(request_id: str) -> None:
@@ -217,3 +242,4 @@ def _complete_streaming_session(request_id: str) -> None:
         session = _ACTIVE_SESSIONS.pop(request_id, None)
     if session and threading.current_thread() is not session.thread:
         session.stop()
+    PerformanceMonitor().complete_operation()

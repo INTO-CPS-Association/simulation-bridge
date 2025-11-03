@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 from .UDPwriter import Writer
 from .UDPlistener import Listener
 
@@ -57,6 +58,9 @@ def handle_interactive_simulation(
     response_templates: Dict[str, Any],
 ) -> None:
     """Start writer and listener to interactively send and receive messages with AnyLogic simulation."""
+    perf_monitor = PerformanceMonitor()
+    operation_started = False
+
     data = msg_dict.get('simulation', {}) or {}
     request_id = data.get('request_id')
     sim_file = data.get('file')
@@ -77,7 +81,9 @@ def handle_interactive_simulation(
                 'type': 'invalid_request',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
         return
 
     with _SESSIONS_LOCK:
@@ -105,8 +111,13 @@ def handle_interactive_simulation(
                 'type': 'missing_file',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
         return
+
+    perf_monitor.start_operation(request_id)
+    operation_started = True
 
     # Start the Writer (sender)
     writer = Writer(
@@ -144,9 +155,22 @@ def handle_interactive_simulation(
     listener_thread.start()
 
     # Wait for both to be ready
-    if not _wait_for_ready(writer, listener, writer_thread, listener_thread,
-                           source, rabbitmq_manager, sim_file, sim_type,
-                           response_templates, bridge_meta, request_id):
+    if not _wait_for_ready(
+        writer,
+        listener,
+        writer_thread,
+        listener_thread,
+        source,
+        rabbitmq_manager,
+        sim_file,
+        sim_type,
+        response_templates,
+        bridge_meta,
+        request_id,
+        perf_monitor,
+    ):
+        if operation_started:
+            perf_monitor.complete_operation()
         return
 
     with _SESSIONS_LOCK:
@@ -159,6 +183,8 @@ def handle_interactive_simulation(
             sim_file=sim_file,
             file_path=expected_file,
         )
+
+    perf_monitor.record_matlab_start()
 
     status_response = create_response(
         template_type='progress',
@@ -177,7 +203,9 @@ def handle_interactive_simulation(
             'listener_port': listener.output_port,
         },
     )
-    rabbitmq_manager.send_result(source, status_response)
+    success = rabbitmq_manager.send_result(source, status_response)
+    if success:
+        perf_monitor.record_result_sent()
     logger.info(
         "Started interactive writer and listener for %s (request %s) on writer %s:%s, listener %s:%s",
         sim_file,
@@ -211,6 +239,7 @@ def _wait_for_ready(
     response_templates: Dict[str, Any],
     bridge_meta: str,
     request_id: str,
+    perf_monitor: PerformanceMonitor,
 ) -> bool:
     """Wait for writer and listener to be ready. Returns True if successful."""
     if not writer.wait_until_ready(
@@ -231,7 +260,9 @@ def _wait_for_ready(
                 'type': 'start_failure',
             },
         )
-        rabbitmq_manager.send_result(source, error_response)
+        success = rabbitmq_manager.send_result(source, error_response)
+        if success:
+            perf_monitor.record_result_sent()
         return False
     return True
 
@@ -240,6 +271,10 @@ def _build_completion_callback(request_id: str):
     """Return a callback that marks the session identified by *request_id* done."""
 
     def _callback(_: str) -> None:
+        perf_monitor = PerformanceMonitor()
+        perf_monitor.record_simulation_complete()
+        perf_monitor.record_matlab_stop()
+        perf_monitor.complete_operation()
         _complete_interactive_session(request_id)
 
     return _callback
@@ -251,6 +286,7 @@ def stop_interactive_session(request_id: str) -> None:
         session = _ACTIVE_SESSIONS.pop(request_id, None)
     if session:
         session.stop()
+    PerformanceMonitor().complete_operation()
 
 
 def stop_all_interactive_sessions() -> None:
@@ -260,6 +296,7 @@ def stop_all_interactive_sessions() -> None:
         _ACTIVE_SESSIONS.clear()
     for session in sessions:
         session.stop()
+    PerformanceMonitor().complete_operation()
 
 
 def _complete_interactive_session(request_id: str) -> None:
@@ -269,3 +306,4 @@ def _complete_interactive_session(request_id: str) -> None:
     if session and threading.current_thread(
     ) is not session.writer_thread and threading.current_thread() is not session.listener_thread:
         session.stop()
+    PerformanceMonitor().complete_operation()

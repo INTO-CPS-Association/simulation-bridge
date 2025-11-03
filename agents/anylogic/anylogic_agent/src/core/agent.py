@@ -10,6 +10,7 @@ from .streaming import stop_all_streaming_sessions
 from ..interfaces.config_manager import IConfigManager
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 from ..comm.connect import Connect
 
 # Configure logger
@@ -42,6 +43,9 @@ class AnylogicAgent:
         # Load configuration
         self.config_manager: IConfigManager = ConfigManager(config_path)
         self.config: Dict[str, Any] = self.config_manager.get_config()
+        # Initialise the performance monitor before setting up communication
+        self.performance_monitor = PerformanceMonitor(self.config)
+
         # Initialize the communication layer
         self.comm = Connect(self.agent_id, self.config, broker_type)
         # Set up the communication infrastructure

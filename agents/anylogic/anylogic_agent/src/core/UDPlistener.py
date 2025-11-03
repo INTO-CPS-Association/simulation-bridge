@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, Optional
 from ..comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 from ..utils.create_response import create_response
 from ..utils.logger import get_logger
+from ..utils.performance_monitor import PerformanceMonitor
 
 logger = get_logger()
 
@@ -149,7 +150,9 @@ class Listener:
             )
             return
 
-        if not success:
+        if success:
+            PerformanceMonitor().record_result_sent()
+        else:
             logger.error(
                 "Failed to send streaming result for %s (request %s)",
                 self.sim_file,
@@ -180,11 +183,14 @@ class Listener:
         return False
 
     def _handle_completion(self, output: Dict[str, Any]) -> None:
+        perf_monitor = PerformanceMonitor()
+
         data_payload = output.get('data', {}) if isinstance(
             output.get('data'), dict) else {}
         metadata = output.get('metadata') or output.get('simulation_info') or {}
 
         success = False
+        perf_monitor.record_simulation_complete()
         if self._ensure_broker_connected():
             try:
                 response = create_response(
@@ -215,6 +221,7 @@ class Listener:
             )
 
         if success:
+            perf_monitor.record_result_sent()
             logger.info(
                 "Sent completion result for %s (request %s)",
                 self.sim_file,
@@ -226,6 +233,9 @@ class Listener:
                 self.sim_file,
                 self.request_id,
             )
+
+        perf_monitor.record_matlab_stop()
+        perf_monitor.complete_operation()
 
         if self._on_complete:
             try:
