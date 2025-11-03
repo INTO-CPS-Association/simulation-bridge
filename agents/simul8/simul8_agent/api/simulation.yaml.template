@@ -1,0 +1,29 @@
+simulation:
+  request_id: abcdef12345
+  # (RequestID) to identify each request.
+
+  client_id: dt
+  # Unique identifier of the sender of this simulation request
+
+  simulator: simul8
+  # Specifies the target system for the simulation.
+  # Use 'simul8' to route the request to the Simul8 simulator.
+
+  type: batch # The only simulation type available
+
+  file: simulation_batch.s8
+  # The name of the Simul8  file to execute for this simulation.
+
+  inputs:
+    # Input variables to be passed to the simulation.
+    # Customize these key-value pairs as needed for your specific simulation.
+    run_time: ..
+    columns: [..]
+    r1: [..]
+
+  outputs:
+    # Expected output variables from the simulation.
+    # Customize these keys based on what outputs your simulation provides.
+    o1: ..
+    o2: ..
+   
