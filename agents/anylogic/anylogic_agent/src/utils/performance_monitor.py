@@ -24,10 +24,10 @@ class PerformanceMetrics:
     operation_id: str
     timestamp: float
     request_received_time: float
-    matlab_start_time: float
-    matlab_startup_duration: float
+    anylogic_start_time: float
+    anylogic_startup_duration: float
     simulation_duration: float
-    matlab_stop_time: float
+    anylogic_stop_time: float
     result_send_time: float
     cpu_percent: float
     memory_rss_mb: float
@@ -115,10 +115,10 @@ class PerformanceMonitor:
                         "Operation ID",
                         "Timestamp",
                         "Request Received Time",
-                        "MATLAB Start Time",
-                        "MATLAB Startup Duration (s)",
+                        "AnyLogic Start Time",
+                        "AnyLogic Startup Duration (s)",
                         "Simulation Duration (s)",
-                        "MATLAB Stop Time",
+                        "AnyLogic Stop Time",
                         "Result Send Time",
                         "CPU Usage (%)",
                         "Memory RSS (MB)",
@@ -143,10 +143,10 @@ class PerformanceMonitor:
             operation_id=operation_id,
             timestamp=now,
             request_received_time=now,
-            matlab_start_time=0.0,
-            matlab_startup_duration=0.0,
+            anylogic_start_time=0.0,
+            anylogic_startup_duration=0.0,
             simulation_duration=0.0,
-            matlab_stop_time=0.0,
+            anylogic_stop_time=0.0,
             result_send_time=0.0,
             cpu_percent=self.process.cpu_percent(),
             memory_rss_mb=self.process.memory_info().rss / (1024 * 1024),
@@ -154,23 +154,23 @@ class PerformanceMonitor:
         )
         logger.debug("Started monitoring operation %s", operation_id)
 
-    def record_matlab_start(self) -> None:
+    def record_anylogic_start(self) -> None:
         """Record the start of the AnyLogic model execution."""
 
         if not self.enabled or not self.current_metrics:
             return
 
-        self.current_metrics.matlab_start_time = time.time()
+        self.current_metrics.anylogic_start_time = time.time()
         self._update_system_metrics()
 
-    def record_matlab_startup_complete(self) -> None:
+    def record_anylogic_startup_complete(self) -> None:
         """Record the completion of the AnyLogic model startup."""
 
         if not self.enabled or not self.current_metrics:
             return
 
-        startup_duration = time.time() - self.current_metrics.matlab_start_time
-        self.current_metrics.matlab_startup_duration = startup_duration
+        startup_duration = time.time() - self.current_metrics.anylogic_start_time
+        self.current_metrics.anylogic_startup_duration = startup_duration
         self._update_system_metrics()
         logger.debug("AnyLogic startup duration: %.2fs", startup_duration)
 
@@ -182,18 +182,18 @@ class PerformanceMonitor:
 
         self.current_metrics.simulation_duration = (
             time.time()
-            - self.current_metrics.matlab_start_time
-            - self.current_metrics.matlab_startup_duration
+            - self.current_metrics.anylogic_start_time
+            - self.current_metrics.anylogic_startup_duration
         )
         self._update_system_metrics()
 
-    def record_matlab_stop(self) -> None:
+    def record_anylogic_stop(self) -> None:
         """Record when the AnyLogic execution has stopped."""
 
         if not self.enabled or not self.current_metrics:
             return
 
-        self.current_metrics.matlab_stop_time = time.time()
+        self.current_metrics.anylogic_stop_time = time.time()
         self._update_system_metrics()
 
     def record_result_sent(self) -> None:
@@ -247,10 +247,10 @@ class PerformanceMonitor:
                     metrics.operation_id,
                     metrics.timestamp,
                     metrics.request_received_time,
-                    metrics.matlab_start_time,
-                    metrics.matlab_startup_duration,
+                    metrics.anylogic_start_time,
+                    metrics.anylogic_startup_duration,
                     metrics.simulation_duration,
-                    metrics.matlab_stop_time,
+                    metrics.anylogic_stop_time,
                     metrics.result_send_time,
                     metrics.cpu_percent,
                     metrics.memory_rss_mb,
@@ -265,7 +265,7 @@ class PerformanceMonitor:
             return {}
 
         startup_times = [
-            metrics.matlab_startup_duration for metrics in self.metrics_history
+            metrics.anylogic_startup_duration for metrics in self.metrics_history
         ]
         simulation_times = [
             metrics.simulation_duration for metrics in self.metrics_history

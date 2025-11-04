@@ -234,7 +234,7 @@ class Listener:
                 self.request_id,
             )
 
-        perf_monitor.record_matlab_stop()
+        perf_monitor.record_anylogic_stop()
         perf_monitor.complete_operation()
 
         if self._on_complete:

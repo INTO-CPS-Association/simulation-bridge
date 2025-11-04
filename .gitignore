@@ -229,3 +229,7 @@ performance_old/
 .alp.autosave
 template/
 agents/Anylogic/logs/
+agents/Anylogic/performance_log/
+agents/Anylogic/performance/*.csv
+agents/Anylogic/performance/*.png
+agents/Anylogic/performance/*.md

@@ -17,7 +17,7 @@ simulation:
   #   - 'interactive': same as 'streaming', where you need to provide a continuous stream of inputs and outputs.
   
   file: SimulationStreaming.alp
-  # The name of the MATLAB script or function file to execute for this simulation.
+  # The name of the AnyLogic script or function file to execute for this simulation.
 
   inputs:
     # Input variables to be passed to the simulation.

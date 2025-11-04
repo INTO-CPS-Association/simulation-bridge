@@ -184,7 +184,7 @@ def handle_interactive_simulation(
             file_path=expected_file,
         )
 
-    perf_monitor.record_matlab_start()
+    perf_monitor.record_anylogic_start()
 
     status_response = create_response(
         template_type='progress',
@@ -273,7 +273,7 @@ def _build_completion_callback(request_id: str):
     def _callback(_: str) -> None:
         perf_monitor = PerformanceMonitor()
         perf_monitor.record_simulation_complete()
-        perf_monitor.record_matlab_stop()
+        perf_monitor.record_anylogic_stop()
         perf_monitor.complete_operation()
         _complete_interactive_session(request_id)
 
