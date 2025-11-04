@@ -60,6 +60,11 @@ class Config(BaseModel):
     udp_output_port: int = Field(default=9876)
     udp_input_port: int = Field(default=9877)
 
+    # Performance monitoring
+    performance_enabled: bool = Field(default=False)
+    performance_log_dir: str = Field(default="performance_logs")
+    performance_log_filename: str = Field(default="performance_metrics.csv")
+
     # Response templates
     # Success template
     success_status: Literal["success"] = Field(default="success")
@@ -124,6 +129,11 @@ class Config(BaseModel):
                 "host": self.udp_host,
                 "output_port": self.udp_output_port,
                 "input_port": self.udp_input_port
+            },
+            "performance": {
+                "enabled": self.performance_enabled,
+                "log_dir": self.performance_log_dir,
+                "log_filename": self.performance_log_filename
             },
             "response_templates": {
                 "success": {
@@ -193,7 +203,13 @@ class Config(BaseModel):
             flat_config["udp_host"] = udp.get("host", "localhost")
             flat_config["udp_output_port"] = udp.get("output_port", 9876)
             flat_config["udp_input_port"] = udp.get("input_port", 9877)
-        
+
+        if performance := config_dict.get("performance", {}):
+            flat_config["performance_enabled"] = performance.get("enabled", False)
+            flat_config["performance_log_dir"] = performance.get("log_dir", "performance_logs")
+            flat_config["performance_log_filename"] = performance.get(
+                "log_filename", "performance_metrics.csv")
+
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
             cls._extract_success_template(templates, flat_config)
