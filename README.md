@@ -19,9 +19,9 @@ _sim-bridge_ exposes a unified interface that enables seamless data exchange and
 - [Simulation Bridge](#simulation-bridge)
   - [Table of Contents](#table-of-contents)
   - [Key Features](#key-features)
-      - [Agents](#agents)
-      - [Modes of Simulation](#modes-of-simulation)
-      - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
+    - [Agents](#agents)
+    - [Modes of Simulation](#modes-of-simulation)
+    - [Plug-in Protocol Adapters](#plug-in-protocol-adapters)
   - [Documentation](#documentation)
     - [Simulation Bridge](#simulation-bridge-1)
     - [Matlab Agent](#matlab-agent)
@@ -41,10 +41,11 @@ Agent is a software connector that acts as an interpreter between _sim-bridge_ a
 
 _sim-bridge_ supports Batch and Streaming simulation modes, allowing for both discrete and real-time streaming simulation workflows:
 
-| Mode      | Description                                                                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Batch     | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
-| Streaming | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
+| Mode        | Description                                                                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Batch       | Inputs are provided at the start, the simulation runs to completion without intermediate monitoring, and results are delivered only at the end. |
+| Streaming   | Enables real-time, step-by-step updates from the simulation during execution                                                                    |
+| Interactive | Allows user interaction with the simulation during execution                                                                                    |
 
 #### Plug-in Protocol Adapters
 
@@ -76,6 +77,13 @@ Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AM
 
 - [**Matlab Agent** ↗](agents/matlab/README.md): Explanation of the MATLAB agent functionality and configuration.
 - [**Matlab Simulation Constraints** ↗](agents/matlab/matlab_agent/docs/README.md): A breakdown of the constraints and requirements for MATLAB-driven simulations.
+
+### Anylogic Agent
+
+- [**Anylogic Agent** ↗](agents/anylogic/README.md): Explanation of the Anylogic agent functionality and configuration.
+- [**Anylogic Simulation Constraints** ↗](agents/anylogic/anylogic_agent/docs/README.md): A breakdown of the constraints and requirements for Anylogic-driven simulations.
+- [**Quick Start** ↗](agents/anylogic/anylogic_agent/resources/README.md): A quick start guide for using the Anylogic agent client.
+- [**Anylogic Template** ↗](agents/anylogic/anylogic_agent/resources/TEMPLATE.md): Explanation of the Anylogic agent functionality and configuration.
 
 ## Package Development
 

@@ -225,3 +225,7 @@ dist/
 certs
 performance_log/
 performance_old/
+#ANYLOGIC
+.alp.autosave
+template/
+agents/Anylogic/logs/
