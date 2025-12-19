@@ -2,7 +2,7 @@
 
 These guidelines describe how to structure MATLAB simulations for use with the MATLAB Agent in the Simulation Bridge framework. The three supported simulation modes are Batch, Streaming, and Interactive.
 
-For details on how to run simulations using the Python clients for each mode, refer to the [use_matlab_agent README](./agents/matlab/matlab_agent/resources/README.md)
+For details on how to run simulations using the Python clients for each mode, refer to the [use_matlab_agent README](../resources/README.md)
 
 ## Batch Simulation
 
