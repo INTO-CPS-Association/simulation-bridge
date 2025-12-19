@@ -1,0 +1,16 @@
+simulation:
+  request_id: abcdef12345
+  client_id: dt
+  simulator: matlab
+  type: batch
+  file: simulation.m
+  timestamp: "2024-01-01T00:00:00Z"
+  timeout: 60
+  inputs:
+    qs: [1.5708, -1.2000, 1.2000, 0.0000, 0.0010, 0.0000]
+    qg: [-1.5708, -1.2500, 1.2500, 3.1000, -0.0010, -3.1000]
+    tf: 5
+    showGui: true
+    ts: 0.005
+  outputs:
+    outputs: outputs

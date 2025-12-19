@@ -99,7 +99,7 @@ class BatchUsageMatlabAgent:
         self.channel.basic_publish(
             exchange="ex.bridge.output",
             routing_key=f"{self.agent_id}.{self.destination_id}",
-            body=yaml.dump(payload, default_flow_style=False),
+            body=yaml.dump(payload, default_flow_style=False, sort_keys=False),
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/x-yaml",

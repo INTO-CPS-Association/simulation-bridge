@@ -123,8 +123,15 @@ class TestMatlabSimulatorOperations:
         """Test simulation run with empty outputs list."""
         # The actual implementation doesn't check for empty outputs
         # This test should instead check if the return value is an empty dict
+        running_simulator.eng.feval.return_value = (7.0, 8.0)
         result = running_simulator.run({'x': 10}, [])
-        assert result == {}
+        assert result == {
+            'out0': approx(7.0, rel=1e-9, abs=1e-9),
+            'out1': approx(8.0, rel=1e-9, abs=1e-9),
+        }
+        running_simulator.eng.feval.assert_called_with(
+            'simulation_batch', 10.0, nargout=0
+        )
 
     def test_run_without_start(self, simulator):
         """Test attempting to run without starting the engine."""
@@ -182,6 +189,35 @@ class TestMatlabDataConversion:
     def test_from_matlab_none_conversion(self, simulator):
         """Test conversion from MATLAB None to Python."""
         assert simulator._from_matlab(None) is None
+
+
+class TestMatlabInputOrdering:
+    """Tests for mapping dictionary inputs to MATLAB positional arguments."""
+
+    def test_order_input_values_follows_signature(self, simulator):
+        """Ensure inputs are ordered according to MATLAB signature."""
+        simulator.function_inputs = ['qs', 'qg', 'tf', 'showGui', 'ts']
+        inputs = {
+            'qs': [1, 2],
+            'qg': [3, 4],
+            'showGui': True,
+            'tf': 5,
+            'ts': 0.01
+        }
+        ordered = simulator._order_input_values(inputs)
+        assert ordered == [
+            inputs['qs'],
+            inputs['qg'],
+            inputs['tf'],
+            inputs['showGui'],
+            inputs['ts']
+        ]
+
+    def test_order_input_values_fallback(self, simulator):
+        """Fallback to dictionary ordering when signature is unavailable."""
+        simulator.function_inputs = []
+        inputs = {'a': 1, 'b': 2}
+        assert simulator._order_input_values(inputs) == [1, 2]
 
 
 class TestMatlabSimulatorMetadata:
