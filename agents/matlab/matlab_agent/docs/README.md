@@ -1,5 +1,9 @@
 # MATLAB Simulation – Guidelines and Best Practices
 
+These guidelines describe how to structure MATLAB simulations for use with the MATLAB Agent in the Simulation Bridge framework. The three supported simulation modes are Batch, Streaming, and Interactive.
+
+For details on how to run simulations using the Python clients for each mode, refer to the [use_matlab_agent README](./agents/matlab/matlab_agent/resources/README.md)
+
 ## Batch Simulation
 
 A batch simulation is executed by providing a complete set of input parameters at the start. The simulation then runs internally to completion without producing intermediate outputs. Once finished, it returns a final output containing the complete results of the simulation.

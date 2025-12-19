@@ -38,7 +38,7 @@ This MATLAB simulation is a **batch simulation** that generates smooth trajector
 
 ### Running the Simulation
 
-Run this simulation with a Python client using the specified API payload.
+Run this simulation using the specified API payload:
 
 ```yaml
 simulation:
@@ -57,6 +57,14 @@ simulation:
     ts: 0.005
   outputs:
     outputs: outputs
+```
+
+Update `use.yaml` to reference `simulation.yaml` as the payload file and configure the required RabbitMQ credentials.
+
+Then run the batch client:
+
+```bash
+python .\use_matlab_agent_batch.py
 ```
 
 ### Output Structure
