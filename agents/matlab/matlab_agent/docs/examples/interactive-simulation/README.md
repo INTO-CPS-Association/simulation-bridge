@@ -65,6 +65,14 @@ simulation:
       timestamp: float # epoch seconds
 ```
 
+Update `use.yaml` to reference `simulation.yaml` as the payload file and configure the required RabbitMQ credentials.
+
+Then run the batch client:
+
+```bash
+python .\use_matlab_agent_interactive.py
+```
+
 ### Stream Source convention
 
 The convention is to express the stream source as a RabbitMQ URI: the `rabbitmq://` prefix is followed by the actual routing key (or queue name).

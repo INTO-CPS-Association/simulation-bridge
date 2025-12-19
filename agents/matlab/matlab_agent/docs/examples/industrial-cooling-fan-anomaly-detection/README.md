@@ -48,7 +48,7 @@ simulation:
 
 This payload structure configures the API to run the matlab agent with the necessary parameters and capture the three confusion matrix outputs for analysis.
 
-Use the client `use_matlab_agent.py` with the CLI option `--api-payload` to specify the path to this YAML payload file and start the client.
+Use the client `use_matlab_agent_batch.py` with the CLI option `--api-payload` to specify the path to this YAML payload file and start the client.
 
 ## Matlab Agent Integration
 

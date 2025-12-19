@@ -53,4 +53,4 @@ simulation:
     z_f: Final z position # Output field name for the final z-coordinate
 ```
 
-Use the client `use_matlab_agent.py` with the CLI option `--api-payload` to specify the path to this YAML payload file and start the client.
+Use the client `use_matlab_agent_batch.py` with the CLI option `--api-payload` to specify the path to this YAML payload file and start the client.
