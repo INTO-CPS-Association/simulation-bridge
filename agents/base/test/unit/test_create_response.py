@@ -11,7 +11,6 @@ def test_create_success_response_in_base(mock_datetime):
     mock_datetime.now.return_value.strftime.return_value = "2024-01-01T00:00:00Z"
     templates = {
         "success": {
-            "status": "success",
             "timestamp_format": "%Y-%m-%dT%H:%M:%SZ",
             "include_metadata": True,
         }
