@@ -57,7 +57,7 @@ class TestCreateResponse(unittest.TestCase):
         self.bridge_meta = 'test_bridge_v1.0'
         self.request_id = 'req_123456'
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_success_response_batch(self, mock_datetime):
         """Test creating a success response for batch simulation."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -87,7 +87,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_success_response_streaming(self, mock_datetime):
         """Test creating a success response for streaming simulation."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -114,7 +114,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_error_response_with_full_details(self, mock_datetime):
         """Test creating an error response with all details."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -152,7 +152,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_error_response_minimal(self, mock_datetime):
         """Test creating an error response with minimal information."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -181,7 +181,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_progress_response_with_percentage(self, mock_datetime):
         """Test creating a progress response with percentage."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -213,7 +213,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_progress_response_with_streaming_data(self, mock_datetime):
         """Test creating a progress response with streaming data."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -244,7 +244,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_streaming_response(self, mock_datetime):
         """Test creating a streaming response."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -273,7 +273,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_response_unknown_template(self, mock_datetime):
         """Test creating a response with unknown template type."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'
@@ -297,7 +297,7 @@ class TestCreateResponse(unittest.TestCase):
         }
         self.assertEqual(response, expected)
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_response_custom_timestamp_format(self, mock_datetime):
         """Test creating a response with custom timestamp format."""
         mock_datetime.now.return_value.strftime.return_value = '01/01/2023 12:00:00'
@@ -316,7 +316,7 @@ class TestCreateResponse(unittest.TestCase):
         )
         self.assertEqual(response['timestamp'], '01/01/2023 12:00:00')
 
-    @patch('src.utils.create_response.datetime')
+    @patch('base_agent.utils.create_response.datetime')
     def test_create_response_additional_kwargs(self, mock_datetime):
         """Test creating a response with additional kwargs."""
         mock_datetime.now.return_value.strftime.return_value = '2023-01-01T12:00:00Z'

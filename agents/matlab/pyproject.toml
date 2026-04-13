@@ -10,6 +10,7 @@ include = ["matlab_agent/config/config.yaml.template"]
 
 [tool.poetry.dependencies]
 python = "^3.10"                               
+base-agent = { path = "../base", develop = true }
 paho-mqtt = ">=2.1.0,<3.0.0"
 pyyaml = ">=6.0.2,<7.0.0"
 click = "^8.1.8"
