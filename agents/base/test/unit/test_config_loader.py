@@ -16,9 +16,35 @@ from base_agent.utils.config_loader import (
 )
 
 
-def test_default_config_path_is_path() -> None:
-    """Ensure helper returns a Path instance."""
-    assert isinstance(default_config_path(), Path)
+def test_default_config_path_missing_package_raises() -> None:
+    """Unknown package should raise FileNotFoundError."""
+    with pytest.raises(FileNotFoundError):
+        default_config_path("not_a_real_package")
+
+
+def test_default_config_path_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Package resource path should be returned when template exists."""
+
+    class FakeResource:
+        """Minimal Traversable-like object for config template path testing."""
+
+        def __init__(self, value: str) -> None:
+            self._value = value
+
+        def joinpath(self, *_parts: str):
+            return self
+
+        def is_file(self) -> bool:
+            return True
+
+        def __str__(self) -> str:
+            return self._value
+
+    monkeypatch.setattr(
+        "base_agent.utils.config_loader.resources.files",
+        lambda _pkg: FakeResource("/tmp/config.yaml.template"),
+    )
+    assert default_config_path("matlab_agent") == Path("/tmp/config.yaml.template")
 
 
 def test_load_config_file_not_found(tmp_path: Path) -> None:

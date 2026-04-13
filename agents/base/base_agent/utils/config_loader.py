@@ -8,9 +8,23 @@ from typing import Any, Callable, Dict, Optional, Union
 import yaml
 
 
-def default_config_path() -> Path:
-    """Return the default config template path relative to an agent package layout."""
-    return Path(__file__).parent.parent / "config" / "config.yaml.template"
+def default_config_path(package_name: str) -> Path:
+    """Return the default config template path for a target agent package."""
+    try:
+        template = resources.files(f"{package_name}.config").joinpath(
+            "config.yaml.template"
+        )
+    except ModuleNotFoundError as exc:
+        raise FileNotFoundError(
+            f"Default configuration package not found for package: {package_name}"
+        ) from exc
+
+    if not template.is_file():
+        raise FileNotFoundError(
+            f"Default configuration file not found inside package: {package_name}"
+        )
+
+    return Path(str(template))
 
 
 def get_base_dir() -> Path:

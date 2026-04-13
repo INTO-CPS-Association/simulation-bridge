@@ -1,7 +1,6 @@
 """Shared RabbitMQ manager for simulation agents."""
 
 import ssl
-import sys
 import time
 import uuid
 from typing import Any, Callable, Dict, Optional
@@ -122,8 +121,8 @@ class RabbitMQManager(IRabbitMQManager):
     def setup_infrastructure(self) -> None:
         """Declare exchanges, queue, bindings, and QoS."""
         if not self.channel or not self.channel.is_open:
-            self.logger.error("Channel is not available. Exiting.")
-            sys.exit(1)
+            self.logger.error("Channel is not available.")
+            raise RuntimeError("Channel is not available.")
 
         exchanges = self.config.get("exchanges", {})
         queue_config = self.config.get("queue", {})
@@ -161,7 +160,9 @@ class RabbitMQManager(IRabbitMQManager):
                 "Channel closed by broker while setting up infrastructure: %s",
                 error,
             )
-            sys.exit(1)
+            raise RuntimeError(
+                "Channel closed by broker while setting up infrastructure."
+            ) from error
 
     def register_message_handler(
         self,

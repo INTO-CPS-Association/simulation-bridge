@@ -24,3 +24,10 @@ class RabbitMQManager(BaseRabbitMQManager):
             pika_module=pika,
             yaml_module=yaml,
         )
+
+    def setup_infrastructure(self) -> None:
+        """Set up infrastructure and preserve MATLAB process-exit semantics."""
+        try:
+            super().setup_infrastructure()
+        except RuntimeError:
+            raise SystemExit(1) from None
