@@ -12,6 +12,10 @@ DEFAULT_LOG_LEVEL: int = logging.INFO
 DEFAULT_MAX_LOG_SIZE: int = 5 * 1024 * 1024  # 5 MB
 DEFAULT_BACKUP_COUNT: int = 3
 
+# Backwards-compatible aliases used by existing agent test suites.
+MAX_LOG_SIZE: int = DEFAULT_MAX_LOG_SIZE
+BACKUP_COUNT: int = DEFAULT_BACKUP_COUNT
+
 
 def configure_logger(
     name: str,
@@ -62,3 +66,27 @@ def configure_logger(
         logger.addHandler(console_handler)
 
     return logger
+
+
+def setup_logger(
+    name: str = "AGENT",
+    level: int = DEFAULT_LOG_LEVEL,
+    log_format: str = DEFAULT_LOG_FORMAT,
+    log_file: str = "logs/agent.log",
+    enable_console: bool = True,
+) -> logging.Logger:
+    """Configure and return a logger using common agent defaults."""
+    return configure_logger(
+        name=name,
+        level=level,
+        log_format=log_format,
+        log_file=log_file,
+        enable_console=enable_console,
+        max_log_size=MAX_LOG_SIZE,
+        backup_count=BACKUP_COUNT,
+    )
+
+
+def get_logger(name: str = "AGENT") -> logging.Logger:
+    """Return an already configured logger instance by name."""
+    return logging.getLogger(name)

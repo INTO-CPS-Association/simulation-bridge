@@ -4,7 +4,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 from typing import Any, Dict, Tuple
 
-from src.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
+from base_agent.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 
 # pylint: disable=missing-module-docstring, missing-class-docstring,
 # missing-function-docstring, too-many-positional-arguments
@@ -41,7 +41,7 @@ def agent_id() -> str:
 def mock_connection(
     mock_config: dict,
 ):
-    connection_path = "src.comm.rabbitmq.rabbitmq_manager.pika.BlockingConnection"
+    connection_path = "base_agent.comm.rabbitmq.rabbitmq_manager.pika.BlockingConnection"
     with mock.patch(connection_path) as connection_mock:
         channel_mock = MagicMock()
         channel_mock.is_open = True  # importante per close()
@@ -52,7 +52,7 @@ def mock_connection(
 @pytest.fixture(scope="function")
 def rabbitmq_manager(mock_connection, mock_config,
                      agent_id) -> RabbitMQManager:
-    manager = RabbitMQManager(agent_id, mock_config)
+    manager = RabbitMQManager(agent_id, mock_config, logger=MagicMock())
     manager.connect()
     manager.setup_infrastructure()
     return manager
@@ -62,7 +62,7 @@ class TestRabbitMQManager:
 
     def test_initialization(self, mock_connection, mock_config, agent_id):
         connection_mock, channel_mock = mock_connection
-        manager = RabbitMQManager(agent_id, mock_config)
+        manager = RabbitMQManager(agent_id, mock_config, logger=MagicMock())
         manager.connect()
         manager.setup_infrastructure()
 
@@ -193,7 +193,7 @@ class TestRabbitMQManager:
         # Simula fallimento connessione, connect() deve fallire e non sys.exit
         # direttamente
         connection_mock.side_effect = pika_exceptions.AMQPConnectionError()
-        manager = RabbitMQManager(agent_id, mock_config)
+        manager = RabbitMQManager(agent_id, mock_config, logger=MagicMock())
         # connect() ritorna False, quindi fai l'assert
         assert manager.connect() is False
 
@@ -203,7 +203,7 @@ class TestRabbitMQManager:
         channel_mock.exchange_declare.side_effect = pika_exceptions.ChannelClosedByBroker(
             406, "PRECONDITION_FAILED")
 
-        with pytest.raises(SystemExit):
+        with pytest.raises(RuntimeError):
             manager.setup_infrastructure()
 
     def test_start_consuming_interrupts_and_errors(

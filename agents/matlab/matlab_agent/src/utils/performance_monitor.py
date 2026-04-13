@@ -10,9 +10,9 @@ from typing import Dict, List, Optional, Any
 
 import psutil
 
-from ..utils.logger import get_logger
+from base_agent.utils.logger import get_logger
 
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 @dataclass

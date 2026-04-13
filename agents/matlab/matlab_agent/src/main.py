@@ -4,10 +4,10 @@ Main entry point for the MATLAB Agent application.
 from pathlib import Path
 import logging
 import click
-from .utils.logger import setup_logger
+from base_agent.utils.logger import setup_logger
+from base_agent.utils.config_loader import load_config
 from .interfaces.agent import IMatlabAgent
 from .core.agent import MatlabAgent
-from .utils.config_loader import load_config
 
 # pylint: disable=import-outside-toplevel,too-many-branches
 
@@ -201,11 +201,12 @@ def generate_default_project():
 def run_agent(config_file):
     """Initializes and starts a single MATLAB agent instance."""
     broker_type = "rabbitmq"
-    config = load_config(config_file)
+    config = load_config(package_name="matlab_agent", config_path=config_file)
     logging_level = config['logging']['level']
     logging_file = config['logging']['file']
 
     logger: logging.Logger = setup_logger(
+        name="MATLAB-AGENT",
         level=getattr(logging, logging_level.upper(), logging.INFO),
         log_file=logging_file)
 

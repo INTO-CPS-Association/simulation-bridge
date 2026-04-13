@@ -9,16 +9,16 @@ import sys
 import time
 from typing import Dict, List, Any, Tuple, Optional
 
+from base_agent.comm.interfaces import IMessageBroker
+from base_agent.utils.create_response import create_response
+from base_agent.utils.logger import get_logger
 import yaml
 
-from ..utils.logger import get_logger
-from ..utils.create_response import create_response
-from ..comm.interfaces import IMessageBroker
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
 from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 def handle_batch_simulation(

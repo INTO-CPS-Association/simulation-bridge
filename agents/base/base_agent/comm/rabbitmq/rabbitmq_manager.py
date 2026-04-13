@@ -52,7 +52,8 @@ class RabbitMQManager(IRabbitMQManager):
 
         for attempt in range(1, max_retries + 1):
             try:
-                self.logger.debug("Connecting to RabbitMQ (attempt %d)...", attempt)
+                self.logger.debug(
+                    "Connecting to RabbitMQ (attempt %d)...", attempt)
                 credentials = self.pika.PlainCredentials(
                     rabbitmq_config.get("username", "guest"),
                     rabbitmq_config.get("password", "guest"),
@@ -153,8 +154,12 @@ class RabbitMQManager(IRabbitMQManager):
                 queue=self.input_queue_name,
                 routing_key=f"*.{self.agent_id}",
             )
-            self.logger.debug("Declared and bound input queue: %s", self.input_queue_name)
-            self.channel.basic_qos(prefetch_count=queue_config.get("prefetch_count", 1))
+            self.logger.debug(
+                "Declared and bound input queue: %s",
+                self.input_queue_name)
+            self.channel.basic_qos(
+                prefetch_count=queue_config.get(
+                    "prefetch_count", 1))
         except self.pika.exceptions.ChannelClosedByBroker as error:
             self.logger.error(
                 "Channel closed by broker while setting up infrastructure: %s",
@@ -182,14 +187,17 @@ class RabbitMQManager(IRabbitMQManager):
     def start_consuming(self) -> None:
         """Start consuming from input queue."""
         if not self.message_handler:
-            self.logger.error("No message handler registered. Cannot start consuming.")
+            self.logger.error(
+                "No message handler registered. Cannot start consuming.")
             return
 
         if not self.channel or not self.channel.is_open:
-            self.logger.error("Channel is not initialized. Attempting to reconnect...")
+            self.logger.error(
+                "Channel is not initialized. Attempting to reconnect...")
             self.connect()
             if not self.channel:
-                self.logger.error("Failed to initialize channel after reconnecting.")
+                self.logger.error(
+                    "Failed to initialize channel after reconnecting.")
                 return
 
         try:
@@ -197,10 +205,13 @@ class RabbitMQManager(IRabbitMQManager):
                 queue=self.input_queue_name,
                 on_message_callback=self.message_handler,
             )
-            self.logger.debug("Started consuming messages from queue: %s", self.input_queue_name)
+            self.logger.debug(
+                "Started consuming messages from queue: %s",
+                self.input_queue_name)
             self.channel.start_consuming()
         except KeyboardInterrupt:
-            self.logger.info("Stopping message consumption due to keyboard interrupt")
+            self.logger.info(
+                "Stopping message consumption due to keyboard interrupt")
             if self.channel:
                 self.channel.stop_consuming()
         except self.pika.exceptions.AMQPError as error:
@@ -220,7 +231,8 @@ class RabbitMQManager(IRabbitMQManager):
                 exchange=exchange,
                 routing_key=routing_key,
                 body=body,
-                properties=properties or self.pika.BasicProperties(delivery_mode=2),
+                properties=properties or self.pika.BasicProperties(
+                    delivery_mode=2),
             )
             self.logger.debug(
                 "Sent message to exchange %s with routing key %s",

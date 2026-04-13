@@ -12,14 +12,14 @@ from pydantic import (
 )
 import queue
 
-from .interfaces import IRabbitMQMessageHandler
-from ...utils.logger import get_logger
-from ...utils.create_response import create_response
+from base_agent.comm.rabbitmq.interfaces import IRabbitMQMessageHandler
+from base_agent.utils.create_response import create_response
+from base_agent.utils.logger import get_logger
 from ...core.batch import handle_batch_simulation
 from ...core.streaming import handle_streaming_simulation
 from ...core.interactive import handle_interactive_simulation
 
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 class SimulationInputs(BaseModel):

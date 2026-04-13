@@ -38,7 +38,8 @@ def get_base_dir() -> Path:
         current_dir = current_dir.parent
 
     cwd = Path.cwd()
-    if (cwd / "main.py").exists() or (cwd / "app.py").exists() or (cwd / "run.py").exists():
+    if (cwd / "main.py").exists() or (cwd /
+                                      "app.py").exists() or (cwd / "run.py").exists():
         return cwd
 
     test_dir = Path(__file__).resolve().parent
@@ -55,7 +56,8 @@ def load_config(
     package_name: str,
     config_path: Optional[Union[str, Path]] = None,
     substitute_func: Optional[
-        Callable[[Union[Dict[str, Any], list, str]], Union[Dict[str, Any], list, str]]
+        Callable[[Union[Dict[str, Any], list, str]],
+                 Union[Dict[str, Any], list, str]]
     ] = None,
 ) -> Dict[str, Any]:
     """Load config from an explicit path or package template, then substitute env vars."""
@@ -88,7 +90,8 @@ def substitute_env_vars(
 ) -> Union[Dict[str, Any], list, str]:
     """Recursively substitute ${ENV} and ${ENV:default} placeholders."""
     if isinstance(config, dict):
-        return {key: substitute_env_vars(value) for key, value in config.items()}
+        return {key: substitute_env_vars(value)
+                for key, value in config.items()}
     if isinstance(config, list):
         return [substitute_env_vars(item) for item in config]
     if isinstance(config, str) and "${" in config and "}" in config:
@@ -105,7 +108,8 @@ def substitute_env_vars(
     return config
 
 
-def get_config_value(config: Dict[str, Any], path: str, default: Any = None) -> Any:
+def get_config_value(config: Dict[str, Any],
+                     path: str, default: Any = None) -> Any:
     """Get a nested configuration value via dotted path, or default when missing."""
     value: Any = config
     for key in path.split("."):

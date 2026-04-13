@@ -17,11 +17,10 @@ from typing import Dict, Union, List, Optional, Any, Tuple
 
 import psutil
 import matlab.engine
-
-from ..utils.logger import get_logger
+from base_agent.utils.logger import get_logger
 
 # Configure logger
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 class MatlabSimulationError(Exception):
@@ -135,7 +134,8 @@ class MatlabSimulator:
             signature_source = (self.sim_path / self.sim_file).read_text(
                 encoding='utf-8', errors='ignore')
         except Exception as exc:  # pragma: no cover - non critical path
-            logger.debug("Unable to read simulation file for signature parsing: %s", exc)
+            logger.debug(
+                "Unable to read simulation file for signature parsing: %s", exc)
             return []
 
         pattern = re.compile(

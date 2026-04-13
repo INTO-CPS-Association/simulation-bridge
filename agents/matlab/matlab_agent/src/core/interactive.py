@@ -12,10 +12,10 @@ from typing import Any, Dict, Optional
 
 import psutil
 import yaml
+from base_agent.comm.interfaces import IMessageBroker
+from base_agent.utils.create_response import create_response
+from base_agent.utils.logger import get_logger
 
-from ..comm.interfaces import IMessageBroker
-from ..utils.create_response import create_response
-from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
 from ..utils.constants import (
     ACCEPT_TIMEOUT,
@@ -27,7 +27,7 @@ from ..utils.constants import (
     EXCHANGE_INPUT_STREAM
 )
 
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 def _parse_frame(body: bytes) -> Dict[str, Any]:

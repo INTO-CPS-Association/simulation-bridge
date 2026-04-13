@@ -7,11 +7,11 @@ from typing import Optional, Dict, Any, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
-from .logger import get_logger
-from .config_loader import load_config
+from base_agent.utils.config_loader import load_config
+from base_agent.utils.logger import get_logger
 from .constants import DEFAULT_INPUT_PORT, DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
 
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 class LogLevel(str, Enum):
@@ -217,8 +217,10 @@ class Config(BaseModel):
         # Extract tcp section if present
         if tcp := config_dict.get("tcp", {}):
             flat_config["tcp_host"] = tcp.get("host", DEFAULT_OUTPUT_HOST)
-            flat_config["tcp_input_port"] = tcp.get("input_port", DEFAULT_INPUT_PORT)
-            flat_config["tcp_output_port"] = tcp.get("output_port", DEFAULT_OUTPUT_PORT)
+            flat_config["tcp_input_port"] = tcp.get(
+                "input_port", DEFAULT_INPUT_PORT)
+            flat_config["tcp_output_port"] = tcp.get(
+                "output_port", DEFAULT_OUTPUT_PORT)
 
         # Extract response_templates section if present
         if templates := config_dict.get("response_templates", {}):
@@ -283,7 +285,10 @@ class ConfigManager:
         self.config_path: Path = Path(config_path) if config_path else Path(
             __file__).parent.parent.parent.parent / "config.yaml"
         try:
-            raw_config = load_config(self.config_path)
+            raw_config = load_config(
+                package_name="matlab_agent",
+                config_path=self.config_path,
+            )
             self.config = self._validate_config(raw_config)
         except (FileNotFoundError, ValidationError) as e:
             logger.warning("Configuration error: %s, using defaults.", str(e))

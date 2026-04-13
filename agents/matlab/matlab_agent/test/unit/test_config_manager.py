@@ -117,7 +117,10 @@ def test_manager_initialization(
         manager: ConfigManager, patched_load, config_path):
     """The manager should forward *config_path* to ``load_config`` exactly once."""
 
-    patched_load.assert_called_once_with(Path(config_path))
+    patched_load.assert_called_once_with(
+        package_name="matlab_agent",
+        config_path=Path(config_path),
+    )
     assert manager.config["agent"]["agent_id"] == "matlab"
 
 

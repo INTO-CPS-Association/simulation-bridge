@@ -4,17 +4,20 @@ abstraction to manage communication and handle simulation processing.
 """
 
 from typing import Any, Dict, Optional
-import sys
-import uuid
 
-from ..interfaces.config_manager import IConfigManager
+import pika
+import yaml
+from base_agent.comm.connect import Connect
+from base_agent.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
+from base_agent.interfaces.config_manager import IConfigManager
+from base_agent.utils.logger import get_logger
+
+from ..comm.rabbitmq.message_handler import MessageHandler
 from ..utils.config_manager import ConfigManager
-from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
-from ..comm.connect import Connect
 
 # Configure logger
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 class MatlabAgent:
@@ -46,8 +49,28 @@ class MatlabAgent:
 
         # Initialize performance monitor
         self.performance_monitor = PerformanceMonitor(config=self.config)
+
+        def broker_factory(
+            current_agent_id: str,
+            current_config: Dict[str, Any],
+        ) -> RabbitMQManager:
+            return RabbitMQManager(
+                agent_id=current_agent_id,
+                config=current_config,
+                logger=logger,
+                pika_module=pika,
+                yaml_module=yaml,
+            )
+
         # Initialize the communication layer
-        self.comm = Connect(self.agent_id, self.config, broker_type)
+        self.comm = Connect(
+            agent_id=self.agent_id,
+            config=self.config,
+            broker_type=broker_type,
+            broker_factory=broker_factory,
+            message_handler_factory=MessageHandler,
+            logger=logger,
+        )
         # Set up the communication infrastructure
         self.comm.connect()
         self.comm.setup()
@@ -91,7 +114,7 @@ class MatlabAgent:
         if summary:
             logger.info("Performance Summary:")
             for metric, value in summary.items():
-                logger.info(f"  {metric}: {value:.2f}")
+                logger.info("  %s: %.2f", metric, value)
 
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
