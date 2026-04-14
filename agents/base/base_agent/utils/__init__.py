@@ -1,5 +1,11 @@
 """Shared utility functions for agents."""
 
+from .config_manager import (
+    BaseConfigManager,
+    LogLevel,
+    build_common_config,
+    flatten_common_config,
+)
 from .config_loader import get_base_dir, get_config_value, load_config, substitute_env_vars
 from .create_response import create_response
 from .logger import (
@@ -13,8 +19,13 @@ from .logger import (
     get_logger,
     setup_logger,
 )
+from .performance_monitor import BasePerformanceMonitor, PerformanceMetrics
 
 __all__ = [
+    "BaseConfigManager",
+    "LogLevel",
+    "build_common_config",
+    "flatten_common_config",
     "DEFAULT_BACKUP_COUNT",
     "DEFAULT_LOG_FORMAT",
     "DEFAULT_LOG_LEVEL",
@@ -29,4 +40,6 @@ __all__ = [
     "get_config_value",
     "load_config",
     "substitute_env_vars",
+    "BasePerformanceMonitor",
+    "PerformanceMetrics",
 ]

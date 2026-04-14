@@ -6,6 +6,12 @@ from .connect import (
     Connect,
 )
 from .interfaces import IMessageBroker, IMessageHandler
+from .main_helpers import (
+    copy_packaged_resource,
+    generate_project_files,
+    print_missing_config_message,
+    run_main_with_default_config,
+)
 
 __all__ = [
     "BROKER_NOT_INITIALIZED_ERROR",
@@ -13,4 +19,8 @@ __all__ = [
     "Connect",
     "IMessageBroker",
     "IMessageHandler",
+    "copy_packaged_resource",
+    "generate_project_files",
+    "print_missing_config_message",
+    "run_main_with_default_config",
 ]
