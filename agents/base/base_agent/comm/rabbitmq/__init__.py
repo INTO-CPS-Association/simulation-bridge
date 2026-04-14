@@ -1,6 +1,12 @@
 """Shared RabbitMQ communication interfaces."""
 
 from .interfaces import IRabbitMQManager, IRabbitMQMessageHandler
+from .message_models import (
+    BaseMessagePayload,
+    BaseSimulationData,
+    SimulationInputs,
+    SimulationOutputs,
+)
 from .message_processing import (
     SimulationMessageContext,
     build_error_response,
@@ -15,6 +21,10 @@ __all__ = [
     "IRabbitMQManager",
     "IRabbitMQMessageHandler",
     "RabbitMQManager",
+    "SimulationInputs",
+    "SimulationOutputs",
+    "BaseSimulationData",
+    "BaseMessagePayload",
     "SimulationMessageContext",
     "build_error_response",
     "extract_context_from_message",

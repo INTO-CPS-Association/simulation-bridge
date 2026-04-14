@@ -1,18 +1,20 @@
 """
 Message handler for processing incoming RabbitMQ messages.
 """
-import uuid
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, ClassVar
 
 import yaml
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.spec import Basic, BasicProperties
-from pydantic import (
-    BaseModel, ConfigDict, Field, field_validator, model_validator
-)
 import queue
 
 from base_agent.comm.rabbitmq.interfaces import IRabbitMQMessageHandler
+from base_agent.comm.rabbitmq.message_models import (
+    BaseMessagePayload,
+    BaseSimulationData,
+    SimulationInputs,
+    SimulationOutputs,
+)
 from base_agent.comm.rabbitmq.message_processing import (
     SimulationMessageContext,
     build_error_response,
@@ -30,56 +32,21 @@ from ...core.interactive import handle_interactive_simulation
 logger = get_logger("MATLAB-AGENT")
 
 
-class SimulationInputs(BaseModel):
-    """Model for simulation inputs - dynamic fields allowed"""
-    stream_source: str | None = None
-    model_config = ConfigDict(extra="allow")
+class SimulationData(BaseSimulationData):
+    """MATLAB-specific simulation data model with interactive type support."""
+
+    allowed_simulation_types: ClassVar[tuple[str, ...]] = (
+        "batch",
+        "streaming",
+        "interactive",
+    )
+    stream_source_required_types: ClassVar[tuple[str, ...]] = ("interactive",)
 
 
-class SimulationOutputs(BaseModel):
-    """Model for simulation outputs - dynamic fields allowed"""
-    model_config = ConfigDict(extra="allow")
+class MessagePayload(BaseMessagePayload):
+    """MATLAB-specific top-level message payload model."""
 
-
-class SimulationData(BaseModel):
-    """Model for simulation data structure"""
-    request_id: str
-    client_id: str
-    simulator: str
-    type: str = Field(default="batch")
-    file: str
-    inputs: 'SimulationInputs'
-    outputs: Optional['SimulationOutputs'] = None
-    bridge_meta: Optional[Dict[str, Any]] = None
-
-    @field_validator('type', mode='before')
-    @classmethod
-    def validate_sim_type(cls, v):
-        if v not in {'batch', 'streaming', 'interactive'}:
-            raise ValueError(
-                f"Invalid simulation type: {v}. "
-                "Must be 'batch', 'streaming' or 'interactive'"
-            )
-        return v
-
-    @model_validator(mode='after')
-    def check_stream_source_for_interactive(self):
-        """
-        Validate that 'inputs.stream_source' is provided
-        for interactive simulations.
-        """
-        if self.type == 'interactive' and not self.inputs.stream_source:
-            raise ValueError(
-                "For 'interactive' simulations you must provide "
-                "'inputs.stream_source'"
-            )
-        return self
-
-
-class MessagePayload(BaseModel):
-    """Model for the entire message payload"""
     simulation: SimulationData
-    request_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 
 class MessageHandler(IRabbitMQMessageHandler):
@@ -266,3 +233,12 @@ class MessageHandler(IRabbitMQMessageHandler):
                 logger.error("Failed to send error response: %s", send_error)
 
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+
+
+__all__ = [
+    "SimulationInputs",
+    "SimulationOutputs",
+    "SimulationData",
+    "MessagePayload",
+    "MessageHandler",
+]

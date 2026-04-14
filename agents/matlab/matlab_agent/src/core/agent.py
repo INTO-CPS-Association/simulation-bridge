@@ -11,6 +11,12 @@ from base_agent.comm.connect import Connect
 from base_agent.comm.rabbitmq.rabbitmq_manager import RabbitMQManager
 from base_agent.interfaces.config_manager import IConfigManager
 from base_agent.utils.logger import get_logger
+from base_agent.utils.agent_runtime import (
+    initialize_agent_runtime,
+    run_agent_loop,
+    send_result_with_monitor,
+    shutdown_agent_runtime,
+)
 
 from ..comm.rabbitmq.message_handler import MessageHandler
 from ..utils.config_manager import ConfigManager
@@ -41,14 +47,6 @@ class MatlabAgent:
             broker_type (str): The type of message broker to use (default: "rabbitmq")
         """
         self.agent_id: str = agent_id
-        logger.info("Initializing MATLAB agent with ID: %s", self.agent_id)
-
-        # Load configuration
-        self.config_manager: IConfigManager = ConfigManager(config_path)
-        self.config: Dict[str, Any] = self.config_manager.get_config()
-
-        # Initialize performance monitor
-        self.performance_monitor = PerformanceMonitor(config=self.config)
 
         def broker_factory(
             current_agent_id: str,
@@ -62,59 +60,56 @@ class MatlabAgent:
                 yaml_module=yaml,
             )
 
-        # Initialize the communication layer
-        self.comm = Connect(
+        def connect_factory(
+            current_agent_id: str,
+            current_config: Dict[str, Any],
+            current_broker_type: str,
+        ) -> Connect:
+            return Connect(
+                agent_id=current_agent_id,
+                config=current_config,
+                broker_type=current_broker_type,
+                broker_factory=broker_factory,
+                message_handler_factory=MessageHandler,
+                logger=logger,
+            )
+
+        runtime = initialize_agent_runtime(
+            agent_name="MATLAB",
             agent_id=self.agent_id,
-            config=self.config,
+            config_path=config_path,
             broker_type=broker_type,
-            broker_factory=broker_factory,
-            message_handler_factory=MessageHandler,
+            config_manager_factory=ConfigManager,
+            performance_monitor_factory=PerformanceMonitor,
+            connect_factory=connect_factory,
             logger=logger,
         )
-        # Set up the communication infrastructure
-        self.comm.connect()
-        self.comm.setup()
-        self.comm.register_message_handler()
-        logger.debug("MATLAB agent initialized successfully")
+        self.config_manager: IConfigManager = runtime.config_manager
+        self.config: Dict[str, Any] = runtime.config
+        self.performance_monitor = runtime.performance_monitor
+        self.comm = runtime.comm
 
     def start(self) -> None:
         """
         Start the agent and begin consuming messages.
         """
-        try:
-            logger.info("MATLAB agent running and listening for requests")
-            self.comm.start_consuming()
-        except KeyboardInterrupt:
-            logger.info("Stopping MATLAB agent due to keyboard interrupt")
-            self.stop()
-        except ConnectionError as e:
-            # Specific handling for ConnectionError
-            logger.error("Connection error while consuming messages: %s", e)
-            self.stop()
-        except TimeoutError as e:
-            # Specific handling for TimeoutError
-            logger.error("Timeout error while consuming messages: %s", e)
-            self.stop()
-        except Exception as e:
-            # For all other unexpected errors
-            logger.error("Unexpected error while consuming messages: %s", e)
-            # This will log the full stack trace
-            logger.exception("Stack trace:")
-            self.stop()
+        run_agent_loop(
+            agent_name="MATLAB",
+            comm=self.comm,
+            logger=logger,
+            stop_func=self.stop,
+        )
 
     def stop(self) -> None:
         """
         Stop the agent and close all connections.
         """
-        logger.info("Stopping MATLAB agent")
-        self.comm.close()
-
-        # Log performance summary before stopping
-        summary = self.performance_monitor.get_summary()
-        if summary:
-            logger.info("Performance Summary:")
-            for metric, value in summary.items():
-                logger.info("  %s: %.2f", metric, value)
+        shutdown_agent_runtime(
+            agent_name="MATLAB",
+            comm=self.comm,
+            performance_monitor=self.performance_monitor,
+            logger=logger,
+        )
 
     def send_result(self, destination: str, result: Dict[str, Any]) -> bool:
         """
@@ -127,7 +122,9 @@ class MatlabAgent:
         Returns:
             bool: True if successful, False otherwise
         """
-        success = self.comm.send_result(destination, result)
-        if success:
-            self.performance_monitor.record_result_sent()
-        return success
+        return send_result_with_monitor(
+            comm=self.comm,
+            performance_monitor=self.performance_monitor,
+            destination=destination,
+            result=result,
+        )
