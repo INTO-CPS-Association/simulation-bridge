@@ -241,6 +241,9 @@ class TestHandleResultMessage:
         msg = _result_message(request_id='r2')
         bridge_core_instance.handle_result_message(None, message=msg)
         mqtt_adapter.publish_result_message_mqtt.assert_called_once()
+        forwarded = mqtt_adapter.publish_result_message_mqtt.call_args
+        forwarded_msg = forwarded[1]['message']
+        assert forwarded_msg['destinations'] == ['DT_2']
 
     def test_result_routed_via_rest_adapter(self, bridge_core_instance):
         """Result for a request that arrived via REST calls the REST adapter."""
@@ -252,6 +255,9 @@ class TestHandleResultMessage:
         msg = _result_message(request_id='r3')
         bridge_core_instance.handle_result_message(None, message=msg)
         rest_adapter.publish_result_message_rest.assert_called_once()
+        forwarded = rest_adapter.publish_result_message_rest.call_args
+        forwarded_msg = forwarded[1]['message']
+        assert forwarded_msg['destinations'] == ['DT_3']
 
     def test_result_routed_via_inmemory_adapter(self, bridge_core_instance):
         """Result for a request that arrived via inmemory calls _handle_result."""
@@ -263,6 +269,9 @@ class TestHandleResultMessage:
         msg = _result_message(request_id='r4')
         bridge_core_instance.handle_result_message(None, message=msg)
         inmemory_adapter._handle_result.assert_called_once()
+        forwarded = inmemory_adapter._handle_result.call_args
+        forwarded_msg = forwarded[1]['message']
+        assert forwarded_msg['destinations'] == ['DT_4']
 
     def test_result_discarded_when_no_routing_entry(self, bridge_core_instance,
                                                      mock_logger, patch_basic_publish):

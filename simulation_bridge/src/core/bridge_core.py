@@ -191,7 +191,11 @@ class BridgeCore:
         consumer = kwargs.get('consumer', 'unknown')
 
         # Register in routing table (PA_N=protocol, PA_S=rabbitmq)
-        timeout = simulation.timeout if simulation.timeout else DEFAULT_TIMEOUT_SECONDS
+        timeout = (
+            simulation.timeout
+            if simulation.timeout is not None
+            else DEFAULT_TIMEOUT_SECONDS
+        )
         self.routing_table.add(RoutingEntry(
             pa_n=protocol,
             pa_s='rabbitmq',
@@ -246,8 +250,13 @@ class BridgeCore:
         performance_monitor.record_result_sent(
             request_id, pa_n, destination, simulation_type)
 
-        # Deliver via the correct north-bound PA
-        self._route_result_to_adapter(pa_n, sender, **kwargs)
+        # Deliver via the correct north-bound PA using the routing-table
+        # destination instead of trusting the inbound message payload.
+        routed_kwargs = dict(kwargs)
+        routed_message = dict(message)
+        routed_message['destinations'] = [destination]
+        routed_kwargs['message'] = routed_message
+        self._route_result_to_adapter(pa_n, sender, **routed_kwargs)
 
         # Finalise if the simulation has reached a terminal state
         status = message.get('status', '')
