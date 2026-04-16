@@ -12,7 +12,9 @@ from base_agent.comm.main_helpers import (
 from base_agent.utils.logger import setup_logger
 from base_agent.utils.config_loader import load_config
 from .interfaces.agent import IMatlabAgent
-from .core.agent import MatlabAgent
+from .core.agent import (
+    MatlabAgent,
+)
 
 # pylint: disable=import-outside-toplevel,too-many-branches
 
