@@ -2,7 +2,10 @@
 Core bridge module for message routing between different protocols.
 
 This module handles message routing between RabbitMQ, MQTT, and REST protocols,
-providing a unified interface for cross-protocol communication.
+providing a unified interface for cross-protocol communication.  A dynamic
+routing table (see research paper, Table I) tracks in-flight simulation
+requests so that responses can be correlated and routed back to the correct
+Digital Twin via the correct north-bound Protocol Adapter.
 """
 
 from typing import Dict, Any, Optional
@@ -14,12 +17,25 @@ from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
+from .routing_table import RoutingTable, RoutingEntry, DEFAULT_TIMEOUT_SECONDS
 
 # Constants for RabbitMQ connection parameters
 RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
 RABBITMQ_BLOCKED_CONNECTION_TIMEOUT = 300  # 5 minutes timeout
 RABBITMQ_CONNECTION_ATTEMPTS = 3  # Number of connection attempts
 RABBITMQ_RETRY_DELAY = 5  # Delay between retries in seconds
+
+# Maps north-bound PA name → adapter method that delivers results
+_RESULT_METHOD_FOR_PA = {
+    'mqtt': 'publish_result_message_mqtt',
+    'rest': 'publish_result_message_rest',
+    'inmemory': '_handle_result',
+}
+
+# Statuses that indicate a simulation run has reached a terminal state
+_TERMINAL_STATUSES = frozenset({
+    'completed', 'failed', 'error', 'aborted', 'cancelled',
+})
 
 
 logger = get_logger()
@@ -54,7 +70,8 @@ class BridgeCore:
     Core bridge class for handling message routing between different protocols.
 
     Manages connections to RabbitMQ, MQTT, and REST endpoints, and routes
-    messages between them based on protocol metadata.
+    messages between them based on a dynamic routing table that maps
+    in-flight requests to their originating DT and north-bound PA.
     """
 
     def __init__(self, config_manager: ConfigManager, adapters: dict):
@@ -70,6 +87,7 @@ class BridgeCore:
         self.channel = None
         self._initialize_rabbitmq_connection()
         self.adapters = adapters
+        self.routing_table = RoutingTable()
         logger.debug("Signals connected and bridge core initialized")
 
     def _initialize_rabbitmq_connection(self):
@@ -142,7 +160,7 @@ class BridgeCore:
 
     def handle_input_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
-        Handle incoming messages.
+        Handle incoming messages and register a routing table entry.
 
         Args:
             **kwargs: Keyword arguments containing message data
@@ -171,6 +189,18 @@ class BridgeCore:
             request_id = simulation.request_id if simulation.request_id else 'unknown'
         producer = kwargs.get('producer', 'unknown')
         consumer = kwargs.get('consumer', 'unknown')
+
+        # Register in routing table (PA_N=protocol, PA_S=rabbitmq)
+        timeout = simulation.timeout if simulation.timeout else DEFAULT_TIMEOUT_SECONDS
+        self.routing_table.add(RoutingEntry(
+            pa_n=protocol,
+            pa_s='rabbitmq',
+            dt=simulation.client_id,
+            sim_type=simulation.type,
+            request_id=request_id,
+            timeout_seconds=timeout,
+        ))
+
         logger.info(
             "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
         self._publish_message(
@@ -179,46 +209,114 @@ class BridgeCore:
             message.model_dump(),
             protocol=protocol, operation_id=operation_id)
 
-    def handle_result_rabbitmq_message(self, sender, **kwargs):  # pylint: disable=unused-argument
+    def handle_result_message(self, sender, **kwargs):  # pylint: disable=unused-argument
         """
-        Handle RabbitMQ result messages.
+        Unified result handler that routes responses via the routing table.
+
+        When a simulation result arrives the handler:
+        1. Purges expired routing-table entries (opportunistic cleanup).
+        2. Looks up the request_id in the routing table.
+        3. Routes the result to the north-bound PA recorded in the entry.
+        4. Removes the entry when the simulation reaches a terminal status.
 
         Args:
-            **kwargs: Keyword arguments containing message data
+            **kwargs: Keyword arguments containing 'message' dict.
         """
-        # Initialize performance monitor
-        performance_monitor = PerformanceMonitor()
         message = kwargs.get('message', {})
-        destinations = message.get('destinations', [])
-        destination = destinations[0] if destinations else 'unknown'
+        request_id = message.get('request_id', 'unknown')
+
+        # Opportunistic purge of stale entries
+        self.routing_table.purge_expired()
+
+        # Routing-table lookup
+        entry = self.routing_table.lookup(request_id)
+        if entry is None:
+            logger.warning(
+                "No routing entry for request_id=%s — discarding result",
+                request_id,
+            )
+            return
+
+        pa_n = entry.pa_n
+
+        # Performance bookkeeping
+        performance_monitor = PerformanceMonitor()
         simulation_type = message.get('simulation', {}).get('type', 'unknown')
-        producer = message.get('source', 'unknown')
-        consumer = "result"
-        operation_id = message.get('request_id', 'unknown')
-        self._publish_message(
-            producer,
-            consumer,
-            message,
-            exchange='ex.bridge.result',
-            protocol='rabbitmq',
-            operation_id=operation_id)
-        status = message.get('status', 'unknown')
+        destination = entry.dt
         performance_monitor.record_result_sent(
-            operation_id, 'rabbitmq', destination, simulation_type)
-        if status == 'completed':
+            request_id, pa_n, destination, simulation_type)
+
+        # Deliver via the correct north-bound PA
+        self._route_result_to_adapter(pa_n, sender, **kwargs)
+
+        # Finalise if the simulation has reached a terminal state
+        status = message.get('status', '')
+        if status in _TERMINAL_STATUSES:
+            self.routing_table.remove(request_id)
             performance_monitor.finalize_operation(
-                operation_id, 'rabbitmq', destination, simulation_type)
+                request_id, pa_n, destination, simulation_type)
+
+    # keep old handler as alias for backward compatibility
+    def handle_result_rabbitmq_message(self, sender, **kwargs):
+        """Route a RabbitMQ-originating result through the routing table."""
+        self.handle_result_message(sender, **kwargs)
 
     def handle_result_unknown_message(self, sender, **kwargs):  # pylint: disable=unused-argument
-        """
-        Handle RabbitMQ result messages.
+        """Handle results whose originating protocol could not be determined."""
+        message = kwargs.get('message', {})
+        request_id = message.get('request_id', 'unknown')
 
-        Args:
-            **kwargs: Keyword arguments containing message data
+        # Try the routing table — it may still know how to route this
+        entry = self.routing_table.lookup(request_id)
+        if entry is not None:
+            self.handle_result_message(sender, **kwargs)
+            return
+
+        logger.error(
+            "Received result with unknown protocol and no routing entry: %s",
+            message.get('error', request_id),
+        )
+
+    def _route_result_to_adapter(self, pa_n, sender, **kwargs):
+        """Deliver a result message via the north-bound PA identified by *pa_n*.
+
+        For RabbitMQ the result is published to the ``ex.bridge.result``
+        exchange.  For every other PA the corresponding adapter method is
+        invoked directly.
         """
         message = kwargs.get('message', {})
-        logger.error(
-            "Received error result message with unknown protocol: %s", message['error'])
+
+        if pa_n == 'rabbitmq':
+            producer = message.get('source', 'unknown')
+            consumer = 'result'
+            operation_id = message.get('request_id', 'unknown')
+            self._publish_message(
+                producer,
+                consumer,
+                message,
+                exchange='ex.bridge.result',
+                protocol='rabbitmq',
+                operation_id=operation_id,
+            )
+            return
+
+        adapter = self.adapters.get(pa_n)
+        if adapter is None:
+            logger.error("No adapter registered for protocol '%s'", pa_n)
+            return
+
+        method_name = _RESULT_METHOD_FOR_PA.get(pa_n)
+        if method_name is None:
+            logger.error("No result delivery method mapped for protocol '%s'", pa_n)
+            return
+
+        method = getattr(adapter, method_name, None)
+        if method is None:
+            logger.error(
+                "Adapter '%s' has no method '%s'", pa_n, method_name)
+            return
+
+        method(sender, **kwargs)
 
     def _publish_message(self, producer, consumer, message,  # pylint: disable=too-many-arguments, too-many-positional-arguments
                          exchange='ex.bridge.output', protocol='unknown', operation_id='unknown'):

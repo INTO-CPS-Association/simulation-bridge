@@ -131,12 +131,19 @@ def test_bridge_core_handle_input_message_invalid(
 
 def test_bridge_core_handle_result_rabbitmq_message(
         monkeypatch, mock_config_manager):
-    """Test bridge core handling result RabbitMQ message."""
+    """Test bridge core handling result RabbitMQ message via routing table."""
     adapters = {}
     with patch("pika.BlockingConnection"):
         core = BridgeCore(mock_config_manager, adapters)
         monkeypatch.setattr(core, "_publish_message", lambda *a, **kw: None)
-        core.handle_result_rabbitmq_message(None, message={'source': 'src'})
+        # Register a routing entry so the result can be matched
+        from simulation_bridge.src.core.routing_table import RoutingEntry
+        core.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='unknown', request_id='req-1'))
+        core.handle_result_rabbitmq_message(
+            None, message={'request_id': 'req-1', 'source': 'src',
+                           'simulation': {}})
 
 
 def test_bridge_core_handle_result_unknown_message(mock_config_manager):
@@ -146,7 +153,7 @@ def test_bridge_core_handle_result_unknown_message(mock_config_manager):
         core = BridgeCore(mock_config_manager, adapters)
         # Pass the 'error' key as well
         core.handle_result_unknown_message(
-            None, message={'foo': 'bar', 'error': 'some error'})
+            None, message={'request_id': 'nope', 'error': 'some error'})
 
 
 def test_bridge_orchestrator_setup_interfaces_enabled(mock_config_manager):
