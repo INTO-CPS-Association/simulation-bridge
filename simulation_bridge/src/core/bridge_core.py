@@ -17,7 +17,11 @@ from pydantic import BaseModel
 from ..utils.config_manager import ConfigManager
 from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
-from .routing_table import RoutingTable, RoutingEntry, DEFAULT_TIMEOUT_SECONDS
+from .routing_table import (
+    RoutingTable, RoutingEntry, DEFAULT_TIMEOUT_SECONDS,
+    DEFAULT_MAX_TIMEOUT, DEFAULT_MIN_TIMEOUT,
+    generate_bridge_index,
+)
 
 # Constants for RabbitMQ connection parameters
 RABBITMQ_HEARTBEAT = 600  # 10 minutes heartbeat
@@ -60,6 +64,7 @@ class SimulationModel(BaseModel):
     file: str
     inputs: Dict[str, Any]
     outputs: Dict[str, Any]
+    bridge_index: Optional[str] = None
 
 class MessageModel(BaseModel):
     "Represents a message structure for simulation requests."
@@ -83,6 +88,13 @@ class BridgeCore:
             adapters: Dictionary of protocol adapters
         """
         self.config = config_manager.get_rabbitmq_config()
+        full_cfg = config_manager.get_config()
+        routing_cfg = full_cfg.get(
+            'simulation_bridge', {}).get('routing', {})
+        self._max_timeout = routing_cfg.get(
+            'max_timeout_seconds', DEFAULT_MAX_TIMEOUT)
+        self._min_timeout = routing_cfg.get(
+            'min_timeout_seconds', DEFAULT_MIN_TIMEOUT)
         self.connection = None
         self.channel = None
         self._initialize_rabbitmq_connection()
@@ -196,21 +208,47 @@ class BridgeCore:
             if simulation.timeout is not None
             else DEFAULT_TIMEOUT_SECONDS
         )
-        self.routing_table.add(RoutingEntry(
-            pa_n=protocol,
-            pa_s='rabbitmq',
-            dt=simulation.client_id,
-            sim_type=simulation.type,
-            request_id=request_id,
-            timeout_seconds=timeout,
-        ))
+        timeout = max(self._min_timeout, min(timeout, self._max_timeout))
+
+        # Deduplicate: discard if (request_id, client_id, simulator) seen
+        if self.routing_table.has_request(
+            request_id, simulation.client_id, simulation.simulator,
+        ):
+            logger.warning(
+                "Duplicate request discarded: request_id=%s, "
+                "client_id=%s, simulator=%s",
+                request_id, simulation.client_id, simulation.simulator,
+            )
+            return
+
+        # Generate anti-spoofing bridge_index
+        bridge_idx = generate_bridge_index(
+            protocol, 'rabbitmq', request_id)
+
+        self.routing_table.add(
+            RoutingEntry(
+                pa_n=protocol,
+                pa_s='rabbitmq',
+                dt=simulation.client_id,
+                sim_type=simulation.type,
+                request_id=request_id,
+                timeout_seconds=timeout,
+                bridge_index=bridge_idx,
+            ),
+            client_id=simulation.client_id,
+            simulator=simulation.simulator,
+        )
+
+        # Inject bridge_index into the outgoing message
+        out_message = message.model_dump()
+        out_message['simulation']['bridge_index'] = bridge_idx
 
         logger.info(
             "[%s] Handling incoming simulation request with ID: %s", protocol.upper(), request_id)
         self._publish_message(
             producer,
             consumer,
-            message.model_dump(),
+            out_message,
             protocol=protocol, operation_id=operation_id)
 
     def handle_result_message(self, sender, **kwargs):  # pylint: disable=unused-argument
@@ -238,6 +276,16 @@ class BridgeCore:
             logger.warning(
                 "No routing entry for request_id=%s — discarding result",
                 request_id,
+            )
+            return
+
+        # Validate bridge_index (anti-spoofing)
+        result_bridge_idx = message.get('bridge_index')
+        if entry.bridge_index and result_bridge_idx != entry.bridge_index:
+            logger.warning(
+                "bridge_index mismatch for request_id=%s — discarding "
+                "result (expected=%s, got=%s)",
+                request_id, entry.bridge_index, result_bridge_idx,
             )
             return
 

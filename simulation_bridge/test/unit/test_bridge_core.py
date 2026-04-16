@@ -28,6 +28,15 @@ def config_manager_mock(dummy_credentials):
         'vhost': '/',
         'tls': False,
     }
+    cm.get_config.return_value = {
+        'simulation_bridge': {
+            'bridge_id': 'test_bridge',
+            'routing': {
+                'max_timeout_seconds': 1200,
+                'min_timeout_seconds': 600,
+            },
+        },
+    }
     return cm
 
 
@@ -83,15 +92,18 @@ def _valid_input_message(request_id='123', client_id='clientA',
 
 
 def _result_message(request_id='123', source='simX', status='completed',
-                    sim_type='typeA', destinations=None):
+                    sim_type='typeA', destinations=None, bridge_index=None):
     """Helper to build a simulation result message."""
-    return {
+    msg = {
         'request_id': request_id,
         'source': source,
         'status': status,
         'destinations': destinations or ['clientA'],
         'simulation': {'type': sim_type},
     }
+    if bridge_index is not None:
+        msg['bridge_index'] = bridge_index
+    return msg
 
 
 class TestInitialization:
@@ -181,7 +193,7 @@ class TestHandleInputMessage:
             self, bridge_core_instance, patch_basic_publish):
         """A valid input message creates a routing-table entry."""
         message = _valid_input_message(request_id='abc', client_id='DT_1',
-                                       sim_type='matlab', timeout=120)
+                                       sim_type='matlab', timeout=900)
         bridge_core_instance.handle_input_message(
             None, message=message, producer='DT_1', consumer='sim',
             protocol='rest')
@@ -191,7 +203,8 @@ class TestHandleInputMessage:
         assert entry.pa_s == 'rabbitmq'
         assert entry.dt == 'DT_1'
         assert entry.sim_type == 'matlab'
-        assert entry.timeout_seconds == 120
+        assert entry.timeout_seconds == 900
+        assert len(entry.bridge_index) == 64
 
     def test_handle_input_message_missing_simulation(self, bridge_core_instance,
                                                      patch_basic_publish, mock_logger):
@@ -224,9 +237,9 @@ class TestHandleResultMessage:
         """Result for a request that arrived via RabbitMQ is published to ex.bridge.result."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
-            sim_type='matlab', request_id='r1'))
+            sim_type='matlab', request_id='r1', bridge_index='idx1'))
         bridge_core_instance.handle_result_message(
-            None, message=_result_message(request_id='r1'))
+            None, message=_result_message(request_id='r1', bridge_index='idx1'))
         patch_basic_publish.assert_called_once()
         kwargs = patch_basic_publish.call_args[1]
         assert kwargs['exchange'] == 'ex.bridge.result'
@@ -237,8 +250,8 @@ class TestHandleResultMessage:
         bridge_core_instance.adapters['mqtt'] = mqtt_adapter
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='mqtt', pa_s='rabbitmq', dt='DT_2',
-            sim_type='simul8', request_id='r2'))
-        msg = _result_message(request_id='r2')
+            sim_type='simul8', request_id='r2', bridge_index='idx2'))
+        msg = _result_message(request_id='r2', bridge_index='idx2')
         bridge_core_instance.handle_result_message(None, message=msg)
         mqtt_adapter.publish_result_message_mqtt.assert_called_once()
         forwarded = mqtt_adapter.publish_result_message_mqtt.call_args
@@ -251,8 +264,8 @@ class TestHandleResultMessage:
         bridge_core_instance.adapters['rest'] = rest_adapter
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rest', pa_s='rabbitmq', dt='DT_3',
-            sim_type='octave', request_id='r3'))
-        msg = _result_message(request_id='r3')
+            sim_type='octave', request_id='r3', bridge_index='idx3'))
+        msg = _result_message(request_id='r3', bridge_index='idx3')
         bridge_core_instance.handle_result_message(None, message=msg)
         rest_adapter.publish_result_message_rest.assert_called_once()
         forwarded = rest_adapter.publish_result_message_rest.call_args
@@ -265,8 +278,8 @@ class TestHandleResultMessage:
         bridge_core_instance.adapters['inmemory'] = inmemory_adapter
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='inmemory', pa_s='rabbitmq', dt='DT_4',
-            sim_type='matlab', request_id='r4'))
-        msg = _result_message(request_id='r4')
+            sim_type='matlab', request_id='r4', bridge_index='idx4'))
+        msg = _result_message(request_id='r4', bridge_index='idx4')
         bridge_core_instance.handle_result_message(None, message=msg)
         inmemory_adapter._handle_result.assert_called_once()
         forwarded = inmemory_adapter._handle_result.call_args
@@ -286,9 +299,10 @@ class TestHandleResultMessage:
         """Routing entry is removed when the result has a terminal status."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
-            sim_type='matlab', request_id='r5'))
+            sim_type='matlab', request_id='r5', bridge_index='idx5'))
         bridge_core_instance.handle_result_message(
-            None, message=_result_message(request_id='r5', status='completed'))
+            None, message=_result_message(
+                request_id='r5', status='completed', bridge_index='idx5'))
         assert bridge_core_instance.routing_table.lookup('r5') is None
 
     def test_entry_kept_on_non_terminal_status(self, bridge_core_instance,
@@ -296,9 +310,10 @@ class TestHandleResultMessage:
         """Routing entry is kept when the result has a non-terminal status."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
-            sim_type='matlab', request_id='r6'))
+            sim_type='matlab', request_id='r6', bridge_index='idx6'))
         bridge_core_instance.handle_result_message(
-            None, message=_result_message(request_id='r6', status='pending'))
+            None, message=_result_message(
+                request_id='r6', status='pending', bridge_index='idx6'))
         assert bridge_core_instance.routing_table.lookup('r6') is not None
 
 
@@ -310,12 +325,13 @@ class TestHandleResultRabbitmqMessageBackwardCompat:
         """Publishes RabbitMQ result message correctly via routing table."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
-            sim_type='unknown', request_id='unknown'))
+            sim_type='unknown', request_id='unknown', bridge_index='bw'))
         message = {
             'request_id': 'unknown',
             'source': 'src',
             'simulation': {},
-            'data': 'result'
+            'data': 'result',
+            'bridge_index': 'bw',
         }
         bridge_core_instance.handle_result_rabbitmq_message(
             None, message=message)
@@ -332,9 +348,10 @@ class TestHandleResultUnknownMessage:
         """Unknown-protocol result is routed if routing table has an entry."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
-            sim_type='matlab', request_id='r7'))
+            sim_type='matlab', request_id='r7', bridge_index='idx7'))
         bridge_core_instance.handle_result_unknown_message(
-            None, message=_result_message(request_id='r7'))
+            None, message=_result_message(
+                request_id='r7', bridge_index='idx7'))
         patch_basic_publish.assert_called_once()
 
     def test_logs_error_when_no_entry(self, bridge_core_instance, mock_logger):
@@ -387,3 +404,142 @@ class TestPublishMessage:
                 call.args[0] % call.args[1:] == "Message routed to exchange 'ex.test' after reconnection: prod -> cons"  # pylint: disable=line-too-long
                 for call in calls
             )
+
+
+class TestBridgeIndexInjection:
+    """Tests that handle_input_message injects bridge_index."""
+
+    def test_bridge_index_injected_in_published_message(
+            self, bridge_core_instance, patch_basic_publish):
+        """Published message contains a bridge_index field."""
+        message = _valid_input_message(request_id='bi1')
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        body = patch_basic_publish.call_args[1]['body']
+        import json  # pylint: disable=import-outside-toplevel
+        parsed = json.loads(body)
+        assert 'bridge_index' in parsed['simulation']
+        assert len(parsed['simulation']['bridge_index']) == 64  # SHA-256
+
+    def test_bridge_index_stored_in_routing_entry(
+            self, bridge_core_instance, patch_basic_publish):
+        """Routing entry stores the same bridge_index injected in msg."""
+        message = _valid_input_message(request_id='bi2')
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='mqtt')
+        entry = bridge_core_instance.routing_table.lookup('bi2')
+        assert entry is not None
+        assert len(entry.bridge_index) == 64
+
+
+class TestBridgeIndexValidation:
+    """Tests that handle_result_message validates bridge_index."""
+
+    def test_mismatched_bridge_index_discards_result(
+            self, bridge_core_instance, patch_basic_publish, mock_logger):
+        """Result with wrong bridge_index is discarded."""
+        bridge_core_instance.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='matlab', request_id='v1',
+            bridge_index='correct_idx'))
+        bridge_core_instance.handle_result_message(
+            None, message=_result_message(
+                request_id='v1', bridge_index='wrong_idx'))
+        patch_basic_publish.assert_not_called()
+        mock_logger.warning.assert_called()
+
+    def test_missing_bridge_index_in_result_discards(
+            self, bridge_core_instance, patch_basic_publish, mock_logger):
+        """Result missing bridge_index is discarded when entry has one."""
+        bridge_core_instance.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='matlab', request_id='v2',
+            bridge_index='some_idx'))
+        bridge_core_instance.handle_result_message(
+            None, message=_result_message(request_id='v2'))
+        patch_basic_publish.assert_not_called()
+
+    def test_matching_bridge_index_routes_normally(
+            self, bridge_core_instance, patch_basic_publish):
+        """Result with correct bridge_index is routed normally."""
+        bridge_core_instance.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='matlab', request_id='v3',
+            bridge_index='good'))
+        bridge_core_instance.handle_result_message(
+            None, message=_result_message(
+                request_id='v3', bridge_index='good'))
+        patch_basic_publish.assert_called_once()
+
+
+class TestTimeoutClamping:
+    """Tests that handle_input_message clamps timeout to config bounds."""
+
+    def test_timeout_clamped_to_max(self, bridge_core_instance,
+                                    patch_basic_publish):
+        """User timeout above max_timeout is clamped to max."""
+        message = _valid_input_message(
+            request_id='tc1', timeout=99999)
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('tc1')
+        assert entry.timeout_seconds == 1200
+
+    def test_timeout_clamped_to_min(self, bridge_core_instance,
+                                    patch_basic_publish):
+        """User timeout below min_timeout is clamped to min."""
+        message = _valid_input_message(request_id='tc2', timeout=1)
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('tc2')
+        assert entry.timeout_seconds == 600
+
+    def test_timeout_in_range_kept(self, bridge_core_instance,
+                                   patch_basic_publish):
+        """User timeout within bounds is preserved."""
+        message = _valid_input_message(request_id='tc3', timeout=900)
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('tc3')
+        assert entry.timeout_seconds == 900
+
+
+class TestRequestDeduplication:
+    """Tests that duplicate requests are discarded."""
+
+    def test_duplicate_request_discarded(self, bridge_core_instance,
+                                         patch_basic_publish, mock_logger):
+        """Second request with same (request_id, client_id, simulator) is
+        discarded."""
+        message = _valid_input_message(
+            request_id='dup1', client_id='c1', simulator='s1')
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        assert patch_basic_publish.call_count == 1
+        # Send the same request again
+        bridge_core_instance.handle_input_message(
+            None, message=message, producer='p', consumer='c',
+            protocol='rest')
+        assert patch_basic_publish.call_count == 1  # still 1
+        mock_logger.warning.assert_called()
+
+    def test_different_request_id_not_duplicate(
+            self, bridge_core_instance, patch_basic_publish):
+        """Different request_id is not considered duplicate."""
+        msg1 = _valid_input_message(
+            request_id='d1', client_id='c1', simulator='s1')
+        msg2 = _valid_input_message(
+            request_id='d2', client_id='c1', simulator='s1')
+        bridge_core_instance.handle_input_message(
+            None, message=msg1, producer='p', consumer='c',
+            protocol='rest')
+        bridge_core_instance.handle_input_message(
+            None, message=msg2, producer='p', consumer='c',
+            protocol='rest')
+        assert patch_basic_publish.call_count == 2

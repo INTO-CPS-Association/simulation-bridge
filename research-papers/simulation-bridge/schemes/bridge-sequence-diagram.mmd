@@ -1,0 +1,17 @@
+sequenceDiagram
+                participant DT as Digital Twin
+                participant MockPT as Mock <br />Physical Twin
+                participant Bridge as Simulation Bridge
+                participant SimA as Simulator A
+                participant SimB as Simulator B
+
+                rect rgba(46, 64, 83, 0.1)
+                                Note over DT,Bridge: supported protocols
+                                DT->>+Bridge: Simulation Request(msg)
+                                Note right of Bridge: Message parse & convert
+                                Bridge->>+SimA: Forward Request
+                                SimA-->>-Bridge: Return Response(s)
+                                Bridge-->>-DT: Deliver Response(s)
+                                Note right of Bridge: Message parse & convert
+                end
+

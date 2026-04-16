@@ -110,10 +110,17 @@ class PerformanceConfig(BaseModel):
     file: str
 
 
+class RoutingConfig(BaseModel):
+    """Configuration for routing table timeout bounds."""
+    max_timeout_seconds: int = 1200  # 20 minutes
+    min_timeout_seconds: int = 600   # 10 minutes
+
+
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
     in_memory_mode: bool = False
+    routing: RoutingConfig = RoutingConfig()
 
 
 class Config(BaseModel):

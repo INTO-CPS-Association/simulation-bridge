@@ -205,3 +205,42 @@ class TestConfigManagerErrorHandling:
         logger_mock.error.assert_called()
         logger_mock.exception.assert_called()
         assert manager.config == manager.get_default_config()
+
+
+class TestRoutingConfigDefaults:
+    """Tests for RoutingConfig Pydantic model defaults."""
+
+    def test_routing_config_defaults(self):
+        """RoutingConfig has correct defaults when not provided."""
+        rc = config_manager.RoutingConfig()
+        assert rc.max_timeout_seconds == 1200
+        assert rc.min_timeout_seconds == 600
+
+    def test_routing_config_custom_values(self):
+        """RoutingConfig accepts custom values."""
+        rc = config_manager.RoutingConfig(
+            max_timeout_seconds=3600,
+            min_timeout_seconds=300)
+        assert rc.max_timeout_seconds == 3600
+        assert rc.min_timeout_seconds == 300
+
+    def test_simulation_bridge_config_includes_routing(self):
+        """SimulationBridgeConfig includes routing with defaults."""
+        sbc = config_manager.SimulationBridgeConfig(
+            bridge_id='test')
+        assert sbc.routing.max_timeout_seconds == 1200
+        assert sbc.routing.min_timeout_seconds == 600
+
+    def test_config_from_dict_with_routing(
+            self, sample_valid_config_dict, load_config_mock):
+        """Config.from_dict parses routing section correctly."""
+        sample_valid_config_dict['simulation_bridge']['routing'] = {
+            'max_timeout_seconds': 900,
+            'min_timeout_seconds': 120,
+        }
+        load_config_mock.return_value = sample_valid_config_dict
+        mgr = config_manager.ConfigManager("dummy.yaml")
+        cfg = mgr.get_config()
+        routing = cfg['simulation_bridge']['routing']
+        assert routing['max_timeout_seconds'] == 900
+        assert routing['min_timeout_seconds'] == 120

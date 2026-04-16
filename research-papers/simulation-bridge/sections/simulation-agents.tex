@@ -1,0 +1,119 @@
+
+\section{Simulation Agents}
+\label{sec:sim-agents}
+
+This section presents the simulation agents integrated into the DT-SB architecture: the MATLAB and AnyLogic Agents enabling computational and simulation model execution with modularity and seamless communication.
+
+\subsection{Matlab Agent}
+
+The MATLAB Agent ($SA_{\text{MATLAB}}$) serves as a decoupled simulation component integrating MATLAB’s computational capabilities within the DT-SB architecture. It communicates with the DT-SB through the AMQP protocol, enabling reliable and platform-independent message exchange. Four integration strategies were explored, each balancing latency, flexibility, and architectural coupling differently. 
+
+In the \textit{file-based approach}, simulation inputs are provided as files, and results are written back to disk for the agent to read and forward to the DT-SB. This method ensures strong decoupling but introduces considerable input/output overhead, making it unsuitable for real-time or streaming simulations. The \textit{TCP/IP communication approach} enables real-time data exchange via socket-based interprocess communication, where results are transmitted as JSON messages. This solution supports continuous streaming and distributed deployment with moderate latency. A third strategy relies on shared memory \textit{interprocess communication}, where requests and responses are exchanged directly through memory segments. While this configuration achieves minimal latency and high throughput, it requires explicit synchronization and strict control over memory layout, reducing flexibility. Finally, the MATLAB Engine API allows direct invocation of MATLAB functions from Python, simplifying model execution but imposing tighter structural constraints and lowering modularity.
+
+Experimental evaluation showed that shared memory communication provides the lowest latency but lacks adaptability. Therefore, the MATLAB Engine API was selected for \emph{batch} simulations, whereas the TCP/IP approach was adopted for \emph{streaming} mode, offering a balanced trade-off between performance, modularity, and ease of integration.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The MATLAB Agent ($SA_{\text{MATLAB}}$) represents a decoupled simulation agent that integrates MATLAB's computational capabilities within the DT-SB architecture. The agent communicates with the DT-SB using the AMQP protocol, ensuring reliable and platform-agnostic messaging. Four distinct integration strategies were investigated, each offering different trade-offs in terms of latency, flexibility, and architectural coupling.
+
+% \textbf{1. File-Based Exchange.}
+% In this approach, the simulator receives simulation inputs via files, executes the model, and stores the results in an output file. The $SA_{\text{MATLAB}}$ reads the output file, encapsulates its contents as the response payload, and forwards the message to the DT-SB. This method offers high architectural decoupling but incurs substantial input/output overhead, making it unsuitable for streaming simulations due to poor performance and high latency.
+
+% \textbf{2. TCP/IP Communication.}
+% This approach employs network-based IPC, enabling real-time interaction between the simulator and the $SA_{\text{MATLAB}}$. The simulator sends result data directly to the $SA_{\text{MATLAB}}$ over a TCP/IP socket, formatted as JSON. Each result corresponds to a single message in the stream, making this method highly compatible with streaming simulation modes. The use of network IPC ensures that the MA and simulator remain decoupled at the operating system process level, supporting distributed deployment.
+
+% \textbf{3. Shared Memory IPC.}
+% In this configuration, the $SA_{\text{MATLAB}}$ and MATLAB exchange data via shared memory segments. Simulation requests and responses are written and read directly from volatile memory, resulting in extremely low latency and high throughput. However, this approach requires explicit synchronization using mutexes or locks to avoid race conditions and deadlocks. Additionally, shared memory access necessitates strict control over memory layout, reducing flexibility.
+
+% \textbf{4. MATLAB Engine API.}
+% This method utilizes the MATLAB Engine API to directly invoke MATLAB functions from Python. While it simplifies invocation of MATLAB computations, it imposes structural constraints on model definitions and requires the simulator to conform to specific function-call semantics, thus reducing modularity and reusability.
+
+% A comprehensive evaluation of these four approaches has been conducted to determine the most suitable integration strategy for \emph{batch} and \emph{streaming} simulation modes. Although shared memory IPC achieves the lowest latency, it required rigid memory management and offers limited flexibility.
+% Ultimately, the Matlab Engine API approach has been selected for batch simulation. The TCP/IP approach has been selected as the preferred integration method for streaming mode simulation due to its balance of modularity, ease of integration, and suitability for distributed architectures.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%$SA_{\text{MATLAB}}$ supports both \emph{batch} and \emph{streaming} simulation modes. In batch mode, the agent invokes complete MATLAB routines using parameters provided at initialization, returning only the final output upon completion of the simulation.
+%In contrast, streaming mode facilitates continuous, unidirectional data exchange during simulation execution via TCP/IP communication channels. During streaming simulations, $SA_{\text{MATLAB}}$ communicates with MATLAB over the TCP protocol, transmitting the simulation parameters and a reference to the model file. The agent does not participate in the execution of the MATLAB model itself; it solely manages data exchange and response handling. This separation of concerns preserves architectural modularity and ensures a clear boundary between model execution and communication infrastructure.
+
+
+\begin{comment}
+
+The MATLAB Agent represents a specialized implementation of decoupled simulation agent designed to seamlessly integrate MATLAB functionalities into the \textit{sim-bridge} system. As the first simulation agent developed in the context of this research, it serves a dual role: both as an operational component and as an architectural reference for designing future agents within the component-based \textit{sim-bridge} framework.
+
+Implemented as a Python package installable via pip, the agent can operate independently or in direct coordination with the \textit{sim-bridge}, acting as an interpreter between standardized simulation requests and the MATLAB execution environment. Communication is handled through RabbitMQ, selected for its compatibility with the \textit{sim-bridge} infrastructure and its ability to manage asynchronous communication in distributed systems.
+
+The architecture of the MATLAB Agent comprises four core modules:
+\begin{itemize}
+    \item \textbf{Configuration Manager:} centralizes parameter management through external YAML files, facilitating configuration and reusability.
+    \item \textbf{RabbitMQ Manager:} handles asynchronous communication with the external environment, particularly the \textit{sim-bridge}.
+    \item \textbf{Simulation Handlers:} implement two operational modes—batch and streaming—to address different computational needs.
+    \item \textbf{Logging \& Error Handling:} ensures operational reliability through detailed logging and structured error management.
+\end{itemize}
+This modular design supports both one-off parametric studies and continuous real-time simulations, as typically required in digital twin applications.
+
+\paragraph{Operational Modes}
+The agent supports two primary execution modes:
+\begin{itemize}
+    \item \textbf{Batch Mode:} Executes complete MATLAB routines using parameters provided at initialization. Ideal for validation scenarios, where simulation outputs support system-level decisions. Data is provided once at simulation start, and the output is returned in structured form at the end. Functions must comply with a predefined signature, such as:
+\begin{verbatim}
+function [output1, output2] = simulation(input1, input2, input3)
+% Simulation logic
+end
+\end{verbatim}
+
+    \item \textbf{Streaming Mode:} Enables continuous data exchange during execution, supporting real-time feedback cycles. It is well-suited for MockPT environments, where a simulated PT must be emulated. Communication occurs via TCP/IP channels managed by an interface called \texttt{SimulationWrapper}, which enables persistent data exchange at each simulation step.
+\begin{verbatim}
+function Simulation()
+wrapper = SimulationWrapper(); % Initialization
+inputs = wrapper.get_inputs(); % Retrieve initial inputs
+
+while simulation_running
+    data = compute_step(inputs); % Compute simulation step
+    wrapper.send_output(data);   % Send real-time output
+end
+
+delete(wrapper); % Resource cleanup
+end
+\end{verbatim}
+Using \texttt{SimulationWrapper} is not mandatory but strongly recommended to ensure compatibility with the agent's communication interface. It manages TCP communication with the agent automatically.
+\end{itemize}    
+
+\paragraph{Communication Strategies Analysis}
+A critical performance aspect is the efficiency of communication between the agent and MATLAB. Four strategies were evaluated:
+\begin{enumerate}
+    \item \textbf{.mat file exchange:} High decoupling but significant I/O overhead, unsuitable for high-frequency applications.
+    \item \textbf{MATLAB Engine API:} Direct communication with good performance but enforces structural constraints on MATLAB functions.
+    \item \textbf{TCP/IP Communication:} Real-time interaction using JSON, maintaining process independence.
+    \item \textbf{Shared Memory IPC:} Lowest latency but requires predefined memory layouts, reducing flexibility.
+\end{enumerate}
+TCP/IP was selected as the optimal trade-off, offering modularity, ease of integration, and support for distributed scenarios. The performance overhead is minimal, and adding the \texttt{SimulationWrapper} module ensures full interoperability.
+
+\paragraph{Integration in the Digital Twin Ecosystem}
+Within the broader architecture, the MATLAB Agent acts as a specialized computational node, capable of executing complex numerical simulations while interfacing seamlessly with other system components. Simulation requests are received via the \textit{sim-bridge}, processed using MATLAB, and results are returned according to the expected data flow. This integration leverages the entire MATLAB ecosystem, including Simulink and all available Toolbox components.
+\end{comment}
+
+
+
+\subsection{AnyLogic Agent}
+
+AnyLogic\footnote{AnyLogic: \url{https://www.anylogic.com/}}, is a flexible simulation platform that combines agent-based, discrete-event, and system dynamics modeling.
+This versatility makes it ideal for creating detailed digital representations of industrial CPSs.
+%
+We hence develop the agent to support the PT simulation pattern. 
+
+The AnyLogic Agent has two components:
+1) an interface to the DT-SB which accepts simulation requests and configures the AnyLogic scenario accordingly. Differently from the other patterns, these requests come from the DT developer who wants to test the DT behaviour on a simulated PT;
+2) a general purpose \emph{entity}\footnote{We use \emph{entity} here to avoid overloading the term agent. Since AnyLogic is an agent-based simulator, all entities within the simulations are modeled as agents which can exchange messages using built-in mechanisms.} that can be embedded within the simulation to receive messages from other entities and serialize them on a network socket to output a data stream of relevant events happening within the simulation. The simulation data stream is then received from the south protocol adapters, and routed to the physical interface of the DT with the north protocol adapters (Fig. \ref{fig:simulation_bridge_components}).
+
+The AnyLogic data stream carries information about which simulation entity generated it, which can be used by the bridge to map the corresponding update on a different protocol for the DT.
+This design is needed to emulate scenarios where data about one or more PTs is sent over different communication protocols (e.g. a sensor network), making it possible to test the DT simply by changing its configuration to point to the emulated communication channels and leaving all the connection handling and message processing logic unaltered.
+The connection is bi-directional, to allow the DT to send control commands and apply them onto the simulated PT.
+
+
+% \hl{everything below is already explained above when we talk about the DT-SB and should be removed. here we describe specific details of the agents! take inspiration from the matlab agent part. }
+
+% The connection with the DT-SB is managed through a \textit{Bridge Connection} component, responsible for maintaining an active link with the DT-SB. This component intercepts simulation events, identifies the entity generating the event (e.g., the robot moving a product), and propagates the data in a structured format while preserving the unique identifier of the source within the simulation.
+% The same mechanism handles incoming messages from external systems, transforming them into simulation events and delivering them to the appropriate element.
+% This design allows the Bridge Connection to operate in parallel with the existing simulation elements and to be activated at key points where integration with the DT-SB is required, e.g., to emulate the behavior of a PT.
+
+% Each element is associated with dedicated message structures for telemetry (e.g., state, position, status) and actions (e.g., commands, control inputs). These messages are granularly mapped to the protocols supported by the DT-SB (via its north-protocol adapters), ensuring compatibility with diverse DT frameworks. This design supports high-fidelity PT emulation, live interaction, and flexible testing of configurations and scenarios through bidirectional communication.
