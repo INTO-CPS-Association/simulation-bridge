@@ -74,16 +74,20 @@ class MatlabAgent:
                 logger=logger,
             )
 
-        runtime = initialize_agent_runtime(
-            agent_name="MATLAB",
-            agent_id=self.agent_id,
-            config_path=config_path,
-            broker_type=broker_type,
-            config_manager_factory=ConfigManager,
-            performance_monitor_factory=PerformanceMonitor,
-            connect_factory=connect_factory,
-            logger=logger,
-        )
+        try:
+            runtime = initialize_agent_runtime(
+                agent_name="MATLAB",
+                agent_id=self.agent_id,
+                config_path=config_path,
+                broker_type=broker_type,
+                config_manager_factory=ConfigManager,
+                performance_monitor_factory=PerformanceMonitor,
+                connect_factory=connect_factory,
+                logger=logger,
+            )
+        except ConnectionError as error:
+            logger.error("Connection error while initializing MATLAB agent: %s", error)
+            raise
         self.config_manager: IConfigManager = runtime.config_manager
         self.config: Dict[str, Any] = runtime.config
         self.performance_monitor = runtime.performance_monitor

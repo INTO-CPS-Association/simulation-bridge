@@ -206,6 +206,28 @@ class TestMainFunction:
                 "Error running agent: %s", test_exception)
             assert result.exit_code == 0
 
+    def test_main_connection_error_during_initialization(self, cli_runner, default_config):
+        """Connection errors during agent construction should be handled cleanly."""
+        with patch('src.main.MatlabAgent') as mock_matlab_agent, \
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config, \
+                patch('pathlib.Path.exists', return_value=True):
+
+            mock_logger = MagicMock()
+            mock_setup_logger.return_value = mock_logger
+            mock_load_config.return_value = default_config
+
+            connection_error = ConnectionError("broker unavailable")
+            mock_matlab_agent.side_effect = connection_error
+
+            result = cli_runner.invoke(main, [])
+
+            mock_logger.error.assert_called_once_with(
+                "Connection error while starting agent: %s",
+                connection_error,
+            )
+            assert result.exit_code == 0
+
     def test_invalid_log_level_fallback(self, cli_runner, invalid_log_config):
         """Test fallback to INFO level when invalid log level is provided."""
         with patch('src.main.MatlabAgent') as mock_matlab_agent, \

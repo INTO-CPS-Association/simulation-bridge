@@ -168,20 +168,27 @@ def run_agent(config_file):
         log_file=logging_file)
 
     agent_id = config['agent']['agent_id']
-    agent: IMatlabAgent = MatlabAgent(
-        agent_id,
-        broker_type=broker_type,
-        config_path=config_file)
+    agent: IMatlabAgent | None = None
 
     try:
+        agent = MatlabAgent(
+            agent_id,
+            broker_type=broker_type,
+            config_path=config_file)
         logger.debug("Starting MATLAB agent with config: %s", config_file)
         agent.start()
     except KeyboardInterrupt:
         logger.info("Shutting down agent due to keyboard interrupt")
-        agent.stop()
+        if agent is not None:
+            agent.stop()
+    except ConnectionError as e:
+        logger.error("Connection error while starting agent: %s", e)
+        if agent is not None:
+            agent.stop()
     except Exception as e:
         logger.error("Error running agent: %s", e)
-        agent.stop()
+        if agent is not None:
+            agent.stop()
 
 
 if __name__ == "__main__":
