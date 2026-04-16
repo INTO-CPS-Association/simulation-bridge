@@ -244,7 +244,7 @@ class TestDefaultTimeoutBounds:
         assert DEFAULT_MAX_TIMEOUT == 1200
 
     def test_min_timeout(self):
-        assert DEFAULT_MIN_TIMEOUT == 600
+        assert DEFAULT_MIN_TIMEOUT == 30
 
 
 # ---------------------------------------------------------------------------

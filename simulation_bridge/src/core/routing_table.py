@@ -35,7 +35,7 @@ DEFAULT_TIMEOUT_SECONDS = 60
 
 # Defaults for configurable timeout bounds
 DEFAULT_MAX_TIMEOUT = 1200   # 20 minutes
-DEFAULT_MIN_TIMEOUT = 600    # 10 minutes
+DEFAULT_MIN_TIMEOUT = 30     # 30 seconds
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def generate_bridge_index(
     :class:`SeedPool`, so this function never blocks on entropy.
     """
     seed = _seed_pool.get()
-    data = f"{pa_n}{pa_s}{request_id}{seed}"
+    data = f"{pa_n}\0{pa_s}\0{request_id}\0{seed}"
     return hashlib.sha256(data.encode()).hexdigest()
 
 

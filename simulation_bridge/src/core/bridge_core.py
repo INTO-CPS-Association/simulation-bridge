@@ -290,13 +290,7 @@ class BridgeCore:
             return
 
         pa_n = entry.pa_n
-
-        # Performance bookkeeping
-        performance_monitor = PerformanceMonitor()
-        simulation_type = message.get('simulation', {}).get('type', 'unknown')
         destination = entry.dt
-        performance_monitor.record_result_sent(
-            request_id, pa_n, destination, simulation_type)
 
         # Deliver via the correct north-bound PA using the routing-table
         # destination instead of trusting the inbound message payload.
@@ -308,10 +302,18 @@ class BridgeCore:
 
         # Finalise if the simulation has reached a terminal state
         status = message.get('status', '')
+        simulation_type = message.get(
+            'simulation', {}).get('type', 'unknown')
         if status in _TERMINAL_STATUSES:
             self.routing_table.remove(request_id)
-            performance_monitor.finalize_operation(
-                request_id, pa_n, destination, simulation_type)
+            # Record finalization only for the RabbitMQ direct-publish
+            # path; MQTT/REST adapters handle their own perf recording.
+            if pa_n == 'rabbitmq':
+                performance_monitor = PerformanceMonitor()
+                performance_monitor.record_result_sent(
+                    request_id, pa_n, destination, simulation_type)
+                performance_monitor.finalize_operation(
+                    request_id, pa_n, destination, simulation_type)
 
     # keep old handler as alias for backward compatibility
     def handle_result_rabbitmq_message(self, sender, **kwargs):

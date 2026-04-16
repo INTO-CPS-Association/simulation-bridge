@@ -7,7 +7,7 @@ using Pydantic models for validation and nested structure.
 from enum import Enum
 from typing import Optional, Dict, Any, List
 from pathlib import Path
-from pydantic import BaseModel, ValidationError, ConfigDict
+from pydantic import BaseModel, Field, ValidationError, ConfigDict
 
 from .logger import get_logger
 from .config_loader import load_config
@@ -113,14 +113,14 @@ class PerformanceConfig(BaseModel):
 class RoutingConfig(BaseModel):
     """Configuration for routing table timeout bounds."""
     max_timeout_seconds: int = 1200  # 20 minutes
-    min_timeout_seconds: int = 600   # 10 minutes
+    min_timeout_seconds: int = 30    # 30 seconds
 
 
 class SimulationBridgeConfig(BaseModel):
     """Configuration for simulation bridge."""
     bridge_id: str
     in_memory_mode: bool = False
-    routing: RoutingConfig = RoutingConfig()
+    routing: RoutingConfig = Field(default_factory=RoutingConfig)
 
 
 class Config(BaseModel):

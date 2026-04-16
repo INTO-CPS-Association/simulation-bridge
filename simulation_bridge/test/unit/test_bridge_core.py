@@ -33,7 +33,7 @@ def config_manager_mock(dummy_credentials):
             'bridge_id': 'test_bridge',
             'routing': {
                 'max_timeout_seconds': 1200,
-                'min_timeout_seconds': 600,
+                'min_timeout_seconds': 30,
             },
         },
     }
@@ -496,7 +496,7 @@ class TestTimeoutClamping:
             None, message=message, producer='p', consumer='c',
             protocol='rest')
         entry = bridge_core_instance.routing_table.lookup('tc2')
-        assert entry.timeout_seconds == 600
+        assert entry.timeout_seconds == 30
 
     def test_timeout_in_range_kept(self, bridge_core_instance,
                                    patch_basic_publish):

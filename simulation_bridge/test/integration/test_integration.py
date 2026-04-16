@@ -29,7 +29,7 @@ def mock_config_manager(dummy_credentials):
             'bridge_id': 'test-bridge',
             'routing': {
                 'max_timeout_seconds': 1200,
-                'min_timeout_seconds': 600,
+                'min_timeout_seconds': 30,
             },
         },
         'rabbitmq': {

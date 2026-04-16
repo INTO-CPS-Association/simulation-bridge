@@ -214,7 +214,7 @@ class TestRoutingConfigDefaults:
         """RoutingConfig has correct defaults when not provided."""
         rc = config_manager.RoutingConfig()
         assert rc.max_timeout_seconds == 1200
-        assert rc.min_timeout_seconds == 600
+        assert rc.min_timeout_seconds == 30
 
     def test_routing_config_custom_values(self):
         """RoutingConfig accepts custom values."""
@@ -229,7 +229,7 @@ class TestRoutingConfigDefaults:
         sbc = config_manager.SimulationBridgeConfig(
             bridge_id='test')
         assert sbc.routing.max_timeout_seconds == 1200
-        assert sbc.routing.min_timeout_seconds == 600
+        assert sbc.routing.min_timeout_seconds == 30
 
     def test_config_from_dict_with_routing(
             self, sample_valid_config_dict, load_config_mock):
