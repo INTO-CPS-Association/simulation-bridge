@@ -1,14 +1,19 @@
 function [confMatrixOverall, confMatrixAnomaly1, confMatrixAnomaly2] = simulation(input1)
-    % Add necessary paths and open Simulink model
-    addpath(pwd);
-    addpath('matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/Data_Generator/', 'matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/Data_Generator/VaryingConvectionLib/');
+    %#ok<INUSD>
+    % Resolve paths from this script location so execution does not depend on pwd.
+    scriptDir = fileparts(mfilename('fullpath'));
+    dataGeneratorDir = fullfile(scriptDir, 'Data_Generator');
+    varyingConvectionDir = fullfile(dataGeneratorDir, 'VaryingConvectionLib');
+    dataDir = fullfile(scriptDir, 'Data');
+
+    addpath(scriptDir, dataGeneratorDir, varyingConvectionDir);
     mdl = "CoolingFanWithFaults";
     open_system(mdl);
 
     % Logic to check if data generation is needed
     generateFlag = false;
-    if isfolder('./matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/Data')
-        folderContent = dir('Data/CoolingFan*.mat');
+    if isfolder(dataDir)
+        folderContent = dir(fullfile(dataDir, 'CoolingFan*.mat'));
         if isempty(folderContent)
             generateFlag = true;
         else
@@ -25,7 +30,7 @@ function [confMatrixOverall, confMatrixAnomaly1, confMatrixAnomaly2] = simulatio
     end
 
     % Load ensemble datastore and select variables
-    ensemble = simulationEnsembleDatastore('./matlab_agent/docs/examples/industrial-cooling-fan-anomaly-detection/Data');
+    ensemble = simulationEnsembleDatastore(dataDir);
     ensemble.SelectedVariables = ["Signals", "Anomalies"];
 
     % Split ensemble into train/test/validation
