@@ -6,6 +6,7 @@ from .interfaces import IMessageBroker, IMessageHandler
 
 BROKER_NOT_INITIALIZED_ERROR = "Broker not initialized"
 BROKER_OR_HANDLER_NOT_INITIALIZED_ERROR = "Broker or message handler not initialized"
+BROKER_CONNECTION_FAILED_ERROR = "Failed to connect to broker"
 
 
 class Connect:
@@ -44,7 +45,9 @@ class Connect:
     def connect(self) -> None:
         """Connect to underlying message broker."""
         if self.broker:
-            self.broker.connect()
+            connected = self.broker.connect()
+            if connected is False:
+                raise ConnectionError(BROKER_CONNECTION_FAILED_ERROR)
             return
         raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
@@ -68,19 +71,23 @@ class Connect:
                 self.message_handler.handle_message)
 
     def start_consuming(self) -> None:
-        """Start consuming messages, with reconnect on closed channel."""
+        """Start consuming messages, attempting broker connection first."""
         if not self.broker:
             raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
 
-        if not self.broker.channel or not self.broker.channel.is_open:
-            self.logger.debug(
-                "Channel is not initialized or is closed. Attempting to reconnect...")
-            if not self.broker.connect():
-                self.logger.error(
-                    "Failed to initialize or reopen channel. Consumption aborted.")
-                return
+        self.logger.debug(
+            "Ensuring broker connection is initialized before starting consumption."
+        )
+        try:
+            self.connect()
+        except ConnectionError as error:
+            self.logger.error(
+                "Failed to initialize or reopen broker connection. Consumption aborted: %s",
+                error,
+            )
+            return
 
-        self.logger.debug("Channel is active. Starting consumption.")
+        self.logger.debug("Broker connection is active. Starting consumption.")
         self.broker.start_consuming()
 
     def send_message(self, destination: str, message: Any,

@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import pytest
 
 from base_agent.comm.connect import (
+    BROKER_CONNECTION_FAILED_ERROR,
     BROKER_NOT_INITIALIZED_ERROR,
     BROKER_OR_HANDLER_NOT_INITIALIZED_ERROR,
     Connect,
@@ -153,17 +154,18 @@ def test_start_consuming_success(
 def test_start_consuming_reconnect_failure(
     connect_instance: Connect, mock_broker: Mock, mock_logger: Mock
 ) -> None:
-    """start_consuming should stop if channel reopen fails."""
-    mock_broker.channel = None
+    """start_consuming should stop if broker reconnect fails."""
     mock_broker.connect.return_value = False
 
     connect_instance.start_consuming()
 
     mock_broker.connect.assert_called_once()
     mock_broker.start_consuming.assert_not_called()
-    mock_logger.error.assert_called_once_with(
-        "Failed to initialize or reopen channel. Consumption aborted."
+    mock_logger.error.assert_called_once()
+    assert mock_logger.error.call_args.args[0] == (
+        "Failed to initialize or reopen broker connection. Consumption aborted: %s"
     )
+    assert str(mock_logger.error.call_args.args[1]) == BROKER_CONNECTION_FAILED_ERROR
 
 
 def test_start_consuming_without_broker_raises() -> None:

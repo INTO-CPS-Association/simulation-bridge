@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from base_agent.comm.connect import Connect
+from base_agent.comm.connect import BROKER_CONNECTION_FAILED_ERROR, Connect
 
 
 @pytest.fixture
@@ -57,3 +57,38 @@ def test_send_message_uses_defaults(mock_config):
         {"k": "v"},
         None,
     )
+
+
+def test_connect_raises_on_connection_failure(mock_config):
+    broker = Mock()
+    broker.connect.return_value = False
+    connect = Connect(
+        agent_id="agent",
+        config=mock_config,
+        broker_type="rabbitmq",
+        broker_factory=Mock(return_value=broker),
+        message_handler_factory=Mock(return_value=Mock()),
+        logger=Mock(),
+    )
+
+    with pytest.raises(ConnectionError, match=BROKER_CONNECTION_FAILED_ERROR):
+        connect.connect()
+
+
+def test_start_consuming_stops_on_connection_failure(mock_config):
+    broker = Mock()
+    broker.connect.return_value = False
+    logger = Mock()
+    connect = Connect(
+        agent_id="agent",
+        config=mock_config,
+        broker_type="rabbitmq",
+        broker_factory=Mock(return_value=broker),
+        message_handler_factory=Mock(return_value=Mock()),
+        logger=logger,
+    )
+
+    connect.start_consuming()
+
+    broker.connect.assert_called_once()
+    broker.start_consuming.assert_not_called()
