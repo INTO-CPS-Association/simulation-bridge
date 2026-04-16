@@ -1,6 +1,6 @@
-"""MATLAB communication exports."""
+"""Backward-compatible MATLAB connect imports backed by base_agent."""
 
-from .connect import (
+from base_agent.comm.connect import (
     BROKER_CONNECTION_FAILED_ERROR,
     BROKER_NOT_INITIALIZED_ERROR,
     BROKER_OR_HANDLER_NOT_INITIALIZED_ERROR,
