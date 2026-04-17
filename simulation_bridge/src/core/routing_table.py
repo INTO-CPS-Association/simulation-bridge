@@ -1,7 +1,7 @@
 """
 Routing table for the Simulation Bridge.
 
-Implements the DT-SB routing table described in the research paper (Table I).
+Implements the routing table for handling requests and responses.
 Each entry maps an in-flight simulation request to its origin, enabling the
 bridge to route responses back to the correct Digital Twin via the correct
 north-bound protocol adapter.
