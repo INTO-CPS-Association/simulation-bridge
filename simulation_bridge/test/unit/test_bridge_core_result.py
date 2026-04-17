@@ -173,17 +173,17 @@ class TestBridgeIndexValidation:
         patch_basic_publish.assert_not_called()
         mock_logger.warning.assert_called()
 
-    def test_missing_index_discards(
+    def test_missing_index_allowed_backward_compat(
             self, bridge_core_instance,
-            patch_basic_publish, mock_logger):
-        """Result missing bridge_index is discarded."""
+            patch_basic_publish):
+        """Result missing bridge_index is allowed for backward compat."""
         bridge_core_instance.routing_table.add(RoutingEntry(
             pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
             sim_type='matlab', request_id='v2',
             bridge_index='some_idx'))
         bridge_core_instance.handle_result_message(
             None, message=result_message(request_id='v2'))
-        patch_basic_publish.assert_not_called()
+        patch_basic_publish.assert_called_once()
 
     def test_matching_index_routes(
             self, bridge_core_instance, patch_basic_publish):

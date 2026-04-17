@@ -153,13 +153,14 @@ class BridgeCore:
                 "No routing entry for request_id=%s "
                 "— discarding result", request_id)
             return None
-        result_idx = message.get('bridge_index')
-        if entry.bridge_index and result_idx != entry.bridge_index:
-            logger.warning(
-                "bridge_index mismatch for request_id=%s "
-                "— discarding result (expected=%s, got=%s)",
-                request_id, entry.bridge_index, result_idx)
-            return None
+        if 'bridge_index' in message and entry.bridge_index:
+            if message['bridge_index'] != entry.bridge_index:
+                logger.warning(
+                    "bridge_index mismatch for request_id=%s "
+                    "— discarding result (expected=%s, got=%s)",
+                    request_id, entry.bridge_index,
+                    message['bridge_index'])
+                return None
         return entry
 
     def _finalize_if_terminal(self, message, request_id, entry):
