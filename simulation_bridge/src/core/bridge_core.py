@@ -16,9 +16,8 @@ _RESULT_METHOD_FOR_PA = {
     'rest': 'publish_result_message_rest',
     'inmemory': '_handle_result',
 }
-_TERMINAL_STATUSES = frozenset({
-    'completed', 'failed', 'error', 'aborted', 'cancelled',
-})
+_TERMINAL_STATUSES = frozenset(
+    {'completed', 'failed', 'error', 'aborted', 'cancelled'})
 
 logger = get_logger()
 
@@ -60,7 +59,7 @@ class BridgeCore:
         request_id = simulation.request_id or 'unknown'
         if self._is_duplicate(request_id, simulation):
             return
-        bridge_idx, timeout = self._register_request(
+        bridge_idx = self._register_request(
             simulation, request_id, protocol)
         out_message = self._build_outgoing(simulation, bridge_idx)
         consumer = kwargs.get('consumer', 'unknown')
@@ -104,8 +103,12 @@ class BridgeCore:
         return False
 
     def _register_request(self, simulation, request_id, protocol):
-        """Add routing entry; return (bridge_index, timeout)."""
-        timeout = simulation.timeout or DEFAULT_TIMEOUT_SECONDS
+        """Add routing entry; return bridge_index."""
+        timeout = (
+            simulation.timeout
+            if simulation.timeout is not None
+            else DEFAULT_TIMEOUT_SECONDS
+        )
         timeout = max(
             self._min_timeout, min(timeout, self._max_timeout))
         bridge_idx = generate_bridge_index(
@@ -120,7 +123,7 @@ class BridgeCore:
                 bridge_index=bridge_idx),
             client_id=simulation.client_id,
             simulator=simulation.simulator)
-        return bridge_idx, timeout
+        return bridge_idx
 
     @staticmethod
     def _build_outgoing(simulation, bridge_idx):
@@ -157,9 +160,8 @@ class BridgeCore:
             if message['bridge_index'] != entry.bridge_index:
                 logger.warning(
                     "bridge_index mismatch for request_id=%s "
-                    "— discarding result (expected=%s, got=%s)",
-                    request_id, entry.bridge_index,
-                    message['bridge_index'])
+                    "— discarding result",
+                    request_id)
                 return None
         return entry
 
@@ -190,10 +192,8 @@ class BridgeCore:
         if entry is not None:
             self.handle_result_message(sender, **kwargs)
             return
-        logger.error(
-            "Received result with unknown protocol and "
-            "no routing entry: %s",
-            message.get('error', request_id))
+        logger.error("Unknown-protocol result with no routing entry: %s",
+                     message.get('error', request_id))
 
     def _route_result_to_adapter(self, pa_n, sender, **kwargs):
         """Deliver result via RabbitMQ or adapter method."""
@@ -223,6 +223,10 @@ class BridgeCore:
             return
         method(sender, **kwargs)
 
+    def _sync_refs(self):
+        self.connection = self._publisher.connection
+        self.channel = self._publisher.channel
+
     def _publish_message(  # pylint: disable=too-many-arguments,too-many-positional-arguments
             self, producer, consumer, message,
             exchange='ex.bridge.output', protocol='unknown',
@@ -232,18 +236,15 @@ class BridgeCore:
             producer, consumer, message,
             exchange=exchange, protocol=protocol,
             operation_id=operation_id)
-        self.connection = self._publisher.connection
-        self.channel = self._publisher.channel
+        self._sync_refs()
 
     def _initialize_rabbitmq_connection(self):
         """Backward-compat wrapper for publisher reconnect."""
         self._publisher._initialize_connection()  # pylint: disable=protected-access
-        self.connection = self._publisher.connection
-        self.channel = self._publisher.channel
+        self._sync_refs()
 
     def _ensure_connection(self):
         """Backward-compat wrapper for publisher ensure_connection."""
         result = self._publisher.ensure_connection()
-        self.connection = self._publisher.connection
-        self.channel = self._publisher.channel
+        self._sync_refs()
         return result

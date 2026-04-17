@@ -66,9 +66,14 @@ class SeedPool:
                 self._refill_event.set()
 
     def stop(self) -> None:
-        """Signal the background thread to exit (for clean shutdown)."""
+        """Signal the background thread to exit and wait for shutdown."""
         self._stop = True
         self._refill_event.set()
+        if (
+            self._thread.is_alive()
+            and threading.current_thread() is not self._thread
+        ):
+            self._thread.join(timeout=5)
 
     # ------------------------------------------------------------------
     # internals
