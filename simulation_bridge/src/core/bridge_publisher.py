@@ -94,8 +94,9 @@ class BridgePublisher:
                 "RabbitMQ connection is not available")
             return
         routing_key = f"{producer}.{consumer}"
-        message['simulation']['bridge_meta'] = {
-            'protocol': protocol}
+        sim = message.get('simulation')
+        if isinstance(sim, dict):
+            sim['bridge_meta'] = {'protocol': protocol}
         body = json.dumps(message, default=datetime_serializer)
         try:
             self._do_publish(exchange, routing_key, body)

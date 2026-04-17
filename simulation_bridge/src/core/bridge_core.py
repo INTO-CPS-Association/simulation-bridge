@@ -57,6 +57,7 @@ class BridgeCore:
         if simulation is None:
             return
         request_id = simulation.request_id or 'unknown'
+        self.routing_table.purge_expired()
         if self._is_duplicate(request_id, simulation):
             return
         bridge_idx = self._register_request(
@@ -104,11 +105,8 @@ class BridgeCore:
 
     def _register_request(self, simulation, request_id, protocol):
         """Add routing entry; return bridge_index."""
-        timeout = (
-            simulation.timeout
-            if simulation.timeout is not None
+        timeout = simulation.timeout if simulation.timeout is not None \
             else DEFAULT_TIMEOUT_SECONDS
-        )
         timeout = max(
             self._min_timeout, min(timeout, self._max_timeout))
         bridge_idx = generate_bridge_index(

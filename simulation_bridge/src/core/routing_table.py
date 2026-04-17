@@ -1,10 +1,6 @@
-"""Routing table for the Simulation Bridge.
+"""Routing table for the Simulation Bridge."""
 
-Each entry maps an in-flight simulation request to its origin so that
-results can be routed back to the correct Digital Twin via the correct
-north-bound Protocol Adapter (see research paper, Table I).
-"""
-
+import atexit
 import collections
 import hashlib
 import os
@@ -39,31 +35,26 @@ class SeedPool:
     def __init__(self, pool_size: int = 256) -> None:
         self._pool_size = pool_size
         self._seeds: collections.deque = collections.deque()
+        self._lock = threading.Lock()
         self._refill_event = threading.Event()
         self._stop = False
-        # Pre-fill synchronously so the pool is ready at startup
         self._generate_batch(pool_size)
-        # Background daemon keeps the pool topped up
         self._thread = threading.Thread(
             target=self._refill_loop, daemon=True,
         )
         self._thread.start()
 
-    # ------------------------------------------------------------------
-    # public API
-    # ------------------------------------------------------------------
-
     def get(self) -> str:
-        """Return a random hex seed, generating one on the spot if empty."""
-        try:
-            return self._seeds.popleft()
-        except IndexError:
-            # Pool exhausted — generate inline (rare)
-            return os.urandom(32).hex()
-        finally:
-            # Signal refill thread if pool is running low
-            if len(self._seeds) < self._pool_size // 2:
-                self._refill_event.set()
+        """Return a random hex seed, generating one inline if empty."""
+        with self._lock:
+            try:
+                seed = self._seeds.popleft()
+            except IndexError:
+                seed = os.urandom(32).hex()
+            low = len(self._seeds) < self._pool_size // 2
+        if low:
+            self._refill_event.set()
+        return seed
 
     def stop(self) -> None:
         """Signal the background thread to exit and wait for shutdown."""
@@ -75,10 +66,6 @@ class SeedPool:
         ):
             self._thread.join(timeout=5)
 
-    # ------------------------------------------------------------------
-    # internals
-    # ------------------------------------------------------------------
-
     def _generate_batch(self, count: int) -> None:
         for _ in range(count):
             self._seeds.append(os.urandom(32).hex())
@@ -89,13 +76,28 @@ class SeedPool:
             self._refill_event.clear()
             if self._stop:
                 break
-            deficit = self._pool_size - len(self._seeds)
+            with self._lock:
+                deficit = self._pool_size - len(self._seeds)
             if deficit > 0:
-                self._generate_batch(deficit)
+                batch = [os.urandom(32).hex() for _ in range(deficit)]
+                with self._lock:
+                    self._seeds.extend(batch)
 
 
-# Module-level singleton so all bridge components share a single pool
-_seed_pool = SeedPool()
+# Lazy singleton — instantiated on first use, cleaned up at exit
+_seed_pool: Optional[SeedPool] = None
+_pool_lock = threading.Lock()
+
+
+def _get_seed_pool() -> SeedPool:
+    """Return the module-level SeedPool, creating it on first call."""
+    global _seed_pool  # pylint: disable=global-statement
+    if _seed_pool is None:
+        with _pool_lock:
+            if _seed_pool is None:
+                _seed_pool = SeedPool()
+                atexit.register(_seed_pool.stop)
+    return _seed_pool
 
 
 def generate_bridge_index(
@@ -108,14 +110,10 @@ def generate_bridge_index(
     The seed is a one-time random value drawn from the pre-filled
     :class:`SeedPool`, so this function never blocks on entropy.
     """
-    seed = _seed_pool.get()
+    seed = _get_seed_pool().get()
     data = f"{pa_n}\0{pa_s}\0{request_id}\0{seed}"
     return hashlib.sha256(data.encode()).hexdigest()
 
-
-# ---------------------------------------------------------------------------
-# Routing entry & table
-# ---------------------------------------------------------------------------
 
 @dataclass
 class RoutingEntry:
@@ -143,20 +141,12 @@ class RoutingTable:
         self._seen_requests: Set[Tuple[str, str, str]] = set()
         self._lock = threading.Lock()
 
-    # ------------------------------------------------------------------
-    # Deduplication helpers
-    # ------------------------------------------------------------------
-
     def has_request(
         self, request_id: str, client_id: str, simulator: str,
     ) -> bool:
         """Check whether a request with this identity triple was seen."""
         with self._lock:
             return (request_id, client_id, simulator) in self._seen_requests
-
-    # ------------------------------------------------------------------
-    # Core operations
-    # ------------------------------------------------------------------
 
     def add(self, entry: RoutingEntry,
             client_id: str = '', simulator: str = '') -> None:
