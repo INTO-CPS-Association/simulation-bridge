@@ -105,3 +105,47 @@ To add a new protocol:
 4. Add tests for routing, startup/shutdown, and signal behavior.
 
 This preserves the existing contract: adapters translate protocol semantics, while `BridgeCore` keeps routing/business logic centralized.
+
+## Routing Table
+
+The routing table (implemented in `src/core/routing_table.py`) tracks in-flight simulation requests so that results can be correlated and routed back to the correct Digital Twin via the correct north-bound Protocol Adapter. Its design follows Table I of the research paper.
+
+### Entry Structure
+
+Each `RoutingEntry` stores:
+
+| Field | Description |
+|-------|-------------|
+| `pa_n` | North-bound Protocol Adapter (e.g. `rest`, `mqtt`, `rabbitmq`) |
+| `pa_s` | South-bound Protocol Adapter (always `rabbitmq`) |
+| `dt` | Digital Twin identifier (`client_id`) |
+| `sim_type` | Simulation type (e.g. `matlab`, `simul8`) |
+| `request_id` | Unique request identifier (primary lookup key) |
+| `timeout_seconds` | Expiration threshold; clamped to `[min_timeout, max_timeout]` from config |
+| `bridge_index` | SHA-256-based anti-spoofing token |
+| `created_at` | Timestamp for expiry calculation |
+
+### Lifecycle
+
+1. **Registration** — `handle_input_message` validates, deduplicates, generates a `bridge_index`, and adds an entry.
+2. **Lookup** — `handle_result_message` looks up the entry by `request_id`, validates `bridge_index`, and routes the result to the PA recorded in `pa_n`.
+3. **Removal** — Entry is removed when the result has a terminal status (`completed`, `failed`, `error`, `aborted`, `cancelled`) or when it expires.
+4. **Purge** — Expired entries are opportunistically purged on every result lookup.
+
+### Anti-Spoofing (bridge_index)
+
+`bridge_index = sha256(pa_n \0 pa_s \0 request_id \0 seed)` where the seed is a one-time random value from a pre-filled `SeedPool`. The bridge_index is injected into the outgoing request and must match in the returning result; mismatches cause the result to be discarded.
+
+### Request Deduplication
+
+Incoming requests are identified by the tuple `(request_id, client_id, simulator)`. If the same tuple is seen twice, the duplicate is discarded. The dedup key is cleared when the routing entry is removed or expires.
+
+### Timeout Bounds
+
+User-provided timeouts are clamped to `[min_timeout_seconds, max_timeout_seconds]` from the `routing` config section. Defaults: min=30s, max=1200s (20 min).
+
+### Result Discard Behavior
+
+- If no routing entry exists for a `request_id`, the result is discarded with a warning log.
+- If the `bridge_index` in the result does not match the stored value, the result is discarded.
+- Results arriving via `handle_result_unknown_message` are attempted via the routing table; if no entry exists, they are logged as errors and discarded.

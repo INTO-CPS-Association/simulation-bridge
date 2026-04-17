@@ -1,22 +1,8 @@
-"""
-Routing table for the Simulation Bridge.
+"""Routing table for the Simulation Bridge.
 
-Implements the routing table for handling requests and responses.
-Each entry maps an in-flight simulation request to its origin, enabling the
-bridge to route responses back to the correct Digital Twin via the correct
-north-bound protocol adapter.
-
-Entry fields:
-    PA_N        – north-bound Protocol Adapter (client-facing, e.g. "rest")
-    PA_S        – south-bound Protocol Adapter (simulator-facing, e.g. "rabbitmq")
-    DT          – Digital Twin identifier (client_id)
-    Sim. Type   – simulation type (e.g. "matlab", "simul8")
-    Request-id  – unique request identifier
-    Timeout     – expiration threshold in seconds
-    bridge_index – SHA-256-based anti-spoofing token
-
-Lookup key for result routing: (request_id,)
-Validation tuple from the paper: ⟨PA_S, SimType, RequestID⟩
+Each entry maps an in-flight simulation request to its origin so that
+results can be routed back to the correct Digital Twin via the correct
+north-bound Protocol Adapter (see research paper, Table I).
 """
 
 import collections
