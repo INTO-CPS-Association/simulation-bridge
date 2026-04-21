@@ -4,10 +4,17 @@ Main entry point for the MATLAB Agent application.
 from pathlib import Path
 import logging
 import click
-from .utils.logger import setup_logger
+from base_agent.comm.main_helpers import (
+    copy_packaged_resource,
+    generate_project_files,
+    run_main_with_default_config,
+)
+from base_agent.utils.logger import setup_logger
+from base_agent.utils.config_loader import load_config
 from .interfaces.agent import IMatlabAgent
-from .core.agent import MatlabAgent
-from .utils.config_loader import load_config
+from .core.agent import (
+    MatlabAgent,
+)
 
 # pylint: disable=import-outside-toplevel,too-many-branches
 
@@ -30,32 +37,15 @@ def main(config_file=None, generate_config=False,
     """
     An agent service to manage Matlab simulations.
     """
-    if generate_config:
-        generate_default_config()
-        return
-    if generate_project:
-        generate_default_project()
-        return
-    if config_file:
-        run_agent(config_file)
-    else:
-        config_path = Path('config.yaml')
-        if not config_path.exists():
-            print("""
-Error: Configuration file 'config.yaml' not found.
-
-To generate a default configuration file, run:
-matlab-agent --generate-config
-
-You may customize the generated file as needed and re-run the program.
-
-Alternatively, if you already have a custom configuration file, use the
---config-file option to specify its path:
-matlab-agent --config-file /path/to/your/config.yaml
-        """)
-            return
-        else:
-            run_agent(str(config_path))
+    run_main_with_default_config(
+        config_file=config_file,
+        generate_config=generate_config,
+        generate_project=generate_project,
+        generate_config_func=generate_default_config,
+        generate_project_func=generate_default_project,
+        run_agent_func=run_agent,
+        command_name='matlab-agent',
+    )
 
 
 def generate_default_config():
@@ -65,18 +55,11 @@ def generate_default_config():
         print(f"File already exists at path: {config_path}")
         return
     try:
-        try:
-            from importlib.resources import files
-            template_path = files('matlab_agent.config').joinpath(
-                'config.yaml.template')
-            with open(template_path, 'rb') as src, open(config_path, 'wb') as dst:
-                dst.write(src.read())
-        except (ImportError, AttributeError):
-            import pkg_resources
-            template_content = pkg_resources.resource_string('matlab_agent.config',
-                                                             'config.yaml.template')
-            with open(config_path, 'wb') as dst:
-                dst.write(template_content)
+        copy_packaged_resource(
+            package_name='matlab_agent.config',
+            resource_name='config.yaml.template',
+            output_path=config_path,
+        )
         print(f"Configuration template copied to: {config_path}")
     except FileNotFoundError:
         print("Error: Template configuration file not found.")
@@ -141,33 +124,7 @@ def generate_default_project():
     try:
         # Ensure client directory exists
         Path("client").mkdir(parents=True, exist_ok=True)
-
-        try:
-            from importlib.resources import files
-            for output_name, (package,
-                              resource_name) in files_to_generate.items():
-                output_path = Path(output_name)
-                if output_path.exists():
-                    existing_files.append(output_name)
-                    continue
-                resource_path = files(package).joinpath(resource_name)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(resource_path, 'rb') as src, open(output_path, 'wb') as dst:
-                    dst.write(src.read())
-                created_files.append(output_name)
-        except (ImportError, AttributeError):
-            import pkg_resources
-            for output_name, (package,
-                              resource_name) in files_to_generate.items():
-                output_path = Path(output_name)
-                if output_path.exists():
-                    existing_files.append(output_name)
-                    continue
-                template_content = pkg_resources.resource_string(
-                    package, resource_name)
-                with open(output_path, 'wb') as dst:
-                    dst.write(template_content)
-                created_files.append(output_name)
+        created_files, existing_files = generate_project_files(files_to_generate)
 
         # Print result summary
         print("\nProject generation summary:\n")
@@ -201,29 +158,37 @@ def generate_default_project():
 def run_agent(config_file):
     """Initializes and starts a single MATLAB agent instance."""
     broker_type = "rabbitmq"
-    config = load_config(config_file)
+    config = load_config(package_name="matlab_agent", config_path=config_file)
     logging_level = config['logging']['level']
     logging_file = config['logging']['file']
 
     logger: logging.Logger = setup_logger(
+        name="MATLAB-AGENT",
         level=getattr(logging, logging_level.upper(), logging.INFO),
         log_file=logging_file)
 
     agent_id = config['agent']['agent_id']
-    agent: IMatlabAgent = MatlabAgent(
-        agent_id,
-        broker_type=broker_type,
-        config_path=config_file)
+    agent: IMatlabAgent | None = None
 
     try:
+        agent = MatlabAgent(
+            agent_id,
+            broker_type=broker_type,
+            config_path=config_file)
         logger.debug("Starting MATLAB agent with config: %s", config_file)
         agent.start()
     except KeyboardInterrupt:
         logger.info("Shutting down agent due to keyboard interrupt")
-        agent.stop()
+        if agent is not None:
+            agent.stop()
+    except ConnectionError as e:
+        logger.error("Connection error while starting agent: %s", e)
+        if agent is not None:
+            agent.stop()
     except Exception as e:
         logger.error("Error running agent: %s", e)
-        agent.stop()
+        if agent is not None:
+            agent.stop()
 
 
 if __name__ == "__main__":

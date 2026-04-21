@@ -19,7 +19,7 @@ from unittest.mock import patch
 import colorlog
 
 # Assuming the logger module is in the same directory
-from src.utils.logger import (
+from base_agent.utils.logger import (
     DEFAULT_LOG_FORMAT,
     DEFAULT_LOG_LEVEL,
     MAX_LOG_SIZE,
@@ -281,7 +281,7 @@ class TestGetLogger(unittest.TestCase):
     def test_get_logger_default_name(self):
         """Test get_logger with default name."""
         logger = get_logger()
-        self.assertEqual(logger.name, 'MATLAB-AGENT')
+        self.assertEqual(logger.name, 'AGENT')
         self.assertIsInstance(logger, logging.Logger)
 
     def test_get_logger_custom_name(self):
@@ -332,7 +332,8 @@ class TestLogRotation(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-    @patch('src.utils.logger.MAX_LOG_SIZE', 100)  # Small size for testing
+    # Small size for testing
+    @patch('base_agent.utils.logger.MAX_LOG_SIZE', 100)
     def test_log_rotation_trigger(self):
         """Test that log rotation is triggered when size limit is reached."""
         logger = setup_logger(

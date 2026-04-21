@@ -97,11 +97,10 @@ class RabbitMQManager(IRabbitMQManager):
                         logger.debug(
                             "Successfully connected to RabbitMQ and channel is open.")
                         return True
-                    else:
-                        logger.error("Channel creation failed. Retrying...")
-                else:
-                    logger.error(
-                        "Connection opened but channel could not be created. Retrying...")
+                    logger.error("Channel creation failed. Retrying...")
+
+                logger.error(
+                    "Connection opened but channel could not be created. Retrying...")
 
             except pika.exceptions.AMQPConnectionError as e:
                 logger.error(

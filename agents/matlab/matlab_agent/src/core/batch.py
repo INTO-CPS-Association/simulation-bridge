@@ -9,16 +9,17 @@ import sys
 import time
 from typing import Dict, List, Any, Tuple, Optional
 
+from base_agent.comm.interfaces import IMessageBroker
+from base_agent.utils.batch_helpers import send_progress_update
+from base_agent.utils.create_response import create_response
+from base_agent.utils.logger import get_logger
 import yaml
 
-from ..utils.logger import get_logger
-from ..utils.create_response import create_response
-from ..comm.interfaces import IMessageBroker
 from .matlab_simulator import MatlabSimulator, MatlabSimulationError
 from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 def handle_batch_simulation(
@@ -155,16 +156,16 @@ def _send_progress(
         request_id: str = 'unknown'
 ) -> None:
     """Send progress update if configured."""
-    if response_templates.get('progress', {}).get('include_percentage', False):
-        progress_response = create_response(
-            'progress',
-            sim_file,
-            'batch',
-            response_templates,
-            percentage=percentage,
-            bridge_meta=bridge_meta,
-            request_id=request_id)
-        broker.send_result(source, progress_response)
+    send_progress_update(
+        broker=broker,
+        source=source,
+        sim_file=sim_file,
+        percentage=percentage,
+        response_templates=response_templates,
+        response_builder=create_response,
+        bridge_meta=bridge_meta,
+        request_id=request_id,
+    )
 
 
 def _get_metadata(sim: MatlabSimulator) -> Dict[str, Any]:

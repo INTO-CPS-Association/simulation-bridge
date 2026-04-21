@@ -14,16 +14,16 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from base_agent.comm.interfaces import IMessageBroker
+from base_agent.utils.create_response import create_response
+from base_agent.utils.logger import get_logger
 import psutil
 
-from ..comm.interfaces import IMessageBroker
 from ..utils.constants import DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
-from ..utils.create_response import create_response
-from ..utils.logger import get_logger
 from ..utils.performance_monitor import PerformanceMonitor
 
 # Configure logger
-logger = get_logger()
+logger = get_logger("MATLAB-AGENT")
 
 
 def handle_streaming_simulation(

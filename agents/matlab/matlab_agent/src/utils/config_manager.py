@@ -1,31 +1,30 @@
-"""
-Configuration manager for the MATLAB Agent using Pydantic for validation.
-"""
+"""Configuration manager for the MATLAB agent."""
+
+from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Dict, Any, Literal
-from enum import Enum
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
+from typing import Any, Dict, Literal, Optional
 
-from .logger import get_logger
-from .config_loader import load_config
-from .constants import DEFAULT_INPUT_PORT, DEFAULT_OUTPUT_PORT, DEFAULT_OUTPUT_HOST
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-logger = get_logger()
+from base_agent.utils.config_loader import load_config
+from base_agent.utils.config_manager import (
+    BaseConfigManager,
+    LogLevel,
+    build_common_config,
+    flatten_common_config,
+)
+from base_agent.utils.logger import get_logger
 
+from .constants import DEFAULT_INPUT_PORT, DEFAULT_OUTPUT_HOST, DEFAULT_OUTPUT_PORT
 
-class LogLevel(str, Enum):
-    """Supported logging levels."""
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
+logger = get_logger("MATLAB-AGENT")
 
 
 class Config(BaseModel):
-    """Main configuration model using Pydantic for validation."""
-    model_config = ConfigDict(extra='ignore')
+    """MATLAB configuration model using Pydantic validation."""
+
+    model_config = ConfigDict(extra="ignore")
 
     # Agent configuration
     agent_id: str = Field(default="matlab")
@@ -65,259 +64,173 @@ class Config(BaseModel):
     tcp_output_port: int = Field(default=DEFAULT_OUTPUT_PORT)
 
     # Response templates
-    # Success template
     success_status: Literal["success"] = Field(default="success")
     simulation_type: Literal["batch", "streaming"] = Field(default="batch")
     success_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
     success_include_metadata: bool = Field(default=True)
     success_metadata_fields: list[str] = Field(
-        default=["execution_time", "memory_usage", "matlab_version"]
+        default_factory=lambda: ["execution_time", "memory_usage", "matlab_version"]
     )
 
-    # Error template
     error_status: Literal["error"] = Field(default="error")
     error_include_stacktrace: bool = Field(default=False)
     error_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
     error_codes: Dict[str, int] = Field(
-        default={
+        default_factory=lambda: {
             "invalid_config": 400,
             "matlab_start_failure": 500,
             "execution_error": 500,
             "timeout": 504,
-            "missing_file": 404
+            "missing_file": 404,
         }
     )
 
-    # Progress template
     progress_status: Literal["in_progress"] = Field(default="in_progress")
     progress_include_percentage: bool = Field(default=True)
     progress_update_interval: int = Field(default=5)
     progress_timestamp_format: str = Field(default="%Y-%m-%dT%H:%M:%SZ")
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the model to a dictionary with nested structure."""
+    def _common_flat_config(self) -> Dict[str, Any]:
+        """Return shared flat configuration keys used by base helpers."""
+
+        log_level = getattr(self.log_level, "value", self.log_level)
         return {
-            "agent": {
-                "agent_id": self.agent_id
-            },
-            "rabbitmq": {
-                "host": self.rabbitmq_host,
-                "port": self.rabbitmq_port,
-                "username": self.rabbitmq_username,
-                "password": self.rabbitmq_password,
-                "heartbeat": self.rabbitmq_heartbeat,
-                "vhost": self.rabbitmq_virtual_host,
-                "tls": self.rabbitmq_tls
-            },
-            "simulation": {
-                "path": self.simulation_path
-            },
-            "exchanges": {
-                "input": self.input_exchange,
-                "output": self.output_exchange
-            },
-            "queue": {
-                "durable": self.queue_durable,
-                "prefetch_count": self.queue_prefetch_count
-            },
-            "logging": {
-                "level": self.log_level.value,
-                "file": self.log_file
-            },
-            "performance": {
-                "enabled": self.performance_enabled,
-                "log_dir": self.performance_log_dir,
-                "log_filename": self.performance_log_filename
-            },
-            "tcp": {
-                "host": self.tcp_host,
-                "input_port": self.tcp_input_port,
-                "output_port": self.tcp_output_port
-            },
-            "response_templates": {
-                "success": {
-                    "status": self.success_status,
-                    "simulation": {
-                        "type": self.simulation_type
-                    },
-                    "timestamp_format": self.success_timestamp_format,
-                    "include_metadata": self.success_include_metadata,
-                    "metadata_fields": self.success_metadata_fields
-                },
-                "error": {
-                    "status": self.error_status,
-                    "include_stacktrace": self.error_include_stacktrace,
-                    "error_codes": self.error_codes,
-                    "timestamp_format": self.error_timestamp_format
-                },
-                "progress": {
-                    "status": self.progress_status,
-                    "include_percentage": self.progress_include_percentage,
-                    "update_interval": self.progress_update_interval,
-                    "timestamp_format": self.progress_timestamp_format
-                }
-            }
+            "agent_id": self.agent_id,
+            "rabbitmq_host": self.rabbitmq_host,
+            "rabbitmq_port": self.rabbitmq_port,
+            "rabbitmq_username": self.rabbitmq_username,
+            "rabbitmq_password": self.rabbitmq_password,
+            "rabbitmq_heartbeat": self.rabbitmq_heartbeat,
+            "rabbitmq_virtual_host": self.rabbitmq_virtual_host,
+            "rabbitmq_tls": self.rabbitmq_tls,
+            "simulation_path": self.simulation_path,
+            "input_exchange": self.input_exchange,
+            "output_exchange": self.output_exchange,
+            "queue_durable": self.queue_durable,
+            "queue_prefetch_count": self.queue_prefetch_count,
+            "log_level": log_level,
+            "log_file": self.log_file,
+            "performance_enabled": self.performance_enabled,
+            "performance_log_dir": self.performance_log_dir,
+            "performance_log_filename": self.performance_log_filename,
+            "success_status": self.success_status,
+            "simulation_type": self.simulation_type,
+            "success_timestamp_format": self.success_timestamp_format,
+            "success_include_metadata": self.success_include_metadata,
+            "success_metadata_fields": self.success_metadata_fields,
+            "error_status": self.error_status,
+            "error_include_stacktrace": self.error_include_stacktrace,
+            "error_timestamp_format": self.error_timestamp_format,
+            "error_codes": self.error_codes,
+            "progress_status": self.progress_status,
+            "progress_include_percentage": self.progress_include_percentage,
+            "progress_update_interval": self.progress_update_interval,
+            "progress_timestamp_format": self.progress_timestamp_format,
         }
 
     @classmethod
-    def from_dict(cls, config_dict: Dict[str, Any]) -> 'Config':
-        """Create a Config instance from a nested dictionary."""
-        # Extract values from nested structure
-        flat_config = {}
+    def _default_flat_config(cls) -> Dict[str, Any]:
+        """Return shared defaults as a flat dictionary."""
 
-        # Extract agent section if present
-        if agent := config_dict.get("agent", {}):
-            flat_config["agent_id"] = agent.get("agent_id", "matlab")
+        defaults = cls()
+        return {
+            "agent_id": defaults.agent_id,
+            "rabbitmq_host": defaults.rabbitmq_host,
+            "rabbitmq_port": defaults.rabbitmq_port,
+            "rabbitmq_username": defaults.rabbitmq_username,
+            "rabbitmq_password": defaults.rabbitmq_password,
+            "rabbitmq_heartbeat": defaults.rabbitmq_heartbeat,
+            "rabbitmq_virtual_host": defaults.rabbitmq_virtual_host,
+            "rabbitmq_tls": defaults.rabbitmq_tls,
+            "simulation_path": defaults.simulation_path,
+            "input_exchange": defaults.input_exchange,
+            "output_exchange": defaults.output_exchange,
+            "queue_durable": defaults.queue_durable,
+            "queue_prefetch_count": defaults.queue_prefetch_count,
+            "log_level": defaults.log_level,
+            "log_file": defaults.log_file,
+            "performance_enabled": defaults.performance_enabled,
+            "performance_log_dir": defaults.performance_log_dir,
+            "performance_log_filename": defaults.performance_log_filename,
+            "success_status": defaults.success_status,
+            "simulation_type": defaults.simulation_type,
+            "success_timestamp_format": defaults.success_timestamp_format,
+            "success_include_metadata": defaults.success_include_metadata,
+            "success_metadata_fields": defaults.success_metadata_fields,
+            "error_status": defaults.error_status,
+            "error_include_stacktrace": defaults.error_include_stacktrace,
+            "error_timestamp_format": defaults.error_timestamp_format,
+            "error_codes": defaults.error_codes,
+            "progress_status": defaults.progress_status,
+            "progress_include_percentage": defaults.progress_include_percentage,
+            "progress_update_interval": defaults.progress_update_interval,
+            "progress_timestamp_format": defaults.progress_timestamp_format,
+        }
 
-        # Extract rabbitmq section if present
-        if rabbitmq := config_dict.get("rabbitmq", {}):
-            flat_config["rabbitmq_host"] = rabbitmq.get("host", "localhost")
-            flat_config["rabbitmq_port"] = rabbitmq.get("port", 5672)
-            flat_config["rabbitmq_username"] = rabbitmq.get(
-                "username", "guest")
-            flat_config["rabbitmq_password"] = rabbitmq.get(
-                "password", "guest")
-            flat_config["rabbitmq_heartbeat"] = rabbitmq.get("heartbeat", 600)
-            flat_config["rabbitmq_virtual_host"] = rabbitmq.get(
-                "vhost", "/")
-            flat_config["rabbitmq_tls"] = rabbitmq.get("tls", False)
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize model to nested runtime configuration format."""
 
-        if simulation := config_dict.get("simulation", {}):
-            flat_config["simulation_path"] = simulation.get(
-                "path", ".")
+        config = build_common_config(self._common_flat_config())
+        config["tcp"] = {
+            "host": self.tcp_host,
+            "input_port": self.tcp_input_port,
+            "output_port": self.tcp_output_port,
+        }
+        return config
 
-        # Extract exchanges section if present
-        if exchanges := config_dict.get("exchanges", {}):
-            flat_config["input_exchange"] = exchanges.get(
-                "input", "ex.bridge.output")
-            flat_config["output_exchange"] = exchanges.get(
-                "output", "ex.sim.result")
+    @classmethod
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "Config":
+        """Create validated model from nested runtime configuration."""
 
-        # Extract queue section if present
-        if queue := config_dict.get("queue", {}):
-            flat_config["queue_durable"] = queue.get("durable", True)
-            flat_config["queue_prefetch_count"] = queue.get(
-                "prefetch_count", 1)
+        flat_config = flatten_common_config(config_dict, cls._default_flat_config())
 
-        # Extract logging section if present
-        if logging := config_dict.get("logging", {}):
-            flat_config["log_level"] = logging.get("level", LogLevel.INFO)
-            flat_config["log_file"] = logging.get(
-                "file", "logs/matlab_agent.log")
-
-        # Extract performance section if present
-        if performance := config_dict.get("performance", {}):
-            flat_config["performance_enabled"] = performance.get(
-                "enabled", False)
-            flat_config["performance_log_dir"] = performance.get(
-                "log_dir", "performance_logs")
-            flat_config["performance_log_filename"] = performance.get(
-                "log_filename", "performance_metrics.csv")
-
-        # Extract tcp section if present
+        defaults = cls()
         if tcp := config_dict.get("tcp", {}):
-            flat_config["tcp_host"] = tcp.get("host", DEFAULT_OUTPUT_HOST)
-            flat_config["tcp_input_port"] = tcp.get("input_port", DEFAULT_INPUT_PORT)
-            flat_config["tcp_output_port"] = tcp.get("output_port", DEFAULT_OUTPUT_PORT)
-
-        # Extract response_templates section if present
-        if templates := config_dict.get("response_templates", {}):
-            # Success template
-            if success := templates.get("success", {}):
-                flat_config["success_status"] = success.get(
-                    "status", "success")
-                if simulation := success.get("simulation", {}):
-                    flat_config["simulation_type"] = simulation.get(
-                        "type", "batch")
-                flat_config["success_timestamp_format"] = success.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
-                flat_config["success_include_metadata"] = success.get(
-                    "include_metadata", True)
-                flat_config["success_metadata_fields"] = success.get("metadata_fields",
-                                                                     ["execution_time",
-                                                                      "memory_usage",
-                                                                      "matlab_version"])
-
-            # Error template
-            if error := templates.get("error", {}):
-                flat_config["error_status"] = error.get("status", "error")
-                flat_config["error_include_stacktrace"] = error.get(
-                    "include_stacktrace", False)
-                flat_config["error_timestamp_format"] = error.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
-                flat_config["error_codes"] = error.get("error_codes", {
-                    "invalid_config": 400,
-                    "matlab_start_failure": 500,
-                    "execution_error": 500,
-                    "timeout": 504,
-                    "missing_file": 404
-                })
-
-            # Progress template
-            if progress := templates.get("progress", {}):
-                flat_config["progress_status"] = progress.get(
-                    "status", "in_progress")
-                flat_config["progress_include_percentage"] = progress.get(
-                    "include_percentage", True)
-                flat_config["progress_update_interval"] = progress.get(
-                    "update_interval", 5)
-                flat_config["progress_timestamp_format"] = progress.get(
-                    "timestamp_format", "%Y-%m-%dT%H:%M:%SZ")
+            flat_config["tcp_host"] = tcp.get("host", defaults.tcp_host)
+            flat_config["tcp_input_port"] = tcp.get(
+                "input_port",
+                defaults.tcp_input_port,
+            )
+            flat_config["tcp_output_port"] = tcp.get(
+                "output_port",
+                defaults.tcp_output_port,
+            )
 
         return cls(**flat_config)
 
 
-class ConfigManager:
-    """
-    Manager for loading and providing access to application configuration.
-    """
+class ConfigManager(BaseConfigManager):
+    """MATLAB configuration manager backed by shared base manager logic."""
 
     def __init__(self, config_path: Optional[str] = None) -> None:
-        """
-        Initialize the configuration manager.
+        default_path = Path(__file__).parent.parent.parent.parent / "config.yaml"
+        super().__init__(
+            package_name="matlab_agent",
+            validate_config_func=self._validate_with_model,
+            default_config_func=self._default_config,
+            validation_errors=(ValidationError,),
+            logger=logger,
+            config_path=config_path,
+            default_config_path=default_path,
+            load_config_func=load_config,
+        )
 
-        Args:
-            config_path (Optional[str]): Path to the configuration file.
-                                         If None, uses the default location.
-        """
-        self.config_path: Path = Path(config_path) if config_path else Path(
-            __file__).parent.parent.parent.parent / "config.yaml"
-        try:
-            raw_config = load_config(self.config_path)
-            self.config = self._validate_config(raw_config)
-        except (FileNotFoundError, ValidationError) as e:
-            logger.warning("Configuration error: %s, using defaults.", str(e))
-            self.config = self.get_default_config()
-        except (IOError, PermissionError) as e:
-            logger.error("File access error: %s, using defaults.", str(e))
-            self.config = self.get_default_config()
-        except Exception as e:
-            logger.error("Unexpected error: %s, using defaults.", str(e))
-            logger.exception("Full traceback:")
-            self.config = self.get_default_config()
+    @staticmethod
+    def _validate_with_model(config_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate config data via the MATLAB Pydantic model."""
 
-    def _validate_config(self, config_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Validate configuration using Pydantic model."""
         try:
-            # Create Config instance from nested dictionary
             config_instance = Config.from_dict(config_data)
-            # Convert back to nested dictionary format
-            validated_config = config_instance.to_dict()
-            logger.info("Configuration validated successfully.")
-            return validated_config
-        except ValidationError as e:
-            logger.error("Configuration validation failed: %s", str(e))
+            return config_instance.to_dict()
+        except ValidationError as error:
+            logger.error("Configuration validation failed: %s", str(error))
             raise
 
-    def get_default_config(self) -> Dict[str, Any]:
-        """Get default configuration as dictionary."""
+    @staticmethod
+    def _default_config() -> Dict[str, Any]:
+        """Build default nested config."""
+
         return Config().to_dict()
 
-    def get_config(self) -> Dict[str, Any]:
-        """
-        Get the loaded configuration.
 
-        Returns:
-            Dict[str, Any]: Configuration parameters
-        """
-        return self.config
+__all__ = ["Config", "ConfigManager", "LogLevel"]

@@ -90,7 +90,12 @@ class TestMatlabAgentInitialization:
             mock_cm_inst.get_config.return_value = {"foo": "bar"}
             _ = MatlabAgent("agent1", config_path="/etc/conf.yaml")
             mock_cm.assert_called_once_with("/etc/conf.yaml")
-            mock_conn.assert_called_with("agent1", {"foo": "bar"}, "rabbitmq")
+            connect_call = mock_conn.call_args.kwargs
+            assert connect_call["agent_id"] == "agent1"
+            assert connect_call["config"] == {"foo": "bar"}
+            assert connect_call["broker_type"] == "rabbitmq"
+            assert callable(connect_call["broker_factory"])
+            assert connect_call["message_handler_factory"].__name__ == "MessageHandler"
 
             # custom broker_type
             mock_cm.reset_mock()
@@ -99,7 +104,10 @@ class TestMatlabAgentInitialization:
 
             _ = MatlabAgent("agent2", broker_type="mqtt")
             mock_cm.assert_called_once_with(None)
-            mock_conn.assert_called_with("agent2", {"baz": 123}, "mqtt")
+            connect_call = mock_conn.call_args.kwargs
+            assert connect_call["agent_id"] == "agent2"
+            assert connect_call["config"] == {"baz": 123}
+            assert connect_call["broker_type"] == "mqtt"
 
 
 class TestMatlabAgentOperations:

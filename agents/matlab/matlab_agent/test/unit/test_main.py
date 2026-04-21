@@ -116,7 +116,10 @@ class TestMainFunction:
             'matlab_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
-        mock_load_config.assert_called_once_with(str(config_path))
+        mock_load_config.assert_called_once_with(
+            package_name="matlab_agent",
+            config_path=str(config_path),
+        )
         mock_matlab_agent.assert_called_once_with(
             'custom_agent',
             broker_type='rabbitmq',
@@ -135,7 +138,10 @@ class TestMainFunction:
             mock_load_config.return_value = default_config
             result = cli_runner.invoke(main, [])
 
-            mock_load_config.assert_called_once_with('config.yaml')
+            mock_load_config.assert_called_once_with(
+                package_name="matlab_agent",
+                config_path='config.yaml',
+            )
             mock_matlab_agent.assert_called_once_with(
                 'default_agent',
                 broker_type='rabbitmq',
@@ -200,6 +206,28 @@ class TestMainFunction:
                 "Error running agent: %s", test_exception)
             assert result.exit_code == 0
 
+    def test_main_connection_error_during_initialization(self, cli_runner, default_config):
+        """Connection errors during agent construction should be handled cleanly."""
+        with patch('src.main.MatlabAgent') as mock_matlab_agent, \
+                patch('src.main.setup_logger') as mock_setup_logger, \
+                patch('src.main.load_config') as mock_load_config, \
+                patch('pathlib.Path.exists', return_value=True):
+
+            mock_logger = MagicMock()
+            mock_setup_logger.return_value = mock_logger
+            mock_load_config.return_value = default_config
+
+            connection_error = ConnectionError("broker unavailable")
+            mock_matlab_agent.side_effect = connection_error
+
+            result = cli_runner.invoke(main, [])
+
+            mock_logger.error.assert_called_once_with(
+                "Connection error while starting agent: %s",
+                connection_error,
+            )
+            assert result.exit_code == 0
+
     def test_invalid_log_level_fallback(self, cli_runner, invalid_log_config):
         """Test fallback to INFO level when invalid log level is provided."""
         with patch('src.main.MatlabAgent') as mock_matlab_agent, \
@@ -218,6 +246,7 @@ class TestMainFunction:
 
             # Should fallback to INFO level for invalid log level
             mock_setup_logger.assert_called_once_with(
+                name='MATLAB-AGENT',
                 level=logging.INFO,
                 log_file='app.log'
             )
@@ -236,8 +265,12 @@ class TestMainFunction:
 
         run_agent('test_config.yml')
 
-        mock_load_config.assert_called_once_with('test_config.yml')
+        mock_load_config.assert_called_once_with(
+            package_name="matlab_agent",
+            config_path='test_config.yml',
+        )
         mock_setup_logger.assert_called_once_with(
+            name='MATLAB-AGENT',
             level=logging.DEBUG,
             log_file='agent.log'
         )
@@ -483,6 +516,7 @@ class TestMainFunction:
 
                 expected_level = getattr(logging, level)
                 mock_setup_logger.assert_called_once_with(
+                    name='MATLAB-AGENT',
                     level=expected_level,
                     log_file='test.log'
                 )
@@ -517,7 +551,10 @@ class TestMainFunction:
             'matlab_agent/config/config.yaml.template').resolve()
         result = cli_runner.invoke(main, ['-c', str(config_path)])
 
-        mock_load_config.assert_called_once_with(str(config_path))
+        mock_load_config.assert_called_once_with(
+            package_name="matlab_agent",
+            config_path=str(config_path),
+        )
         assert result.exit_code == 0
 
     def test_multiple_flags_priority(self, cli_runner):
