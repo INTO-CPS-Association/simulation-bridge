@@ -82,6 +82,10 @@ Supports secure (TLS) and insecure connections for all protocols: MQTT/mqtts, AM
 - [**Simul8 Agent** ↗](agents/simul8/README.md): Explanation of the Simul8 agent functionality and configuration.
 - [**Simul8 Simulation Constraints** ↗](agents/simul8/simul8_agent/docs/README.md): A breakdown of the constraints and requirements for Simul8-driven simulations.
 
+### Python Agent
+
+- [**Python Agent** ↗](agents/python/README.md): Explanation of the Python agent functionality and configuration.
+
 ## Package Development
 
 The developer-specific commands are

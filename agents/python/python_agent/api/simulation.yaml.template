@@ -1,0 +1,11 @@
+simulation:
+  request_id: req-001
+  client_id: dt
+  simulator: python
+  type: batch
+  file: example_cli_program.py
+  inputs:
+    first: 5
+    second: 7
+  outputs:
+    - sum
