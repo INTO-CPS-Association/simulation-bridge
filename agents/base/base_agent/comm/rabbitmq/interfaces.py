@@ -2,7 +2,8 @@
 Implementation of the RabbitMQ-specific interfaces.
 This module defines interface classes for RabbitMQ management and message handling.
 """
-from abc import ABC, abstractmethod
+# pylint: disable=arguments-differ
+from abc import abstractmethod
 from typing import Dict, Any, Callable, Optional
 import pika
 from pika.spec import BasicProperties
@@ -98,7 +99,7 @@ class IRabbitMQMessageHandler(IMessageHandler):
     Extends the generic IMessageHandler interface with RabbitMQ-specific methods.
     """
 
-    @abstractmethod
+    @abstractmethod  # pylint: disable=arguments-differ
     def handle_message(
         self,
         ch: pika.adapters.blocking_connection.BlockingChannel,
