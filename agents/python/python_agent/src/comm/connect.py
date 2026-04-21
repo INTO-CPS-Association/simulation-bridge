@@ -100,16 +100,6 @@ class Connect:
         """
         if not self.broker:
             raise RuntimeError(BROKER_NOT_INITIALIZED_ERROR)
-
-        if not self.broker.channel or not self.broker.channel.is_open:
-            logger.debug(
-                "Channel is not initialized or is closed. Attempting to reconnect...")
-            if not self.broker.connect():
-                logger.error(
-                    "Failed to initialize or reopen channel. Consumption aborted.")
-                return
-
-        logger.debug("Channel is active. Starting consumption.")
         self.broker.start_consuming()
 
     def send_message(

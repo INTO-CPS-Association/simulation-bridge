@@ -1,5 +1,5 @@
 """
-Performance monitoring utilities for the SIMUL8 agent.
+Performance monitoring utilities for the Python agent.
 """
 import csv
 import os
@@ -33,7 +33,7 @@ class PerformanceMetrics:
 
 class PerformanceMonitor:
     """
-    A class to monitor and collect performance metrics for the SIMUL8 agent.
+    A class to monitor and collect performance metrics for the Python agent.
     """
     _instance = None
     _initialized = False
@@ -108,10 +108,10 @@ class PerformanceMonitor:
                     'Operation ID',
                     'Timestamp',
                     'Request Received Time',
-                    'SIMUL8 Start Time',
-                    'SIMUL8 Startup Duration (s)',
+                    'Python Start Time',
+                    'Python Startup Duration (s)',
                     'Simulation Duration (s)',
-                    'SIMUL8 Stop Time',
+                    'Python Stop Time',
                     'Result Send Time',
                     'CPU Usage (%)',
                     'Memory RSS (MB)',
@@ -147,7 +147,7 @@ class PerformanceMonitor:
         logger.debug("Started monitoring operation %s", operation_id)
 
     def record_python_start(self):
-        """Record the start of SIMUL8 engine initialization."""
+        """Record the start of Python command initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
@@ -155,14 +155,14 @@ class PerformanceMonitor:
         self._update_system_metrics()
 
     def record_python_startup_complete(self):
-        """Record the completion of SIMUL8 engine initialization."""
+        """Record the completion of Python command initialization."""
         if not self.enabled or not self.current_metrics:
             return
 
         startup_duration = time.time() - self.current_metrics.python_start_time
         self.current_metrics.python_startup_duration = startup_duration
         self._update_system_metrics()
-        logger.debug("SIMUL8 startup duration: %.2fs", startup_duration)
+        logger.debug("Python startup duration: %.2fs", startup_duration)
 
     def record_simulation_complete(self):
         """Record the completion of the simulation."""
@@ -176,7 +176,7 @@ class PerformanceMonitor:
         self._update_system_metrics()
 
     def record_python_stop(self):
-        """Record the stop of SIMUL8 engine."""
+        """Record the stop of Python command execution."""
         if not self.enabled or not self.current_metrics:
             return
 

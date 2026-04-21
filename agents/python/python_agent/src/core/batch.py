@@ -50,7 +50,11 @@ def handle_batch_simulation(
             request_id,
         )
 
-        sim_result = simulator.run(Path(path_simulation) / sim_file, inputs, outputs)
+        execution_result = simulator.run(
+            Path(path_simulation) / sim_file,
+            inputs,
+            outputs,
+        )
         metadata = simulator.get_metadata() if response_templates.get(
             "success", {}
         ).get("include_metadata", False) else None
@@ -63,7 +67,7 @@ def handle_batch_simulation(
             sim_file,
             "batch",
             response_templates,
-            outputs=sim_result,
+            outputs=execution_result,
             metadata=metadata,
             bridge_meta=bridge_meta,
             request_id=request_id,
