@@ -11,19 +11,20 @@ from simulation_bridge.src.core.bridge_publisher import BridgePublisher
 # pylint: disable=protected-access,redefined-outer-name
 
 
-BASE_CONFIG = {
-    'host': 'localhost',
-    'port': 5672,
-    'username': 'guest',
-    'password': 'guest',
-    'vhost': '/',
-    'tls': False,
-}
+def _make_base_config(creds):
+    """Build a non-TLS config from fixture credentials."""
+    return {
+        'host': 'localhost',
+        'port': 5672,
+        'username': creds['guest']['username'],
+        'password': creds['guest']['password'],
+        'vhost': '/',
+        'tls': False,
+    }
 
 
-def _make_publisher(config=None):
+def _make_publisher(config):
     """Return a BridgePublisher with a mocked pika connection."""
-    cfg = config or BASE_CONFIG.copy()
     pika_path = (
         'simulation_bridge.src.core.bridge_publisher'
         '.pika.BlockingConnection')
@@ -33,14 +34,20 @@ def _make_publisher(config=None):
         conn.channel.return_value = chan
         conn.is_closed = False
         mock_conn_cls.return_value = conn
-        publisher = BridgePublisher(cfg)
+        publisher = BridgePublisher(config)
     return publisher
 
 
 @pytest.fixture
-def publisher():
+def base_config(dummy_credentials):
+    """Non-TLS RabbitMQ config derived from test fixture credentials."""
+    return _make_base_config(dummy_credentials)
+
+
+@pytest.fixture
+def publisher(base_config):
     """BridgePublisher instance with a mocked connection."""
-    return _make_publisher()
+    return _make_publisher(base_config)
 
 
 class TestBuildConnectionParams:
@@ -51,8 +58,8 @@ class TestBuildConnectionParams:
         assert isinstance(params, pika.ConnectionParameters)
         assert params.ssl_options is None
 
-    def test_tls_returns_ssl_params(self):
-        cfg = {**BASE_CONFIG, 'tls': True}
+    def test_tls_returns_ssl_params(self, base_config):
+        cfg = {**base_config, 'tls': True}
         pika_path = (
             'simulation_bridge.src.core.bridge_publisher'
             '.pika.BlockingConnection')
@@ -61,15 +68,15 @@ class TestBuildConnectionParams:
             conn.channel.return_value = MagicMock()
             conn.is_closed = False
             mock_conn_cls.return_value = conn
-            publisher = BridgePublisher(cfg)
-        params = publisher._build_connection_params()
+            pub = BridgePublisher(cfg)
+        params = pub._build_connection_params()
         assert params.ssl_options is not None
 
 
 class TestInitializeConnection:
     """Tests for _initialize_connection."""
 
-    def test_closes_existing_open_connection(self):
+    def test_closes_existing_open_connection(self, base_config):
         """Existing open connection is closed before reconnecting."""
         pika_path = (
             'simulation_bridge.src.core.bridge_publisher'
@@ -79,13 +86,13 @@ class TestInitializeConnection:
             conn.channel.return_value = MagicMock()
             conn.is_closed = False
             mock_conn_cls.return_value = conn
-            publisher = BridgePublisher(BASE_CONFIG)
-            old_conn = publisher.connection
+            pub = BridgePublisher(base_config)
+            old_conn = pub.connection
             old_conn.is_closed = False
-            publisher._initialize_connection()
+            pub._initialize_connection()
             old_conn.close.assert_called_once()  # pylint: disable=no-member
 
-    def test_amqp_connection_error_raises(self):
+    def test_amqp_connection_error_raises(self, base_config):
         """AMQPConnectionError propagates out of _initialize_connection."""
         pika_path = (
             'simulation_bridge.src.core.bridge_publisher'
@@ -95,17 +102,14 @@ class TestInitializeConnection:
             conn.channel.return_value = MagicMock()
             conn.is_closed = False
             mock_conn_cls.return_value = conn
-            publisher = BridgePublisher(BASE_CONFIG)
+            pub = BridgePublisher(base_config)
 
-        pika_path2 = (
-            'simulation_bridge.src.core.bridge_publisher'
-            '.pika.BlockingConnection')
-        with patch(pika_path2,
+        with patch(pika_path,
                    side_effect=pika.exceptions.AMQPConnectionError("down")):
             with pytest.raises(pika.exceptions.AMQPConnectionError):
-                publisher._initialize_connection()
+                pub._initialize_connection()
 
-    def test_amqp_channel_error_raises(self):
+    def test_amqp_channel_error_raises(self, base_config):
         """AMQPChannelError during channel() propagates."""
         pika_path = (
             'simulation_bridge.src.core.bridge_publisher'
@@ -116,7 +120,7 @@ class TestInitializeConnection:
             conn.channel.return_value = MagicMock()
             conn.is_closed = False
             mock_conn_cls.return_value = conn
-            publisher = BridgePublisher(BASE_CONFIG)
+            pub = BridgePublisher(base_config)
 
         with patch(pika_path) as mock_conn_cls2:
             conn2 = MagicMock()
@@ -125,9 +129,9 @@ class TestInitializeConnection:
             conn2.is_closed = False
             mock_conn_cls2.return_value = conn2
             with pytest.raises(pika.exceptions.AMQPChannelError):
-                publisher._initialize_connection()
+                pub._initialize_connection()
 
-    def test_ssl_error_raises(self):
+    def test_ssl_error_raises(self, base_config):
         """SSLError during connection propagates."""
         pika_path = (
             'simulation_bridge.src.core.bridge_publisher'
@@ -137,12 +141,12 @@ class TestInitializeConnection:
             conn.channel.return_value = MagicMock()
             conn.is_closed = False
             mock_conn_cls.return_value = conn
-            publisher = BridgePublisher(BASE_CONFIG)
+            pub = BridgePublisher(base_config)
 
         with patch(pika_path,
                    side_effect=ssl.SSLError("tls fail")):
             with pytest.raises(ssl.SSLError):
-                publisher._initialize_connection()
+                pub._initialize_connection()
 
 
 class TestEnsureConnection:

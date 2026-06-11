@@ -98,12 +98,13 @@ class TestSeedPool:
     def test_refill_triggered_when_pool_low(self):
         """get() triggers a refill when pool drops below half."""
         pool = SeedPool(pool_size=4)
-        # Drain the pool below half
+        # Drain the pool below half — this should signal the refill thread
         for _ in range(3):
             pool.get()
-        # Give the background thread a moment to refill
+        # Give the background thread a moment to refill, then verify
         time.sleep(0.1)
-        assert len(pool._seeds) >= 0  # pylint: disable=protected-access
+        extra = pool.get()
+        assert isinstance(extra, str) and len(extra) == 64
         pool.stop()
 
 
