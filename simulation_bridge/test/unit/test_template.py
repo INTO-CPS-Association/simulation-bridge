@@ -218,3 +218,61 @@ class TestGenerateDefaultProject:  # pylint: disable=too-few-public-methods
 
         template_module.generate_default_project()
         assert mock_print_fixture.call_count > 5
+
+    def test_generate_default_project_with_error(self, monkeypatch, mock_print_fixture):  # pylint: disable=W0621
+        """Test generate_default_project handles error status from create_file."""
+        monkeypatch.setattr(template_module, "get_files_to_generate", lambda: {
+            "bad.txt": ("pkg", "res"),
+        })
+        monkeypatch.setattr(
+            template_module, "get_file_descriptions", lambda: {})
+        monkeypatch.setattr("os.path.join", lambda *args: "/".join(args))
+        monkeypatch.setattr(
+            template_module, "create_file",
+            lambda fp, full, pkg, res: ("error", "something failed"))
+        template_module.generate_default_project()
+        # print_summary is called with non-empty errors list
+        assert mock_print_fixture.call_count > 0
+
+
+class TestCopyConfigTemplate:
+    """Tests for copy_config_template function."""
+
+    def test_copy_config_template_success(self, tmp_path):
+        """copy_config_template writes the template file."""
+        dest = tmp_path / "config.yaml"
+        template_module.copy_config_template(str(dest))
+        assert dest.exists()
+
+    def test_copy_config_template_raises_on_missing(
+            self, tmp_path, monkeypatch):
+        """copy_config_template raises FileNotFoundError on missing template."""
+        monkeypatch.setattr(
+            template_module, "files",
+            lambda pkg: (_ for _ in ()).throw(FileNotFoundError("nope")))
+        dest = tmp_path / "config.yaml"
+        with pytest.raises(FileNotFoundError):
+            template_module.copy_config_template(str(dest))
+
+
+class TestCopyResource:
+    """Tests for copy_resource function."""
+
+    def test_copy_resource_returns_true_on_success(self, tmp_path):
+        """copy_resource returns True when the resource is copied."""
+        dest = tmp_path / "out.txt"
+        result = template_module.copy_resource(
+            "simulation_bridge.config",
+            "config.yaml.template",
+            str(dest))
+        assert result is True
+        assert dest.exists()
+
+    def test_copy_resource_returns_false_on_oserror(self):
+        """copy_resource returns False when file operations raise OSError."""
+        with mock.patch.object(
+            template_module, "files",
+            side_effect=OSError("fail")
+        ):
+            result = template_module.copy_resource("pkg", "res", "/bad/path")
+        assert result is False

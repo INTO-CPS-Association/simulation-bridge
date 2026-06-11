@@ -139,3 +139,48 @@ class TestAdapterImport:  # pylint: disable=too-few-public-methods
             orchestrator = bridge_orchestrator.BridgeOrchestrator()
             assert 'mqtt' in orchestrator.adapter_classes
             assert orchestrator.adapter_classes['mqtt'] == mock_class
+
+
+class TestStartAdaptersAsync:
+    """Tests for _start_adapters_async."""
+
+    def test_starts_threads_for_each_adapter(self, orchestrator):
+        """_start_adapters_async launches a thread per adapter."""
+        adapter_mock = MagicMock()
+        orchestrator.adapters = {'mqtt': adapter_mock}
+        with patch(
+            'simulation_bridge.src.core.bridge_orchestrator.threading.Thread'
+        ) as mock_thread_cls:
+            mock_thread = MagicMock()
+            mock_thread_cls.return_value = mock_thread
+            orchestrator._start_adapters_async()
+            mock_thread.start.assert_called_once()
+
+
+class TestStartAdapterNotAlive:
+    """Tests for start() behavior when an adapter goes down."""
+
+    def test_start_exits_when_adapter_not_running(self, orchestrator):
+        """start() breaks out of poll loop when adapter is not running."""
+        adapter = MagicMock()
+        adapter.is_running = False
+        orchestrator.adapters = {'mqtt': adapter}
+        with patch.object(orchestrator, 'setup_interfaces'), \
+                patch.object(orchestrator, 'stop') as stop_mock:
+            with pytest.raises(SystemExit):
+                orchestrator.start()
+        stop_mock.assert_called_once()
+
+
+class TestStopExceptionHandling:
+    """Tests for exception handling in stop()."""
+
+    def test_stop_adapter_raises_continues(self, orchestrator):
+        """stop() continues even if an adapter's stop() raises."""
+        adapter = MagicMock()
+        adapter.stop.side_effect = RuntimeError("stop fail")
+        orchestrator.adapters = {'mqtt': adapter}
+        with patch(
+            'simulation_bridge.src.core.bridge_orchestrator.SignalManager'
+        ):
+            orchestrator.stop()  # should not raise

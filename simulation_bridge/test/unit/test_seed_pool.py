@@ -122,7 +122,6 @@ class TestGetSeedPool:
         assert isinstance(pool, SeedPool)
 
 
-
 class TestGenerateBridgeIndex:
     """Tests for the generate_bridge_index function."""
 
