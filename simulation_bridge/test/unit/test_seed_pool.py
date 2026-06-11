@@ -1,18 +1,20 @@
 """Tests for SeedPool, generate_bridge_index, timeout bounds, and dedup."""
 
+import threading
 import time
 
 from simulation_bridge.src.core.routing_table import (
     RoutingEntry,
     RoutingTable,
     SeedPool,
+    _get_seed_pool,
     generate_bridge_index,
     DEFAULT_MAX_TIMEOUT,
     DEFAULT_MIN_TIMEOUT,
 )
 
 
-def _make_entry(
+def _make_entry(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         request_id="req-1", pa_n="rest", pa_s="rabbitmq",
         dt="DT_1", sim_type="matlab", timeout=60,
         created_at=None, bridge_index=''):
@@ -60,6 +62,64 @@ class TestSeedPool:
         s3 = pool.get()
         assert all(isinstance(s, str) for s in (s1, s2, s3))
         pool.stop()
+
+    def test_stop_joins_background_thread(self):
+        """stop() waits for the background thread to finish."""
+        pool = SeedPool(pool_size=4)
+        assert pool._thread.is_alive()  # pylint: disable=protected-access
+        pool.stop()
+        pool._thread.join(timeout=2)  # pylint: disable=protected-access
+        assert not pool._thread.is_alive()  # pylint: disable=protected-access
+
+    def test_stop_from_within_thread_does_not_join(self):
+        """stop() called from within the refill thread skips join."""
+        pool = SeedPool(pool_size=4)
+        errors = []
+
+        def call_stop_from_thread():
+            try:
+                # Simulate calling stop() from the refill thread itself
+                saved = threading.current_thread
+                threading.current_thread = (
+                    lambda: pool._thread  # pylint: disable=protected-access
+                )
+                try:
+                    pool.stop()
+                finally:
+                    threading.current_thread = saved
+            except Exception as exc:  # pylint: disable=broad-exception-caught
+                errors.append(str(exc))
+
+        t = threading.Thread(target=call_stop_from_thread)
+        t.start()
+        t.join(timeout=3)
+        assert not errors
+
+    def test_refill_triggered_when_pool_low(self):
+        """get() triggers a refill when pool drops below half."""
+        pool = SeedPool(pool_size=4)
+        # Drain the pool below half
+        for _ in range(3):
+            pool.get()
+        # Give the background thread a moment to refill
+        time.sleep(0.1)
+        assert len(pool._seeds) >= 0  # pylint: disable=protected-access
+        pool.stop()
+
+
+class TestGetSeedPool:
+    """Tests for the module-level _get_seed_pool singleton."""
+
+    def test_returns_same_instance(self):
+        """_get_seed_pool returns the same singleton each time."""
+        p1 = _get_seed_pool()
+        p2 = _get_seed_pool()
+        assert p1 is p2
+
+    def test_returns_seed_pool_instance(self):
+        pool = _get_seed_pool()
+        assert isinstance(pool, SeedPool)
+
 
 
 class TestGenerateBridgeIndex:

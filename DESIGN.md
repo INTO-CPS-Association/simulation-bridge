@@ -134,7 +134,7 @@ Each `RoutingEntry` stores:
 
 ### Anti-Spoofing (bridge_index)
 
-`bridge_index = sha256(pa_n \0 pa_s \0 request_id \0 seed)` where the seed is a one-time random value from a pre-filled `SeedPool`. The bridge_index is injected into the outgoing request and must match in the returning result; mismatches cause the result to be discarded.
+`bridge_index = sha256(pa_n \0 pa_s \0 request_id \0 seed)` where the seed is a one-time random value from a pre-filled `SeedPool`. The bridge_index is injected into the outgoing request. When a result arrives with a `bridge_index` field, it must match the stored value — mismatches cause the result to be discarded. Results that do not include a `bridge_index` field are forwarded without validation (backward-compatible behaviour).
 
 ### Request Deduplication
 

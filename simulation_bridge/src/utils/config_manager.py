@@ -92,9 +92,9 @@ class RESTConfig(BaseModel):
     port: int
     endpoint: str
     debug: bool
-    certfile: Optional[str]
-    keyfile: Optional[str]
-    jwt: Optional[JWTConfig]
+    certfile: Optional[str] = None
+    keyfile: Optional[str] = None
+    jwt: Optional[JWTConfig] = None
 
 
 class LoggingConfig(BaseModel):

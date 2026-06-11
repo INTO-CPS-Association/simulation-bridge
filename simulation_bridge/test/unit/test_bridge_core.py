@@ -6,8 +6,7 @@ import json
 from pika.exceptions import AMQPChannelError
 
 from simulation_bridge.src.core import bridge_core
-from simulation_bridge.src.core.routing_table import RoutingEntry
-from .conftest import valid_input_message, result_message  # noqa: F401
+from .conftest import valid_input_message  # noqa: F401
 
 # pylint: disable=unused-argument,protected-access,redefined-outer-name
 
@@ -218,3 +217,67 @@ class TestRequestDeduplication:
             None, message=msg2, producer='p',
             consumer='c', protocol='rest')
         assert patch_basic_publish.call_count == 2
+
+
+class TestParseInputInvalid:
+    """Tests for _parse_input with invalid messages."""
+
+    def test_invalid_message_returns_none(
+            self, bridge_core_instance,
+            patch_basic_publish, mock_logger):
+        """Invalid message is rejected without publishing."""
+        bridge_core_instance.handle_input_message(
+            None, message={'not_simulation': {}},
+            producer='p', consumer='c', protocol='rest')
+        patch_basic_publish.assert_not_called()
+        mock_logger.error.assert_called()
+
+    def test_empty_message_returns_none(
+            self, bridge_core_instance,
+            patch_basic_publish, mock_logger):
+        """Empty message is rejected without publishing."""
+        bridge_core_instance.handle_input_message(
+            None, message={},
+            producer='p', consumer='c', protocol='rest')
+        patch_basic_publish.assert_not_called()
+
+
+class TestPublishResultAdapter:
+    """Tests for _publish_result_adapter error paths."""
+
+    def test_no_adapter_logs_error(
+            self, bridge_core_instance, mock_logger):
+        """Logs error when adapter not found."""
+        bridge_core_instance._publish_result_adapter(
+            'unknown_pa', None, message={})
+        mock_logger.error.assert_called()
+
+    def test_no_method_name_logs_error(
+            self, bridge_core_instance, mock_logger):
+        """Logs error when no delivery method for protocol."""
+        bridge_core_instance.adapters['custom_pa'] = MagicMock()
+        bridge_core_instance._publish_result_adapter(
+            'custom_pa', None, message={})
+        mock_logger.error.assert_called()
+
+    def test_adapter_missing_method_logs_error(
+            self, bridge_core_instance, mock_logger):
+        """Logs error when adapter exists but method is missing."""
+        adapter = MagicMock(spec=[])  # no methods
+        bridge_core_instance.adapters['mqtt'] = adapter
+        bridge_core_instance._publish_result_adapter(
+            'mqtt', None, message={})
+        mock_logger.error.assert_called()
+
+
+class TestInitializeRabbitmqConnection:
+    """Tests for _initialize_rabbitmq_connection backward-compat wrapper."""
+
+    def test_delegates_to_publisher(self, bridge_core_instance):
+        """_initialize_rabbitmq_connection calls publisher's method."""
+        with patch.object(
+            bridge_core_instance._publisher,
+            '_initialize_connection',
+        ) as init_conn:
+            bridge_core_instance._initialize_rabbitmq_connection()
+            init_conn.assert_called_once()

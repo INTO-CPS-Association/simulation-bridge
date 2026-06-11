@@ -101,7 +101,7 @@ class BridgePublisher:
         try:
             self._do_publish(exchange, routing_key, body)
             self._record_metrics(
-                exchange, routing_key, protocol,
+                exchange, protocol,
                 producer, consumer, operation_id, message)
         except (pika.exceptions.AMQPConnectionError,
                 pika.exceptions.AMQPChannelError) as exc:
@@ -135,12 +135,15 @@ class BridgePublisher:
                 "Failed to publish message after "
                 "reconnection: %s", exc)
 
-    def _record_metrics(self, exchange, routing_key,
+    def _record_metrics(self, exchange,
                         protocol, producer, consumer,
                         operation_id, message):
         """Log and record performance metrics for sent messages."""
-        sim_type = message.get(
-            'simulation', {}).get('type', 'unknown')
+        sim = message.get('simulation')
+        sim_type = (
+            sim.get('type', 'unknown')
+            if isinstance(sim, dict) else 'unknown'
+        )
         logger.debug(
             "Message routed to exchange '%s': "
             "%s -> %s, protocol=%s",

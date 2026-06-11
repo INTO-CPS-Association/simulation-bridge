@@ -135,7 +135,7 @@ Q.bridge.result → RabbitMQAdapter._handle_result_queue()
         • Validates bridge_index
         • Overwrites destinations with routing-table DT
         • Routes to correct north-bound PA
-        • Removes entry on terminal status (completed/failed/error)
+        • Removes entry on terminal status (completed/failed/error/aborted/cancelled)
 
 Bridge publishes to ex.bridge.result  (if PA_N = rabbitmq)
     routing_key: {source}.result
