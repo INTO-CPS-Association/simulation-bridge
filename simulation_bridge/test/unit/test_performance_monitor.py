@@ -1,6 +1,7 @@
 """
 Test suite for PerformanceMonitor
 """
+import time
 from unittest.mock import patch, MagicMock, mock_open
 import pytest
 
@@ -165,3 +166,77 @@ def test_disabled_monitor_skips_methods(monitor_disabled):
     # With disabled monitor, no metrics are saved
     assert monitor_disabled.get_metric(op_id, "rest", "c1", "batch") is None
     assert len(monitor_disabled.history) == 0
+
+
+def test_enabled_property(monitor_enabled, monitor_disabled):
+    """enabled property reflects the configuration."""
+    assert monitor_enabled.enabled is True
+    assert monitor_disabled.enabled is False
+
+
+def test_record_result_sent_appends_and_calculates_overhead(monitor_enabled):
+    """record_result_sent appends sent time and calculates output overhead."""
+    op_id = "op_sent"
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch"
+    )
+    with patch("time.time", return_value=100.0):
+        monitor_enabled.record_core_received_result(
+            op_id, "rest", "c1", "batch")
+    with patch("time.time", return_value=101.0):
+        monitor_enabled.record_result_sent(op_id, "rest", "c1", "batch")
+
+    metric = monitor_enabled.get_metric(op_id, "rest", "c1", "batch")
+    assert len(metric.result_sent_times) == 1
+    assert len(metric.output_overheads) == 1
+    assert metric.output_overheads[0] == pytest.approx(1.0)
+
+
+def test_finalize_without_core_sent_time(monitor_enabled):
+    """finalize_operation works when core_sent_input_time is zero."""
+    op_id = "op_nocsit"
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch"
+    )
+    metric = monitor_enabled.get_metric(op_id, "rest", "c1", "batch")
+    metric.core_sent_input_time = 0.0
+
+    with (
+        patch("time.time", return_value=10.0),
+        patch.object(monitor_enabled, "_save_metrics_to_csv"),
+        patch.object(monitor_enabled, "_update_system_metrics"),
+    ):
+        monitor_enabled.finalize_operation(op_id, "rest", "c1", "batch")
+    assert monitor_enabled.get_metric(op_id, "rest", "c1", "batch") is None
+
+
+def test_save_metrics_to_csv_writes_row(monitor_enabled):
+    """_save_metrics_to_csv writes a row to CSV when enabled."""
+    op_id = "op_csv"
+    monitor_enabled.start_operation(
+        op_id, client_id="c1", protocol="rest", simulation_type="batch"
+    )
+    metric = monitor_enabled.get_metric(op_id, "rest", "c1", "batch")
+    metric.result_times = [1.0, 2.0, 3.0]
+    metric.result_sent_times = [1.1]
+    metric.result_completed_time = time.time()
+    metric.total_duration = 5.0
+    metric.input_overhead = 0.5
+    metric.output_overheads = [0.1]
+    metric.total_overheads = [0.6]
+
+    monitor_enabled._save_metrics_to_csv(  # pylint: disable=protected-access
+        metric)
+    assert monitor_enabled.paths.csv_path.exists()
+
+
+def test_update_timestamp_noop_for_invalid_operation(monitor_enabled):
+    """_update_timestamp does nothing for an unknown operation."""
+    # Should not raise
+    monitor_enabled._update_timestamp(  # pylint: disable=protected-access
+        "unknown_op", "rest", "c1", "batch", "core_received_input_time")
+
+
+def test_finalize_noop_for_invalid_operation(monitor_enabled):
+    """finalize_operation does nothing for an unknown operation."""
+    monitor_enabled.finalize_operation("no_such", "rest", "c1", "batch")

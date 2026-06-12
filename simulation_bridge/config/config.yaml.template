@@ -1,6 +1,9 @@
 simulation_bridge:
   bridge_id: simulation_bridge
   in_memory_mode: false
+  routing:
+    max_timeout_seconds: 1200  # 20 minutes
+    min_timeout_seconds: 30    # 30 seconds
 
 rabbitmq:
   host: localhost
