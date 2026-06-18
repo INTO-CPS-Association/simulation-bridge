@@ -18,6 +18,9 @@ _RESULT_METHOD_FOR_PA = {
 }
 _TERMINAL_STATUSES = frozenset(
     {'completed', 'failed', 'error', 'aborted', 'cancelled'})
+# Simulation types whose routing entry must survive past a terminal result
+# so that follow-up frames of the same session can still be routed.
+_STREAMING_SIM_TYPES = frozenset({'streaming', 'interactive'})
 
 logger = get_logger()
 
@@ -105,10 +108,7 @@ class BridgeCore:
 
     def _register_request(self, simulation, request_id, protocol):
         """Add routing entry; return bridge_index."""
-        timeout = simulation.timeout if simulation.timeout is not None \
-            else DEFAULT_TIMEOUT_SECONDS
-        timeout = max(
-            self._min_timeout, min(timeout, self._max_timeout))
+        timeout = self._resolve_timeout(simulation)
         bridge_idx = generate_bridge_index(
             protocol, 'rabbitmq', request_id)
         self.routing_table.add(
@@ -122,6 +122,22 @@ class BridgeCore:
             client_id=simulation.client_id,
             simulator=simulation.simulator)
         return bridge_idx
+
+    def _resolve_timeout(self, simulation):
+        """Return the entry timeout, clamped to the configured bounds.
+
+        A request-supplied timeout always takes precedence. Otherwise
+        stream/interactive simulations default to ``max_timeout_seconds``
+        so the entry survives the whole session, while batch simulations
+        keep the short default.
+        """
+        if simulation.timeout is not None:
+            timeout = simulation.timeout
+        elif simulation.type in _STREAMING_SIM_TYPES:
+            timeout = self._max_timeout
+        else:
+            timeout = DEFAULT_TIMEOUT_SECONDS
+        return max(self._min_timeout, min(timeout, self._max_timeout))
 
     @staticmethod
     def _build_outgoing(simulation, bridge_idx):
@@ -164,11 +180,17 @@ class BridgeCore:
         return entry
 
     def _finalize_if_terminal(self, message, request_id, entry):
-        """Remove entry and record metrics on terminal status."""
+        """Remove entry and record metrics on terminal status.
+
+        Stream/interactive entries are retained until they expire so that
+        later frames of the same session can still be routed; only their
+        timeout removes them.
+        """
         status = message.get('status', '')
         if status not in _TERMINAL_STATUSES:
             return
-        self.routing_table.remove(request_id)
+        if entry.sim_type not in _STREAMING_SIM_TYPES:
+            self.routing_table.remove(request_id)
         if entry.pa_n == 'rabbitmq':
             sim_type = message.get(
                 'simulation', {}).get('type', 'unknown')

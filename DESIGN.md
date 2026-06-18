@@ -119,7 +119,7 @@ Each `RoutingEntry` stores:
 | `pa_n` | North-bound Protocol Adapter (e.g. `rest`, `mqtt`, `rabbitmq`) |
 | `pa_s` | South-bound Protocol Adapter (always `rabbitmq`) |
 | `dt` | Digital Twin identifier (`client_id`) |
-| `sim_type` | Simulation type (e.g. `matlab`, `simul8`) |
+| `sim_type` | Simulation execution mode from the request (`batch`, `streaming`, or `interactive`) |
 | `request_id` | Unique request identifier (primary lookup key) |
 | `timeout_seconds` | Expiration threshold; clamped to `[min_timeout, max_timeout]` from config |
 | `bridge_index` | SHA-256-based anti-spoofing token |
@@ -129,7 +129,7 @@ Each `RoutingEntry` stores:
 
 1. **Registration** — `handle_input_message` validates, deduplicates, generates a `bridge_index`, and adds an entry.
 2. **Lookup** — `handle_result_message` looks up the entry by `request_id`, validates `bridge_index`, and routes the result to the PA recorded in `pa_n`.
-3. **Removal** — Entry is removed when the result has a terminal status (`completed`, `failed`, `error`, `aborted`, `cancelled`) or when it expires.
+3. **Removal** — For `batch` simulations the entry is removed when the result has a terminal status (`completed`, `failed`, `error`, `aborted`, `cancelled`) or when it expires. For `streaming` and `interactive` simulations the entry is **kept past a terminal status** and is only removed on expiry, so later frames of the same session can still be routed.
 4. **Purge** — Expired entries are opportunistically purged on every result lookup.
 
 ### Anti-Spoofing (bridge_index)
@@ -142,7 +142,13 @@ Incoming requests are identified by the tuple `(request_id, client_id, simulator
 
 ### Timeout Bounds
 
-User-provided timeouts are clamped to `[min_timeout_seconds, max_timeout_seconds]` from the `routing` config section. Defaults: min=30s, max=1200s (20 min).
+Each entry's `timeout_seconds` is resolved as follows, then clamped to `[min_timeout_seconds, max_timeout_seconds]` from the `routing` config section:
+
+- If the request provides a `timeout`, that value is used (for any simulation type).
+- Otherwise `streaming` and `interactive` requests default to `max_timeout_seconds`, so the entry survives the whole session.
+- Otherwise (`batch`) the entry uses the short built-in default of 60s.
+
+Config defaults: min=30s, max=1200s (20 min).
 
 ### Result Discard Behavior
 

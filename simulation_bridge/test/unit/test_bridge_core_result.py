@@ -109,6 +109,36 @@ class TestHandleResultMessage:
             bridge_core_instance.routing_table.lookup('r6')
             is not None)
 
+    def test_streaming_entry_kept_on_terminal(
+            self, bridge_core_instance, patch_basic_publish):
+        """Streaming entry survives a terminal status."""
+        bridge_core_instance.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='streaming', request_id='r7',
+            bridge_index='idx7'))
+        bridge_core_instance.handle_result_message(
+            None, message=result_message(
+                request_id='r7', status='completed',
+                bridge_index='idx7'))
+        assert (
+            bridge_core_instance.routing_table.lookup('r7')
+            is not None)
+
+    def test_interactive_entry_kept_on_terminal(
+            self, bridge_core_instance, patch_basic_publish):
+        """Interactive entry survives a terminal status."""
+        bridge_core_instance.routing_table.add(RoutingEntry(
+            pa_n='rabbitmq', pa_s='rabbitmq', dt='DT_1',
+            sim_type='interactive', request_id='r8',
+            bridge_index='idx8'))
+        bridge_core_instance.handle_result_message(
+            None, message=result_message(
+                request_id='r8', status='completed',
+                bridge_index='idx8'))
+        assert (
+            bridge_core_instance.routing_table.lookup('r8')
+            is not None)
+
 
 class TestResultRabbitmqBackwardCompat:
     """handle_result_rabbitmq_message delegates correctly."""
