@@ -184,6 +184,54 @@ class TestTimeoutClamping:
         assert entry.timeout_seconds == 900
 
 
+class TestTimeoutDefaultBySimType:
+    """Default timeout depends on simulation type when none is supplied."""
+
+    def test_streaming_defaults_to_max(
+            self, bridge_core_instance, patch_basic_publish):
+        """Streaming with no timeout defaults to max_timeout_seconds."""
+        msg = valid_input_message(
+            request_id='td1', sim_type='streaming', timeout=None)
+        bridge_core_instance.handle_input_message(
+            None, message=msg, producer='p',
+            consumer='c', protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('td1')
+        assert entry.timeout_seconds == 1200
+
+    def test_interactive_defaults_to_max(
+            self, bridge_core_instance, patch_basic_publish):
+        """Interactive with no timeout defaults to max_timeout_seconds."""
+        msg = valid_input_message(
+            request_id='td2', sim_type='interactive', timeout=None)
+        bridge_core_instance.handle_input_message(
+            None, message=msg, producer='p',
+            consumer='c', protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('td2')
+        assert entry.timeout_seconds == 1200
+
+    def test_batch_defaults_to_short(
+            self, bridge_core_instance, patch_basic_publish):
+        """Batch with no timeout keeps the short default."""
+        msg = valid_input_message(
+            request_id='td3', sim_type='batch', timeout=None)
+        bridge_core_instance.handle_input_message(
+            None, message=msg, producer='p',
+            consumer='c', protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('td3')
+        assert entry.timeout_seconds == 60
+
+    def test_streaming_request_timeout_wins(
+            self, bridge_core_instance, patch_basic_publish):
+        """A request-supplied timeout overrides the streaming default."""
+        msg = valid_input_message(
+            request_id='td4', sim_type='streaming', timeout=300)
+        bridge_core_instance.handle_input_message(
+            None, message=msg, producer='p',
+            consumer='c', protocol='rest')
+        entry = bridge_core_instance.routing_table.lookup('td4')
+        assert entry.timeout_seconds == 300
+
+
 class TestRequestDeduplication:
     """Tests that duplicate requests are discarded."""
 
