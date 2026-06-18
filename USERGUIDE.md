@@ -112,6 +112,9 @@ The _sim-bridge_ uses a YAML-based configuration file. Below is a comprehensive 
 simulation_bridge:
   bridge_id: simulation_bridge # ID used to identify this instance of the sim-bridge
   in_memory_mode: false # Set to true for in-memory mode
+  routing: # Routing-table timeout bounds for in-flight requests
+    max_timeout_seconds: 1200 # Upper bound (20 min); also the default kept time for streaming/interactive requests
+    min_timeout_seconds: 30 # Lower bound (30 s) any per-request timeout is clamped to
 
 # RabbitMQ protocol adapter configuration
 rabbitmq:

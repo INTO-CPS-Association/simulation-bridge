@@ -107,7 +107,8 @@ Q.bridge.input → RabbitMQAdapter._handle_input_queue()
         • Registers routing entry (pa_n, request_id, client_id, timeout)
         • Generates bridge_index (anti-spoofing token)
         • Deduplicates by (request_id, client_id, simulator)
-        • Clamps timeout to [min_timeout, max_timeout]
+        • Resolves timeout (request value, else max_timeout for
+          streaming/interactive, else 60s) clamped to [min_timeout, max_timeout]
 
 Bridge publishes to ex.bridge.output
     routing_key: {dt_id}.{simulator}
@@ -135,7 +136,8 @@ Q.bridge.result → RabbitMQAdapter._handle_result_queue()
         • Validates bridge_index
         • Overwrites destinations with routing-table DT
         • Routes to correct north-bound PA
-        • Removes entry on terminal status (completed/failed/error/aborted/cancelled)
+        • Removes batch entry on terminal status (completed/failed/error/aborted/cancelled);
+          streaming/interactive entries are kept until they expire
 
 Bridge publishes to ex.bridge.result  (if PA_N = rabbitmq)
     routing_key: {source}.result
